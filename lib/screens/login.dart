@@ -1,5 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/API/api_endpoint.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/otpVerificationPage.dart';
 import 'package:tazaquiznew/screens/singup.dart';
@@ -26,14 +30,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 600),
-    );
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    );
+    _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 600));
+    _fadeAnimation = CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
     _animationController.forward();
   }
 
@@ -46,31 +44,46 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      Future.delayed(Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        if (_isPhoneLogin) {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      try {
+        final data = {
+          'phone': _phoneController.text,
+          'email': _emailController.text,
+          'device_id': 'sd',
+          'androidInfo': 'android',
+        };
+        final response = await authRepository.loginUser(data);
+        if (response.statusCode == 200) {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => OTPBasedVerificationPage(
-                phoneNumber: _phoneController.text,
-              ),
-            ),
+            MaterialPageRoute(builder: (context) => OTPBasedVerificationPage(phoneNumber: _phoneController.text)),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: AppRichText.setTextPoppinsStyle(context, 'Login Successful!', 12, AppColors.white, FontWeight.normal, 1, TextAlign.left, 0.0),
-              backgroundColor: AppColors.tealGreen,
+              content: AppRichText.setTextPoppinsStyle(
+                context,
+                'Login Failed. Please try again.',
+                12,
+                AppColors.white,
+                FontWeight.normal,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+              backgroundColor: AppColors.red,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           );
         }
-      });
+      } catch (e) {
+      } finally {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -89,12 +102,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       body: SingleChildScrollView(
         child: Container(
           height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
-          child: Column(
-            children: [
-              _buildTopIllustration(),
-              Expanded(child: _buildLoginForm()),
-            ],
-          ),
+          child: Column(children: [_buildTopIllustration(), Expanded(child: _buildLoginForm())]),
         ),
       ),
     );
@@ -110,7 +118,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
           end: Alignment.bottomRight,
           colors: [AppColors.darkNavy, AppColors.tealGreen],
         ),
-     
       ),
       child: Stack(
         children: [
@@ -121,10 +128,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
             child: Container(
               width: 200,
               height: 200,
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
             ),
           ),
           Positioned(
@@ -133,10 +137,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
             child: Container(
               width: 150,
               height: 150,
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
             ),
           ),
           Positioned(
@@ -145,10 +146,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
             child: Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.lightGold.withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.lightGold.withOpacity(0.3), shape: BoxShape.circle),
             ),
           ),
           // Content
@@ -157,7 +155,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Spacer(),
-                
+
                 Container(
                   height: 120,
                   width: 120,
@@ -166,31 +164,39 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                     color: AppColors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(
-                        color: AppColors.black.withOpacity(0.1),
-                        blurRadius: 30,
-                        offset: Offset(0, 10),
-                      ),
+                      BoxShadow(color: AppColors.black.withOpacity(0.1), blurRadius: 30, offset: Offset(0, 10)),
                     ],
                   ),
                   child: Container(
-                  
-                          decoration: BoxDecoration(
-                                            
-                            image: DecorationImage(
-                              image: AssetImage('assets/images/logo.png'),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          ),
+                    decoration: BoxDecoration(
+                      image: DecorationImage(image: AssetImage('assets/images/logo.png'), fit: BoxFit.cover),
+                    ),
+                  ),
                 ),
                 SizedBox(height: 24),
-                AppRichText.setTextPoppinsStyle(context, 'QuizMaster', 32, AppColors.white, FontWeight.w900, 1, TextAlign.left, 1.0),
-                
-                SizedBox(height: 8),
-                AppRichText.setTextPoppinsStyle(context, 'Learn • Practice • Excel', 14, AppColors.lightGold, FontWeight.w600, 1, TextAlign.left, 2.0),
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  'QuizMaster',
+                  32,
+                  AppColors.white,
+                  FontWeight.w900,
+                  1,
+                  TextAlign.left,
+                  1.0,
+                ),
 
-              
+                SizedBox(height: 8),
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Learn • Practice • Excel',
+                  14,
+                  AppColors.lightGold,
+                  FontWeight.w600,
+                  1,
+                  TextAlign.left,
+                  2.0,
+                ),
+
                 SizedBox(height: 10),
               ],
             ),
@@ -212,18 +218,32 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
             children: [
               SizedBox(height: 0),
               Center(
-                child: AppRichText.setTextPoppinsStyle(context, 'Welcome Back!', 26, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
-
-              
+                child: AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Welcome Back!',
+                  26,
+                  AppColors.darkNavy,
+                  FontWeight.w900,
+                  1,
+                  TextAlign.left,
+                  0.0,
+                ),
               ),
               SizedBox(height: 8),
               Center(
-                child: AppRichText.setTextPoppinsStyle(context, 'Sign in to continue learning', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
-
-                
+                child: AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Sign in to continue learning',
+                  14,
+                  AppColors.greyS600,
+                  FontWeight.normal,
+                  1,
+                  TextAlign.left,
+                  0.0,
+                ),
               ),
               SizedBox(height: 25),
-             
+
               _buildPhoneFields(),
               SizedBox(height: 24),
               _buildLoginButton(),
@@ -242,20 +262,25 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
     );
   }
 
-
   Widget _buildPhoneFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppRichText.setTextPoppinsStyle(context, 'Phone Number', 14, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
+        AppRichText.setTextPoppinsStyle(
+          context,
+          'Phone Number',
+          14,
+          AppColors.darkNavy,
+          FontWeight.w700,
+          1,
+          TextAlign.left,
+          0.0,
+        ),
         SizedBox(height: 10),
         TextFormField(
           controller: _phoneController,
           keyboardType: TextInputType.phone,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(10),
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: 'Enter mobile number',
@@ -271,7 +296,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: AppColors.greyS700,
-                      fontFamily: "Poppins"
+                      fontFamily: "Poppins",
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -309,13 +334,18 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
             return null;
           },
         ),
-        ],
+      ],
     );
   }
 
   Widget _buildLoginButton() {
-    return AppButton.setButtonStyle(context, _isPhoneLogin ? 'Send OTP' : 'Sign In', _isLoading ? null : _handleLogin, _isLoading);
-}
+    return AppButton.setButtonStyle(
+      context,
+      _isPhoneLogin ? 'Send OTP' : 'Sign In',
+      _isLoading ? null : _handleLogin,
+      _isLoading,
+    );
+  }
 
   Widget _buildOrDivider() {
     return Row(
@@ -323,9 +353,16 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         Expanded(child: Divider(color: AppColors.greyS300, thickness: 1)),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
-          child: AppRichText.setTextPoppinsStyle(context, 'OR', 13, AppColors.greyS500, FontWeight.w700, 1, TextAlign.left, 0.0),
-
-         
+          child: AppRichText.setTextPoppinsStyle(
+            context,
+            'OR',
+            13,
+            AppColors.greyS500,
+            FontWeight.w700,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
         ),
         Expanded(child: Divider(color: AppColors.greyS300, thickness: 1)),
       ],
@@ -333,17 +370,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   }
 
   Widget _buildSocialButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSocialButton(
-            'Sign In With Google',
-            () {},
-          ),
-        ),
-       
-      ],
-    );
+    return Row(children: [Expanded(child: _buildSocialButton('Sign In With Google', () {}))]);
   }
 
   Widget _buildSocialButton(String name, VoidCallback onTap) {
@@ -359,29 +386,42 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-             Image.network(
-                'https://www.google.com/favicon.ico',
-                width: 20,
-                height: 20,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: AppColors.red,
-                      borderRadius: BorderRadius.circular(4),
+            Image.network(
+              'https://www.google.com/favicon.ico',
+              width: 20,
+              height: 20,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(4)),
+                  child: Center(
+                    child: AppRichText.setTextPoppinsStyle(
+                      context,
+                      'G',
+                      12,
+                      AppColors.white,
+                      FontWeight.bold,
+                      1,
+                      TextAlign.left,
+                      0.0,
                     ),
-                    child:  Center(
-                      child: AppRichText.setTextPoppinsStyle(context, 'G', 12, AppColors.white, FontWeight.bold, 1, TextAlign.left, 0.0),
-                     
-                    ),
-                  );
-                },
-              ),
-                                
+                  ),
+                );
+              },
+            ),
+
             SizedBox(width: 10),
-            AppRichText.setTextPoppinsStyle(context, name, 15, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
-           
+            AppRichText.setTextPoppinsStyle(
+              context,
+              name,
+              15,
+              AppColors.darkNavy,
+              FontWeight.w700,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
           ],
         ),
       ),
@@ -393,19 +433,21 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AppRichText.setTextPoppinsStyle(context, 'Don\'t have an account?', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
-
-         
-          SizedBox(width: 6),
-         AppButton.setGestureDetectorButtonStyle(context, 'Sign Up', 
-         () {
-           Navigator.push(
+          AppRichText.setTextPoppinsStyle(
             context,
-            MaterialPageRoute(
-              builder: (context) => RegistrationPage()));
-         })
-         
-          
+            'Don\'t have an account?',
+            14,
+            AppColors.greyS600,
+            FontWeight.normal,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+
+          SizedBox(width: 6),
+          AppButton.setGestureDetectorButtonStyle(context, 'Sign Up', () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage()));
+          }),
         ],
       ),
     );

@@ -1,6 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/home.dart';
 import 'package:tazaquiznew/screens/singup.dart';
@@ -52,34 +53,113 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
     });
   }
 
-  void _resendOTP() {
+  void _resendOTP() async {
     setState(() {
       _otpControllers.forEach((controller) => controller.clear());
       _focusNodes[0].requestFocus();
     });
     _startTimer();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: AppRichText.setTextPoppinsStyle(context, 'OTP sent successfully!', 12, AppColors.white, FontWeight.normal, 1, TextAlign.left, 0.0),
-        backgroundColor: AppColors.tealGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+
+    try {
+      final data = {'phone': widget.phoneNumber, 'email': '', 'device_id': 'sd', 'androidInfo': 'android'};
+      final response = await authRepository.loginUser(data);
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AppRichText.setTextPoppinsStyle(
+              context,
+              'OTP resent successfully',
+              12,
+              AppColors.white,
+              FontWeight.normal,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+            backgroundColor: AppColors.tealGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AppRichText.setTextPoppinsStyle(
+              context,
+              'Failed to resend OTP. Please try again.',
+              12,
+              AppColors.white,
+              FontWeight.normal,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+            backgroundColor: AppColors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
-  void _verifyOTP() {
+  void _verifyOTP() async {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+
     String otp = _otpControllers.map((controller) => controller.text).join();
     if (otp.length == 6) {
       setState(() => _isLoading = true);
-      Future.delayed(Duration(seconds: 2), () {
+      final data = {
+        'mobile': widget.phoneNumber,
+        'OTP': otp,
+        'name': '',
+        'email': '',
+        'device_id': '',
+        'referalCode': '',
+        'androidInfo': '',
+      };
+
+      final responseFuture = await authRepository.signupVerifyOTP(data);
+      if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);
         _showSuccessDialog();
-      });
+      } else {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AppRichText.setTextPoppinsStyle(
+              context,
+              'Invalid OTP. Please try again.',
+              12,
+              AppColors.white,
+              FontWeight.normal,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+            backgroundColor: AppColors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: AppRichText.setTextPoppinsStyle(context, 'Please enter complete OTP', 12, AppColors.white, FontWeight.normal, 1, TextAlign.left, 0.0),
+          content: AppRichText.setTextPoppinsStyle(
+            context,
+            'Please enter complete OTP',
+            12,
+            AppColors.white,
+            FontWeight.normal,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
           backgroundColor: AppColors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -92,72 +172,88 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.tealGreen, AppColors.darkNavy],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.check, color: AppColors.white, size: 48),
-              ),
-              SizedBox(height: 24),
-              AppRichText.setTextPoppinsStyle(context, 'Verification Successful!', 22, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.center, 0.0),
-             
-              SizedBox(height: 12),
-              AppRichText.setTextPoppinsStyle(context, 'You have been verified successfully', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.center, 0.0),
-
-             
-              SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Navigator.pop(context);
-                    // Navigator.pop(context);
-                     Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HomePage()));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.transparent,
-                    shadowColor: AppColors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                  child: Ink(
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.tealGreen, AppColors.darkNavy],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                      shape: BoxShape.circle,
                     ),
-                    child: Container(
-                      alignment: Alignment.center,
-                      child:  AppRichText.setTextPoppinsStyle(context, 'Continue', 16, AppColors.white, FontWeight.w700, 1, TextAlign.left, 0.0),
+                    child: Icon(Icons.check, color: AppColors.white, size: 48),
+                  ),
+                  SizedBox(height: 24),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Verification Successful!',
+                    22,
+                    AppColors.darkNavy,
+                    FontWeight.w800,
+                    1,
+                    TextAlign.center,
+                    0.0,
+                  ),
 
-                     
+                  SizedBox(height: 12),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'You have been verified successfully',
+                    14,
+                    AppColors.greyS600,
+                    FontWeight.normal,
+                    1,
+                    TextAlign.center,
+                    0.0,
+                  ),
+
+                  SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Navigator.pop(context);
+                        // Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.transparent,
+                        shadowColor: AppColors.transparent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: AppRichText.setTextPoppinsStyle(
+                            context,
+                            'Continue',
+                            16,
+                            AppColors.white,
+                            FontWeight.w700,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -184,22 +280,46 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.tealGreen, AppColors.darkNavy],
-                  ),
+                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(Icons.lock_outline, color: AppColors.white, size: 40),
               ),
               SizedBox(height: 32),
-              AppRichText.setTextPoppinsStyle(context, 'OTP Verification', 26, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
-             
-              SizedBox(height: 12),
-              AppRichText.setTextPoppinsStyle(context, 'Enter the 6-digit code sent to', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
-           
-              SizedBox(height: 4),
-              AppRichText.setTextPoppinsStyle(context, '+91 ${widget.phoneNumber}', 16, AppColors.tealGreen, FontWeight.w700, 1, TextAlign.left, 0.0),
+              AppRichText.setTextPoppinsStyle(
+                context,
+                'OTP Verification',
+                26,
+                AppColors.darkNavy,
+                FontWeight.w900,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
 
+              SizedBox(height: 12),
+              AppRichText.setTextPoppinsStyle(
+                context,
+                'Enter the 6-digit code sent to',
+                14,
+                AppColors.greyS600,
+                FontWeight.normal,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+
+              SizedBox(height: 4),
+              AppRichText.setTextPoppinsStyle(
+                context,
+                '+91 ${widget.phoneNumber}',
+                16,
+                AppColors.tealGreen,
+                FontWeight.w700,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
 
               SizedBox(height: 48),
               Row(
@@ -212,14 +332,20 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
                 children: [
                   Icon(Icons.schedule, size: 16, color: AppColors.greyS600),
                   SizedBox(width: 8),
-                  AppRichText.setTextPoppinsStyle(context, _resendTimer > 0 ? 'Resend OTP in ${_resendTimer}s' : 'Didn\'t receive code?', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    _resendTimer > 0 ? 'Resend OTP in ${_resendTimer}s' : 'Didn\'t receive code?',
+                    14,
+                    AppColors.greyS600,
+                    FontWeight.normal,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
 
-                 
                   if (_resendTimer == 0) ...[
                     SizedBox(width: 8),
-                    AppButton.setGestureDetectorButtonStyle(context, 'Resend', _resendOTP)
-
-                   
+                    AppButton.setGestureDetectorButtonStyle(context, 'Resend', _resendOTP),
                   ],
                 ],
               ),
@@ -238,9 +364,16 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
                     Icon(Icons.info_outline, color: AppColors.tealGreen, size: 20),
                     SizedBox(width: 12),
                     Expanded(
-                      child: AppRichText.setTextPoppinsStyle(context, 'OTP is valid for 10 minutes', 13, AppColors.darkNavy, FontWeight.w600, 1, TextAlign.left, 0.0),
-
-                     
+                      child: AppRichText.setTextPoppinsStyle(
+                        context,
+                        'OTP is valid for 10 minutes',
+                        13,
+                        AppColors.darkNavy,
+                        FontWeight.w600,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
                     ),
                   ],
                 ),
@@ -270,17 +403,9 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
         maxLength: 1,
-          style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.greyS700,
-                  fontFamily: "Poppins"
-                ),
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.greyS700, fontFamily: "Poppins"),
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: InputDecoration(
-          counterText: '',
-          border: InputBorder.none,
-        ),
+        decoration: InputDecoration(counterText: '', border: InputBorder.none),
         onChanged: (value) {
           if (value.length == 1 && index < 5) {
             _focusNodes[index + 1].requestFocus();
@@ -293,4 +418,3 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
     );
   }
 }
-
