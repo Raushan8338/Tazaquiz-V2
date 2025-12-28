@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -56,29 +58,63 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
           'androidInfo': 'android',
         };
         final response = await authRepository.loginUser(data);
+
         if (response.statusCode == 200) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => OTPBasedVerificationPage(phoneNumber: _phoneController.text)),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: AppRichText.setTextPoppinsStyle(
-                context,
-                'Login Failed. Please try again.',
-                12,
-                AppColors.white,
-                FontWeight.normal,
-                1,
-                TextAlign.left,
-                0.0,
+          final data = jsonDecode(response.data); // ✅ FIX
+
+          final status = data['status'];
+          final otpSent = data['otp_sent'] == true;
+
+          if (status == "register" && otpSent) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => OTPBasedVerificationPage(
+                      phoneNumber: _phoneController.text,
+                      name: '',
+                      email: '',
+                      referalCode: '',
+                    ),
               ),
-              backgroundColor: AppColors.red,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
+            );
+          } else if (status == "not_register") {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Something went wrong. Please try again.',
+                  12,
+                  AppColors.white,
+                  FontWeight.normal,
+                  1,
+                  TextAlign.left,
+                  0.0,
+                ),
+                backgroundColor: AppColors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Something went wrong. Please try again.',
+                  12,
+                  AppColors.white,
+                  FontWeight.normal,
+                  1,
+                  TextAlign.left,
+                  0.0,
+                ),
+                backgroundColor: AppColors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
         }
       } catch (e) {
       } finally {

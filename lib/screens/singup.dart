@@ -1,10 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/login.dart';
+import 'package:tazaquiznew/screens/otpVerificationPage.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
-
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -29,107 +33,81 @@ class _RegistrationPageState extends State<RegistrationPage> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
-      // Simulate API call
-      Future.delayed(Duration(seconds: 2), () {
-        setState(() => _isLoading = false);
-        _showSuccessDialog();
-      });
-    }
-  }
+      Authrepository authRepository = Authrepository(Api_Client.dio);
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.tealGreen, AppColors.darkNavy],
+      setState(() => _isLoading = true);
+      final data = {
+        'mobile': _phoneController.text.trim(),
+        'OTP': '',
+        'name': '',
+        'email': '',
+        'device_id': '',
+        'referalCode': '',
+        'androidInfo': '',
+      };
+
+      final responseFuture = await authRepository.signupVerifyOTP(data);
+      print('Signup Response: ${responseFuture.data}');
+      if (responseFuture.statusCode == 200) {
+        setState(() => _isLoading = false);
+        final Map<String, dynamic> dataRes = responseFuture.data;
+
+        if (dataRes['status'] == 'OTP sent successfully!') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => OTPBasedVerificationPage(
+                    phoneNumber: _phoneController.text.trim(),
+                    name: _nameController.text.trim(),
+                    email: _emailController.text.trim(),
+                    referalCode: _hasReferralCode ? _referralController.text.trim() : '',
                   ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.check_circle, color: AppColors.lightGold, size: 48),
-              ),
-              SizedBox(height: 24),
-              AppRichText.setTextPoppinsStyle(
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: AppRichText.setTextPoppinsStyle(
                 context,
-                'Registration Successful!',
-                22,
-                AppColors.darkNavy,
-                FontWeight.w900,
+                'User Already Exists Or Invalid OTP',
+                12,
+                AppColors.white,
+                FontWeight.normal,
                 1,
-                TextAlign.center,
-                1.2,
+                TextAlign.left,
+                0.0,
               ),
-              SizedBox(height: 12),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                'Your account has been created',
-                14,
-                AppColors.greyS600,
-                FontWeight.w500,
-                1,
-                TextAlign.center,
-                1.5,
-              ),
-              SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.transparent,
-                    shadowColor: AppColors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                  child: Ink(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.tealGreen, AppColors.darkNavy],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Continue',
-                        16,
-                        AppColors.white,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              backgroundColor: AppColors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      } else {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: AppRichText.setTextPoppinsStyle(
+              context,
+              'Error Occured. Please try again.',
+              12,
+              AppColors.white,
+              FontWeight.normal,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+            backgroundColor: AppColors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-        ),
-      ),
-    );
+        );
+      }
+    }
   }
 
   @override
@@ -140,28 +118,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
         child: SingleChildScrollView(
           child: Container(
             height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
-            child: Column(
-              children: [
-                _buildTopIllustration(),
-               
-                Expanded(child: _buildRegistrationForm()),
-              ],
-            ),
+            child: Column(children: [_buildTopIllustration(), Expanded(child: _buildRegistrationForm())]),
           ),
         ),
       ),
     );
   }
 
-
   Widget _buildRegistrationForm() {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
       ),
       child: Form(
         key: _formKey,
@@ -170,8 +138,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-       
-             
               _buildTextField(
                 controller: _nameController,
                 label: 'Full Name',
@@ -220,9 +186,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       });
                     },
                     activeColor: AppColors.tealGreen,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   ),
                   AppRichText.setTextPoppinsStyle(
                     context,
@@ -328,9 +292,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
               fontWeight: FontWeight.w500,
               fontSize: 15,
             ),
-            
+
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-             filled: true,
+            filled: true,
             fillColor: AppColors.greyS50,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -356,27 +320,33 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   Widget _buildPhoneField() {
-    return  Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppRichText.setTextPoppinsStyle(context, 'Phone Number', 14, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
+        AppRichText.setTextPoppinsStyle(
+          context,
+          'Phone Number',
+          14,
+          AppColors.darkNavy,
+          FontWeight.w700,
+          1,
+          TextAlign.left,
+          0.0,
+        ),
         SizedBox(height: 10),
         TextFormField(
           controller: _phoneController,
           keyboardType: TextInputType.phone,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(10),
-          ],
-          style:  TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
           decoration: InputDecoration(
             hintText: 'Enter mobile number',
             hintStyle: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.greyS700,
-                      fontFamily: "Poppins"
-                    ),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.greyS700,
+              fontFamily: "Poppins",
+            ),
             prefixIcon: Padding(
               padding: const EdgeInsets.only(left: 15, right: 10),
               child: Row(
@@ -388,7 +358,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: AppColors.greyS700,
-                      fontFamily: "Poppins"
+                      fontFamily: "Poppins",
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -426,10 +396,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
             return null;
           },
         ),
-        ],
-    ); }
+      ],
+    );
+  }
 
- 
   Widget _buildTermsAndConditions() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -477,10 +447,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
             0.0,
           ),
           GestureDetector(
-            onTap: () =>  Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OtpLoginPage())),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => OtpLoginPage())),
             child: AppRichText.setTextPoppinsStyle(
               context,
               'Sign In',
@@ -497,7 +464,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     );
   }
 
-    Widget _buildTopIllustration() {
+  Widget _buildTopIllustration() {
     return Container(
       height: 220,
       width: double.infinity,
@@ -507,7 +474,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
           end: Alignment.bottomRight,
           colors: [AppColors.darkNavy, AppColors.tealGreen],
         ),
-     
       ),
       child: Stack(
         children: [
@@ -517,10 +483,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
             child: Container(
               width: 200,
               height: 200,
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
             ),
           ),
           Positioned(
@@ -529,10 +492,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
             child: Container(
               width: 150,
               height: 150,
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
             ),
           ),
           Positioned(
@@ -541,60 +501,55 @@ class _RegistrationPageState extends State<RegistrationPage> {
             child: Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.lightGold.withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.lightGold.withOpacity(0.3), shape: BoxShape.circle),
             ),
           ),
           Padding(
-            padding:  EdgeInsets.fromLTRB(24, 20, 24, 0),
+            padding: EdgeInsets.fromLTRB(24, 20, 24, 0),
             child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints(),
-              icon: Container(
-                padding: EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
+                  icon: Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
+                  ),
+                  onPressed: () => Navigator.pop(context),
                 ),
-                child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
-              ),
-              onPressed: () => Navigator.pop(context),
+                SizedBox(height: 32),
+
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Create Account',
+                  26,
+                  AppColors.white,
+                  FontWeight.w900,
+                  1,
+                  TextAlign.left,
+                  1.2,
+                ),
+                SizedBox(height: 8),
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Sign up to get started',
+                  16,
+                  AppColors.white.withOpacity(0.9),
+                  FontWeight.w500,
+                  1,
+                  TextAlign.left,
+                  1.5,
+                ),
+              ],
             ),
-            SizedBox(height: 32),
-           
-            AppRichText.setTextPoppinsStyle(
-              context,
-              'Create Account',
-              26,
-              AppColors.white,
-              FontWeight.w900,
-              1,
-              TextAlign.left,
-              1.2,
-            ),
-            SizedBox(height: 8),
-            AppRichText.setTextPoppinsStyle(
-              context,
-              'Sign up to get started',
-              16,
-              AppColors.white.withOpacity(0.9),
-              FontWeight.w500,
-              1,
-              TextAlign.left,
-              1.5,
-            ),
-            ],
           ),
-          ),
-   ],
+        ],
       ),
     );
   }
-
 }
-
