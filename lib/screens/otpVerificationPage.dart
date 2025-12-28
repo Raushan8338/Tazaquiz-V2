@@ -59,7 +59,6 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
   }
 
   void _resendOTP() async {
-    // Ye check kro
     setState(() {
       _otpControllers.forEach((controller) => controller.clear());
       _focusNodes[0].requestFocus();
