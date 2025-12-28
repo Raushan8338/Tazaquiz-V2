@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'dart:async';
 import 'package:tazaquiznew/screens/homeSceen.dart';
+import 'package:tazaquiznew/screens/login.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -10,6 +11,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
+       //hyggtt
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -50,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen>
     Timer(Duration(seconds: 2), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()), 
+        MaterialPageRoute(builder: (context) => OtpLoginPage()), 
       );
     });
   }

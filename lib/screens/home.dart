@@ -13,6 +13,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+   //hyggtt
   int _currentBannerIndex = 0;
   int _selectedNavIndex = 0;
   PageController _bannerController = PageController();
@@ -138,7 +139,7 @@ class _HomePageState extends State<HomePage> {
       floating: true,
       backgroundColor: AppColors.white,
       elevation: 0,
-     // leading: Drawer(),
+      leading: Drawer(),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

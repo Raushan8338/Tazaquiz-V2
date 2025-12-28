@@ -12,7 +12,7 @@ class StudyMaterialScreen extends StatefulWidget {
 class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _selectedCategory = 'All';
-
+ //hyggtt
   final List<String> _categories = ['All', 'Mathematics', 'Science', 'English', 'Physics', 'Chemistry'];
 
   final List<Map<String, dynamic>> _studyMaterials = [

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-
+ //hyggtt
   static const Color darkNavy = Color(0xFF003161);
   static const Color tealGreen = Color(0xFF016A67);
   static const Color green = Colors.green;
@@ -15,13 +15,8 @@ class AppColors {
   static const Color orange = Colors.orange;
   static Color orangeS1 = Colors.orange[700]!;
   static const Color greyS1 = Color(0xFFF8F9FD);
-<<<<<<< Updated upstream
-  
-
-=======
   static const Color purple =Colors.purple;
   static const Color blue =Colors.blue;
->>>>>>> Stashed changes
   static const Color white = Colors.white;
   static const Color black = Colors.black;
   static  Color greyS700 =Colors.grey.shade700;
