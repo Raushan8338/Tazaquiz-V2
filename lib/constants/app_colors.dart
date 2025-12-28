@@ -15,7 +15,7 @@ class AppColors {
   static const Color orange = Colors.orange;
   static Color orangeS1 = Colors.orange[700]!;
   static const Color greyS1 = Color(0xFFF8F9FD);
-   static const Color purple =Colors.purple;
+  
 
   static const Color white = Colors.white;
   static const Color black = Colors.black;
