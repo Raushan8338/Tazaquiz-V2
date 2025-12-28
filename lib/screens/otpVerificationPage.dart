@@ -1,0 +1,296 @@
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/screens/home.dart';
+import 'package:tazaquiznew/screens/singup.dart';
+import 'dart:async';
+
+import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/widgets/custom_button.dart';
+
+class OTPBasedVerificationPage extends StatefulWidget {
+  final String phoneNumber;
+
+  OTPBasedVerificationPage({required this.phoneNumber});
+
+  @override
+  _OTPBasedVerificationPageState createState() => _OTPBasedVerificationPageState();
+}
+
+class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
+  final List<TextEditingController> _otpControllers = List.generate(6, (index) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
+  bool _isLoading = false;
+  int _resendTimer = 60;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _otpControllers.forEach((controller) => controller.dispose());
+    _focusNodes.forEach((node) => node.dispose());
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _resendTimer = 60;
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_resendTimer > 0) {
+          _resendTimer--;
+        } else {
+          _timer?.cancel();
+        }
+      });
+    });
+  }
+
+  void _resendOTP() {
+    setState(() {
+      _otpControllers.forEach((controller) => controller.clear());
+      _focusNodes[0].requestFocus();
+    });
+    _startTimer();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: AppRichText.setTextPoppinsStyle(context, 'OTP sent successfully!', 12, AppColors.white, FontWeight.normal, 1, TextAlign.left, 0.0),
+        backgroundColor: AppColors.tealGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _verifyOTP() {
+    String otp = _otpControllers.map((controller) => controller.text).join();
+    if (otp.length == 6) {
+      setState(() => _isLoading = true);
+      Future.delayed(Duration(seconds: 2), () {
+        setState(() => _isLoading = false);
+        _showSuccessDialog();
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: AppRichText.setTextPoppinsStyle(context, 'Please enter complete OTP', 12, AppColors.white, FontWeight.normal, 1, TextAlign.left, 0.0),
+          backgroundColor: AppColors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.tealGreen, AppColors.darkNavy],
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.check, color: AppColors.white, size: 48),
+              ),
+              SizedBox(height: 24),
+              AppRichText.setTextPoppinsStyle(context, 'Verification Successful!', 22, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.center, 0.0),
+             
+              SizedBox(height: 12),
+              AppRichText.setTextPoppinsStyle(context, 'You have been verified successfully', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.center, 0.0),
+
+             
+              SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Navigator.pop(context);
+                    // Navigator.pop(context);
+                     Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HomePage()));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.transparent,
+                    shadowColor: AppColors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.tealGreen, AppColors.darkNavy],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Container(
+                      alignment: Alignment.center,
+                      child:  AppRichText.setTextPoppinsStyle(context, 'Continue', 16, AppColors.white, FontWeight.w700, 1, TextAlign.left, 0.0),
+
+                     
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      appBar: AppBar(
+        backgroundColor: AppColors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppColors.darkNavy),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(height: 20),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.tealGreen, AppColors.darkNavy],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(Icons.lock_outline, color: AppColors.white, size: 40),
+              ),
+              SizedBox(height: 32),
+              AppRichText.setTextPoppinsStyle(context, 'OTP Verification', 26, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
+             
+              SizedBox(height: 12),
+              AppRichText.setTextPoppinsStyle(context, 'Enter the 6-digit code sent to', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+           
+              SizedBox(height: 4),
+              AppRichText.setTextPoppinsStyle(context, '+91 ${widget.phoneNumber}', 16, AppColors.tealGreen, FontWeight.w700, 1, TextAlign.left, 0.0),
+
+
+              SizedBox(height: 48),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(6, (index) => _buildOTPBox(index)),
+              ),
+              SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.schedule, size: 16, color: AppColors.greyS600),
+                  SizedBox(width: 8),
+                  AppRichText.setTextPoppinsStyle(context, _resendTimer > 0 ? 'Resend OTP in ${_resendTimer}s' : 'Didn\'t receive code?', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+
+                 
+                  if (_resendTimer == 0) ...[
+                    SizedBox(width: 8),
+                    AppButton.setGestureDetectorButtonStyle(context, 'Resend', _resendOTP)
+
+                   
+                  ],
+                ],
+              ),
+              SizedBox(height: 48),
+              AppButton.setButtonStyle(context, 'Verify & Continue', _isLoading ? null : _verifyOTP, _isLoading),
+              SizedBox(height: 32),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFDEB9E).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Color(0xFFFDEB9E).withOpacity(0.5)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: AppColors.tealGreen, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: AppRichText.setTextPoppinsStyle(context, 'OTP is valid for 10 minutes', 13, AppColors.darkNavy, FontWeight.w600, 1, TextAlign.left, 0.0),
+
+                     
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOTPBox(int index) {
+    return Container(
+      width: 48,
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _otpControllers[index].text.isNotEmpty ? AppColors.tealGreen : Colors.grey[300]!,
+          width: 2,
+        ),
+      ),
+      child: TextField(
+        controller: _otpControllers[index],
+        focusNode: _focusNodes[index],
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        maxLength: 1,
+          style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.greyS700,
+                  fontFamily: "Poppins"
+                ),
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: InputDecoration(
+          counterText: '',
+          border: InputBorder.none,
+        ),
+        onChanged: (value) {
+          if (value.length == 1 && index < 5) {
+            _focusNodes[index + 1].requestFocus();
+          } else if (value.isEmpty && index > 0) {
+            _focusNodes[index - 1].requestFocus();
+          }
+          setState(() {});
+        },
+      ),
+    );
+  }
+}
+

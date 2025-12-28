@@ -59,4 +59,67 @@ class AppRichText {
       ),
     );
   }
+
+ 
+  static Widget setTextPoppinsStyle(
+    context,
+    String text,
+    double fontSize,
+    Color color,
+    FontWeight fontWeight,
+    int lines,
+    TextAlign textAlign,
+    double letterSpacing
+  ) {
+    return RichText(
+      overflow: TextOverflow.ellipsis,
+      maxLines: lines,
+      text: TextSpan(
+        style: TextStyle(
+          fontStyle: FontStyle.normal,
+          fontSize: fontSize,
+          color: color,
+          fontWeight: fontWeight,
+          fontFamily: 'Poppins',
+          letterSpacing : letterSpacing
+        ),
+        text: text,
+      ),
+      textAlign: textAlign,
+    );
+  }
+
+
+ 
+  static Widget setTextLineThroughStyle(
+    context,
+    String text,
+    double fontSize,
+    Color color,
+    FontWeight fontWeight,
+    int lines,
+    TextAlign textAlign,
+    double letterSpacing
+  ) {
+    return RichText(
+      overflow: TextOverflow.ellipsis,
+      maxLines: lines,
+      
+      text: TextSpan(
+        style: TextStyle(
+          decoration: TextDecoration.lineThrough,
+          fontStyle: FontStyle.normal,
+          fontSize: fontSize,
+          color: color,
+          fontWeight: fontWeight,
+          fontFamily: 'Poppins',
+          letterSpacing : letterSpacing
+          
+        ),
+        text: text,
+      ),
+      textAlign: textAlign,
+    );
+  }
+
 }

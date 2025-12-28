@@ -6,6 +6,7 @@ import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/login.dart';
 import 'package:tazaquiznew/screens/studyMaterial.dart';
 import 'package:tazaquiznew/screens/testSeries.dart';
+import 'package:tazaquiznew/testpage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,8 +20,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Taza Quiz',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
-      home: LoginPage(),
+      debugShowCheckedModeBanner: false,
+
+      home: OtpLoginPage()//LoginPage(),
     );
   }
 }

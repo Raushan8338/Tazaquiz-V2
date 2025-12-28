@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/app_colors.dart';
 import 'dart:async';
+
+import 'package:tazaquiznew/screens/livetest.dart';
+import 'package:tazaquiznew/utils/richText.dart';
 
 class LiveTestSeriesPage extends StatefulWidget {
   @override
@@ -94,7 +98,7 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF8F9FD),
+      backgroundColor: AppColors.greyS1,
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
@@ -118,40 +122,41 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
     return SliverAppBar(
       expandedHeight: 120,
       pinned: true,
-      backgroundColor: Color(0xFF003161),
+      backgroundColor: AppColors.darkNavy,
       leading: IconButton(
         icon: Container(
           padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+          child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: [
-        IconButton(
-          icon: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
-          ),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.filter_list, color: Colors.white, size: 20),
-          ),
-          onPressed: () => _showFilterSheet(),
-        ),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
+      // actions: [
+      //   IconButton(
+      //     icon: Container(
+      //       padding: EdgeInsets.all(8),
+      //       decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+      //       child: Icon(Icons.notifications_outlined, color: AppColors.white, size: 20),
+      //     ),
+      //     onPressed: () {},
+      //   ),
+      //   IconButton(
+      //     icon: Container(
+      //       padding: EdgeInsets.all(8),
+      //       decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+      //       child: Icon(Icons.filter_list, color: AppColors.white, size: 20),
+      //     ),
+      //     onPressed: () => _showFilterSheet(),
+      //   ),
+      // ],
+       
+       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF003161), Color(0xFF016A67)],
+              colors: [AppColors.darkNavy, AppColors.tealGreen],
             ),
           ),
           child: Stack(
@@ -162,7 +167,7 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                 child: Container(
                   width: 200,
                   height: 200,
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
               Positioned(
@@ -171,7 +176,7 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                 child: Container(
                   width: 150,
                   height: 150,
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
               SafeArea(
@@ -186,20 +191,28 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                           Container(
                             padding: EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Color(0xFFFDEB9E),
+                              color: AppColors.lightGold,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Icon(Icons.bolt, color: Color(0xFF003161), size: 24),
+                            child: Icon(Icons.bolt, color: AppColors.darkNavy, size: 24),
                           ),
                           SizedBox(width: 12),
-                          Text(
-                            'Live Test Series',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
-                          ),
+                          AppRichText.setTextPoppinsStyle(
+                              context,
+                              'Live Test Series',
+                              24,
+                              AppColors.white,
+                              FontWeight.w900,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                          
                         ],
                       ),
                       SizedBox(height: 6),
-                      Text('Compete in real-time challenges', style: TextStyle(fontSize: 13, color: Color(0xFFFDEB9E))),
+                      
+                      
                     ],
                   ),
                 ),
@@ -219,10 +232,10 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFDEB9E), Color(0xFFFDD835)],
+          colors: [AppColors.lightGold, AppColors.lightGoldS2],
         ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Color(0xFFFDEB9E).withOpacity(0.5), blurRadius: 20, offset: Offset(0, 10))],
+        boxShadow: [BoxShadow(color: AppColors.lightGold.withOpacity(0.5), blurRadius: 20, offset: Offset(0, 10))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,32 +244,53 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
             children: [
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: Color(0xFF003161), borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: AppColors.darkNavy, borderRadius: BorderRadius.circular(20)),
                 child: Row(
                   children: [
-                    Icon(Icons.star, color: Color(0xFFFDEB9E), size: 14),
+                    Icon(Icons.star, color: AppColors.lightGold, size: 14),
                     SizedBox(width: 4),
-                    Text(
-                      'FEATURED',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
-                    ),
+                    AppRichText.setTextPoppinsStyle(
+                              context,
+                              'FEATURED',
+                              10,
+                              AppColors.white,
+                              FontWeight.w900,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                   
                   ],
                 ),
               ),
               Spacer(),
-              Icon(Icons.emoji_events, color: Color(0xFF003161), size: 32),
+              Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 32),
             ],
           ),
           SizedBox(height: 16),
-          Text(
-            'Weekly Championship',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF003161)),
-          ),
+          AppRichText.setTextPoppinsStyle(
+              context,
+              'Weekly Championship',
+              20,
+              AppColors.darkNavy,
+              FontWeight.w900,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+         
           SizedBox(height: 8),
-          Text(
-            'Win exciting prizes worth ₹50,000',
-            style: TextStyle(fontSize: 14, color: Color(0xFF016A67), fontWeight: FontWeight.w600),
-          ),
+          AppRichText.setTextPoppinsStyle(
+              context,
+              'Win exciting prizes worth ₹500',
+              14,
+              AppColors.tealGreen,
+              FontWeight.w600,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+         
           SizedBox(height: 16),
           Row(
             children: [
@@ -275,18 +309,33 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
       children: [
         Container(
           padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Color(0xFF003161).withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, color: Color(0xFF003161), size: 18),
+          decoration: BoxDecoration(color: AppColors.darkNavy.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, color: AppColors.darkNavy, size: 18),
         ),
         SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            AppRichText.setTextPoppinsStyle(
+              context,
               value,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
+              14,
+              AppColors.darkNavy,
+              FontWeight.w700,
+              1,
+              TextAlign.left,
+              0.0,
             ),
-            Text(label, style: TextStyle(fontSize: 11, color: Color(0xFF016A67))),
+            AppRichText.setTextPoppinsStyle(
+              context,
+              label,
+              11,
+              AppColors.tealGreen,
+              FontWeight.normal,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
           ],
         ),
       ],
@@ -298,11 +347,11 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Expanded(child: _buildStatCard(Icons.trending_up, '2,450', 'Your Rank', Color(0xFF016A67))),
+          Expanded(child: _buildStatCard(Icons.trending_up, '2,450', 'Your Rank', AppColors.tealGreen)),
           SizedBox(width: 12),
-          Expanded(child: _buildStatCard(Icons.emoji_events, '15', 'Tests Won', Color(0xFF003161))),
+          Expanded(child: _buildStatCard(Icons.emoji_events, '15', 'Tests Won', AppColors.darkNavy)),
           SizedBox(width: 12),
-          Expanded(child: _buildStatCard(Icons.star, '12,340', 'Total XP', Color(0xFF000B58))),
+          Expanded(child: _buildStatCard(Icons.star, '12,340', 'Total XP', AppColors.oxfordBlue)),
         ],
       ),
     );
@@ -312,7 +361,7 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))],
       ),
@@ -324,15 +373,27 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
             child: Icon(icon, color: color, size: 24),
           ),
           SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color),
-          ),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
+          AppRichText.setTextPoppinsStyle(
+              context,
+              value,
+              18,
+              color,
+              FontWeight.w900,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+          AppRichText.setTextPoppinsStyle(
+              context,
+              label,
+              11,
+              AppColors.greyS600,
+              FontWeight.normal,
+              1,
+              TextAlign.center,
+              0.0,
+            ),
+          
         ],
       ),
     );
@@ -358,25 +419,28 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
               margin: EdgeInsets.only(right: 12),
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                gradient: isSelected ? LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]) : null,
-                color: isSelected ? null : Colors.white,
+                gradient: isSelected ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
+                color: isSelected ? null : AppColors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   if (isSelected)
-                    BoxShadow(color: Color(0xFF016A67).withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5))
+                    BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5))
                   else
                     BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: Offset(0, 2)),
                 ],
               ),
               child: Center(
-                child: Text(
+                child: AppRichText.setTextPoppinsStyle(
+                  context,
                   _filters[index],
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: isSelected ? Colors.white : Colors.grey[700],
-                  ),
+                  14,
+                  isSelected ? AppColors.white : AppColors.greyS700,
+                  FontWeight.w700,
+                  1,
+                  TextAlign.left,
+                  0.0,
                 ),
+               
               ),
             ),
           );
@@ -404,139 +468,205 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
   }
 
   Widget _buildLiveTestCard(Map<String, dynamic> test) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF003161), Color(0xFF016A67)],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Color(0xFF003161).withOpacity(0.3), blurRadius: 20, offset: Offset(0, 10))],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -30,
-            top: -30,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
-            ),
+    return InkWell(
+      onTap: (){
+         Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LiveTestScreen()));
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.darkNavy, AppColors.tealGreen],
           ),
-          Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'LIVE NOW',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: Color(0xFFFDEB9E), borderRadius: BorderRadius.circular(12)),
-                      child: Icon(Icons.bolt, color: Color(0xFF003161), size: 24),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                Text(
-                  test['title'],
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
-                ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        test['subject'],
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFFDEB9E)),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      '${test['questions']} Questions • ${test['duration']}',
-                      style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 10))],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Time Left', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.7))),
-                          SizedBox(height: 4),
-                          Text(
-                            '${test['timeLeft']['minutes'].toString().padLeft(2, '0')}:${test['timeLeft']['seconds'].toString().padLeft(2, '0')}',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFFFDEB9E)),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.people, color: Color(0xFFFDEB9E), size: 16),
-                              SizedBox(width: 4),
-                              Text(
-                                '${test['participants']} playing',
-                                style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(color: Color(0xFFFDEB9E), borderRadius: BorderRadius.circular(8)),
-                            child: Text(
-                              'Join Now',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF003161)),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(20)),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 6),
+                            AppRichText.setTextPoppinsStyle(
+                              context,
+                              'LIVE NOW',
+                              14,
+                              AppColors.white,
+                              FontWeight.w900,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                           
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(12)),
+                        child: Icon(Icons.bolt, color: AppColors.darkNavy, size: 24),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  SizedBox(height: 16),
+                  AppRichText.setTextPoppinsStyle(
+                              context,
+                              test['title'],
+                              18,
+                              AppColors.white,
+                              FontWeight.w800,
+                              2,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                 
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: AppRichText.setTextPoppinsStyle(
+                              context,
+                              test['subject'],
+                              11,
+                              AppColors.lightGold,
+                              FontWeight.w600,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                    
+                      ),
+                      SizedBox(width: 8),
+                      AppRichText.setTextPoppinsStyle(
+                            context,
+                            '${test['questions']} Questions • ${test['duration']}',
+                            12,
+                            AppColors.white.withOpacity(0.8),
+                            FontWeight.normal,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
+                     
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppRichText.setTextPoppinsStyle(
+                            context,
+                            'Time Left',
+                            11,
+                            AppColors.white.withOpacity(0.7),
+                            FontWeight.normal,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
+                            SizedBox(height: 4),
+                            AppRichText.setTextPoppinsStyle(
+                            context,
+                            '${test['timeLeft']['minutes'].toString().padLeft(2, '0')}:${test['timeLeft']['seconds'].toString().padLeft(2, '0')}',
+                            24,
+                            AppColors.lightGold,
+                            FontWeight.w900,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
+                           
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.people, color: AppColors.lightGold, size: 16),
+                                SizedBox(width: 4),
+                                AppRichText.setTextPoppinsStyle(
+                                    context,
+                                    '${test['participants']} playing',
+                                    12,
+                                    AppColors.white,
+                                    FontWeight.w600,
+                                    1,
+                                    TextAlign.left,
+                                    0.0,
+                                  ),
+                               
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(8)),
+                              child:  AppRichText.setTextPoppinsStyle(
+                                context,
+                                'Join Now',
+                                12,
+                                AppColors.darkNavy,
+                                FontWeight.w900,
+                                1,
+                                TextAlign.left,
+                                0.0,
+                              ),
+                              
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -546,7 +676,7 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
       ),
@@ -559,74 +689,111 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Color(0xFF016A67).withOpacity(0.1),
+                  color: AppColors.tealGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.schedule, color: Color(0xFF016A67), size: 14),
+                    Icon(Icons.schedule, color: AppColors.tealGreen, size: 14),
                     SizedBox(width: 6),
-                    Text(
+                    AppRichText.setTextPoppinsStyle(
+                      context,
                       'UPCOMING',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF016A67)),
+                      11,
+                      AppColors.tealGreen,
+                      FontWeight.w900,
+                      1,
+                      TextAlign.left,
+                      0.0,
                     ),
+                   
                   ],
                 ),
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFFFDEB9E), Color(0xFFFDD835)]),
+                  gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.emoji_events, color: Color(0xFF003161), size: 14),
+                    Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 14),
                     SizedBox(width: 4),
-                    Text(
-                      test['prize'],
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF003161)),
-                    ),
+                    AppRichText.setTextPoppinsStyle(
+                                context,
+                                test['prize'],
+                                11,
+                                AppColors.darkNavy,
+                                FontWeight.w900,
+                                1,
+                                TextAlign.left,
+                                0.0,
+                              ),
+                   
                   ],
                 ),
               ),
             ],
           ),
           SizedBox(height: 16),
-          Text(
-            test['title'],
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF003161)),
-          ),
+          AppRichText.setTextPoppinsStyle(
+                              context,
+                              test['title'],
+                              18,
+                              AppColors.darkNavy,
+                              FontWeight.w800,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
+         
           SizedBox(height: 8),
           Row(
             children: [
-              _buildTestInfoChip(Icons.subject, test['subject'], Color(0xFF016A67)),
+              _buildTestInfoChip(Icons.subject, test['subject'], AppColors.tealGreen),
               SizedBox(width: 8),
-              _buildTestInfoChip(Icons.quiz, '${test['questions']} Q', Color(0xFF003161)),
+              _buildTestInfoChip(Icons.quiz, '${test['questions']} Q', AppColors.darkNavy),
               SizedBox(width: 8),
-              _buildTestInfoChip(Icons.timer, test['duration'], Color(0xFF000B58)),
+              _buildTestInfoChip(Icons.timer, test['duration'], AppColors.oxfordBlue),
             ],
           ),
           SizedBox(height: 16),
           Container(
             padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Color(0xFFF8F9FD), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Starts In', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                      AppRichText.setTextPoppinsStyle(
+                              context,
+                              'Starts In',
+                              11,
+                              AppColors.greyS600,
+                              FontWeight.normal,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
                       SizedBox(height: 4),
                       Row(
                         children: [
                           _buildCountdownBox(test['timeLeft']['hours'].toString(), 'HRS'),
                           SizedBox(width: 4),
-                          Text(
-                            ':',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
-                          ),
+                          AppRichText.setTextPoppinsStyle(
+                          context,
+                          ':',
+                          11,
+                          AppColors.darkNavy,
+                          FontWeight.w700,
+                          1,
+                          TextAlign.left,
+                          0.0,
+                        ),
+                       
                           SizedBox(width: 4),
                           _buildCountdownBox(test['timeLeft']['minutes'].toString().padLeft(2, '0'), 'MIN'),
                         ],
@@ -637,31 +804,48 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('${test['participants']} registered', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    AppRichText.setTextPoppinsStyle(
+                        context,
+                        '${test['participants']} registered',
+                        11,
+                        AppColors.white,
+                        FontWeight.w600,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+                      
                     SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
+                        backgroundColor: AppColors.transparent,
                         padding: EdgeInsets.zero,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       child: Ink(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Container(
                           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           child: Row(
                             children: [
-                              Icon(Icons.notifications_active, size: 14, color: Colors.white),
+                              Icon(Icons.notifications_active, size: 14, color: AppColors.white),
                               SizedBox(width: 6),
-                              Text(
+                              AppRichText.setTextPoppinsStyle(
+                                context,
                                 'Remind Me',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+                                12,
+                                AppColors.white,
+                                FontWeight.w700,
+                                1,
+                                TextAlign.left,
+                                0.0,
                               ),
+                             
                             ],
                           ),
                         ),
@@ -682,9 +866,9 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColors.greyS200),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))],
       ),
       child: Column(
@@ -695,68 +879,119 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
             children: [
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: AppColors.greyS200, borderRadius: BorderRadius.circular(20)),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, color: Colors.grey[600], size: 14),
+                    Icon(Icons.check_circle, color: AppColors.greyS600, size: 14),
                     SizedBox(width: 6),
-                    Text(
-                      'COMPLETED',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey[600]),
-                    ),
+                    AppRichText.setTextPoppinsStyle(
+                              context,
+                              'COMPLETED',
+                              11,
+                              AppColors.greyS600,
+                              FontWeight.w900,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                  
                   ],
                 ),
               ),
-              Text(
-                test['prize'],
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF016A67)),
-              ),
+              AppRichText.setTextPoppinsStyle(
+                            context,
+                            test['prize'],
+                            14,
+                            AppColors.tealGreen,
+                            FontWeight.w700,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
+            
             ],
           ),
           SizedBox(height: 16),
-          Text(
-            test['title'],
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
-          ),
+          AppRichText.setTextPoppinsStyle(
+                        context,
+                        test['title'],
+                        18,
+                        AppColors.darkNavy,
+                        FontWeight.w700,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+          
           SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.emoji_events, color: Color(0xFFFDEB9E), size: 20),
+              Icon(Icons.emoji_events, color: AppColors.lightGold, size: 20),
               SizedBox(width: 8),
-              Text(
-                'Winner: ${test['winner']}',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF003161)),
-              ),
+              AppRichText.setTextPoppinsStyle(
+                      context,
+                      'Winner: ${test['winner']}',
+                      13,
+                      AppColors.darkNavy,
+                      FontWeight.w600,
+                      1,
+                      TextAlign.left,
+                      0.0,
+                    ),
+             
             ],
           ),
           SizedBox(height: 12),
           Container(
             padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Color(0xFFF8F9FD), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Your Rank', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                      SizedBox(height: 4),
-                      Text(
-                        '#${test['yourRank']}',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF016A67)),
+                      AppRichText.setTextPoppinsStyle(
+                        context,
+                        'Your Rank',
+                        11,
+                        AppColors.greyS600,
+                        FontWeight.normal,
+                        1,
+                        TextAlign.left,
+                        0.0,
                       ),
+                      SizedBox(height: 4),
+                      AppRichText.setTextPoppinsStyle(
+                        context,
+                        '#${test['yourRank']}',
+                        24,
+                        AppColors.tealGreen,
+                        FontWeight.w900,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+               
                     ],
                   ),
                 ),
                 OutlinedButton.icon(
                   onPressed: () {},
-                  icon: Icon(Icons.visibility_outlined, size: 16, color: Color(0xFF003161)),
-                  label: Text(
-                    'View Results',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
-                  ),
+                  icon: Icon(Icons.visibility_outlined, size: 16, color: AppColors.darkNavy),
+                  label: AppRichText.setTextPoppinsStyle(
+                        context,
+                        'View Results',
+                        12,
+                        AppColors.darkNavy,
+                        FontWeight.w700,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+              
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Color(0xFF003161), width: 2),
+                    side: BorderSide(color: AppColors.darkNavy, width: 2),
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
@@ -777,10 +1012,17 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
         children: [
           Icon(icon, size: 14, color: color),
           SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
-          ),
+          AppRichText.setTextPoppinsStyle(
+                        context,
+                        text,
+                        11,
+                        color,
+                        FontWeight.w600,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+          
         ],
       ),
     );
@@ -792,19 +1034,33 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+            gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text(
-            value,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
-          ),
+          child: AppRichText.setTextPoppinsStyle(
+                        context,
+                        value,
+                        18,
+                        AppColors.white,
+                        FontWeight.w900,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+        
         ),
         SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.grey[600]),
-        ),
+        AppRichText.setTextPoppinsStyle(
+                        context,
+                        label,
+                        9,
+                        AppColors.greyS600,
+                        FontWeight.w600,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+    
       ],
     );
   }
@@ -812,11 +1068,11 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (context) => Container(
         padding: EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
@@ -826,10 +1082,17 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Filter Tests',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF003161)),
-                ),
+              AppRichText.setTextPoppinsStyle(
+                        context,
+                        'Filter Tests',
+                        20,
+                        AppColors.darkNavy,
+                        FontWeight.w800,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+              
                 IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
               ],
             ),
@@ -848,24 +1111,31 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppColors.transparent,
                 padding: EdgeInsets.zero,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Ink(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(vertical: 16),
                   alignment: Alignment.center,
-                  child: Text(
-                    'Apply Filters',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-                  ),
+                  child: AppRichText.setTextPoppinsStyle(
+                        context,
+                        'Apply Filters',
+                        16,
+                        AppColors.white,
+                        FontWeight.w700,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+                 
                 ),
               ),
             ),
@@ -880,18 +1150,25 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
       margin: EdgeInsets.only(bottom: 12),
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isSelected ? Color(0xFF016A67).withOpacity(0.1) : Color(0xFFF8F9FD),
+        color: isSelected ? AppColors.tealGreen.withOpacity(0.1) : AppColors.greyS1,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isSelected ? Color(0xFF016A67) : Colors.transparent, width: 2),
+        border: Border.all(color: isSelected ? AppColors.tealGreen : AppColors.transparent, width: 2),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            text,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF003161)),
-          ),
-          if (isSelected) Icon(Icons.check_circle, color: Color(0xFF016A67), size: 20),
+          AppRichText.setTextPoppinsStyle(
+                        context,
+                        text,
+                        14,
+                        AppColors.darkNavy,
+                        FontWeight.w600,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+        
+          if (isSelected) Icon(Icons.check_circle, color: AppColors.tealGreen, size: 20),
         ],
       ),
     );

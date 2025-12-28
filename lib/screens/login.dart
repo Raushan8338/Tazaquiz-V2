@@ -1,336 +1,412 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/screens/otpVerificationPage.dart';
+import 'package:tazaquiznew/screens/singup.dart';
+import 'package:tazaquiznew/testpage.dart';
+import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/widgets/custom_button.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
-
+class OtpLoginPage extends StatefulWidget {
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  _OtpLoginPageState createState() => _OtpLoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMixin {
+  bool _isPhoneLogin = true;
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 600),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    );
+    _animationController.forward();
+  }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  void _handlePhoneLogin() {
+  void _handleLogin() {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(Duration(seconds: 2), () {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('OTP sent successfully!'),
-            backgroundColor: AppColors.tealGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
+        if (_isPhoneLogin) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OTPBasedVerificationPage(
+                phoneNumber: _phoneController.text,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: AppRichText.setTextPoppinsStyle(context, 'Login Successful!', 12, AppColors.white, FontWeight.normal, 1, TextAlign.left, 0.0),
+              backgroundColor: AppColors.tealGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
       });
     }
   }
 
-  void _handleGoogleLogin() {
-    setState(() => _isLoading = true);
-
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Signing in with Google...'),
-          backgroundColor: AppColors.tealGreen,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+  void _toggleLoginMethod() {
+    setState(() {
+      _isPhoneLogin = !_isPhoneLogin;
+      _animationController.reset();
+      _animationController.forward();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
-      backgroundColor: AppColors.darkNavy,
-      body: SafeArea(
-        child: Column(
+      backgroundColor: AppColors.white,
+      body: SingleChildScrollView(
+        child: Container(
+          height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+          child: Column(
+            children: [
+              _buildTopIllustration(),
+              Expanded(child: _buildLoginForm()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopIllustration() {
+    return Container(
+      height: 310,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.darkNavy, AppColors.tealGreen],
+        ),
+     
+      ),
+      child: Stack(
+        children: [
+          // Background circles
+          Positioned(
+            top: -60,
+            right: -60,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                color: AppColors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -40,
+            left: -40,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                color: AppColors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 100,
+            right: 40,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.lightGold.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Content
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Spacer(),
+                
+                Container(
+                  height: 120,
+                  width: 120,
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.black.withOpacity(0.1),
+                        blurRadius: 30,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Container(
+                  
+                          decoration: BoxDecoration(
+                                            
+                            image: DecorationImage(
+                              image: AssetImage('assets/images/logo.png'),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          ),
+                ),
+                SizedBox(height: 24),
+                AppRichText.setTextPoppinsStyle(context, 'QuizMaster', 32, AppColors.white, FontWeight.w900, 1, TextAlign.left, 1.0),
+                
+                SizedBox(height: 8),
+                AppRichText.setTextPoppinsStyle(context, 'Learn • Practice • Excel', 14, AppColors.lightGold, FontWeight.w600, 1, TextAlign.left, 2.0),
+
+              
+                SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Padding(
+        padding: EdgeInsets.all(28),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 0),
+              Center(
+                child: AppRichText.setTextPoppinsStyle(context, 'Welcome Back!', 26, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
+
+              
+              ),
+              SizedBox(height: 8),
+              Center(
+                child: AppRichText.setTextPoppinsStyle(context, 'Sign in to continue learning', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+
+                
+              ),
+              SizedBox(height: 25),
+             
+              _buildPhoneFields(),
+              SizedBox(height: 24),
+              _buildLoginButton(),
+
+              SizedBox(height: 24),
+              _buildOrDivider(),
+              SizedBox(height: 24),
+              _buildSocialButtons(),
+              Spacer(),
+              _buildSignUpPrompt(),
+              SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildPhoneFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppRichText.setTextPoppinsStyle(context, 'Phone Number', 14, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
+        SizedBox(height: 10),
+        TextFormField(
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          decoration: InputDecoration(
+            hintText: 'Enter mobile number',
+            hintStyle: TextStyle(color: AppColors.greyS400, fontSize: 14),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.only(left: 15, right: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '+91',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.greyS700,
+                      fontFamily: "Poppins"
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(width: 1, height: 24, color: AppColors.greyS300),
+                ],
+              ),
+            ),
+            filled: true,
+            fillColor: AppColors.greyS50,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.greyS200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.greyS200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.tealGreen, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.red),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter mobile number';
+            }
+            if (value.length != 10) {
+              return 'Enter valid 10 digit number';
+            }
+            return null;
+          },
+        ),
+        ],
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return AppButton.setButtonStyle(context, _isPhoneLogin ? 'Send OTP' : 'Sign In', _isLoading ? null : _handleLogin, _isLoading);
+}
+
+  Widget _buildOrDivider() {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: AppColors.greyS300, thickness: 1)),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: AppRichText.setTextPoppinsStyle(context, 'OR', 13, AppColors.greyS500, FontWeight.w700, 1, TextAlign.left, 0.0),
+
+         
+        ),
+        Expanded(child: Divider(color: AppColors.greyS300, thickness: 1)),
+      ],
+    );
+  }
+
+  Widget _buildSocialButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildSocialButton(
+            'Sign In With Google',
+            () {},
+          ),
+        ),
+       
+      ],
+    );
+  }
+
+  Widget _buildSocialButton(String name, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.greyS1,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.greyS300!),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Top Dark Section with Logo
-            Expanded(
-              flex: 4,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.darkNavy,
-                  image: DecorationImage(
-                    image: NetworkImage('https://via.placeholder.com/500x500/003161/003161'),
-                    fit: BoxFit.cover,
-                    opacity: 0.1,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Logo Container
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10)),
-                        ],
-                      ),
-                      child: Center(child: Icon(Icons.quiz_rounded, size: 50, color: AppColors.tealGreen)),
+             Image.network(
+                'https://www.google.com/favicon.ico',
+                width: 20,
+                height: 20,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: AppColors.red,
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'TAZA QUIZ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
+                    child:  Center(
+                      child: AppRichText.setTextPoppinsStyle(context, 'G', 12, AppColors.white, FontWeight.bold, 1, TextAlign.left, 0.0),
+                     
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
-            ),
-
-            // Bottom White Card Section
-            Expanded(
-              flex: 6,
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
-                ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Login Title
-                          const Text(
-                            'Login',
-                            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          // Mobile Number Label
-                          Text(
-                            'Mobile Number',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade700),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Phone Input Field
-                          TextFormField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(10),
-                            ],
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                            decoration: InputDecoration(
-                              hintText: 'Enter mobile number',
-                              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(left: 15, right: 10),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '+91',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(width: 1, height: 24, color: Colors.grey.shade300),
-                                  ],
-                                ),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey.shade50,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: AppColors.tealGreen, width: 2),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.red),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter mobile number';
-                              }
-                              if (value.length != 10) {
-                                return 'Enter valid 10 digit number';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          // Send OTP Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _handlePhoneLogin,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                disabledBackgroundColor: Colors.grey.shade300,
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Send OTP',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
-                                    ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          // OR Divider
-                          Row(
-                            children: [
-                              Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  'OR',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                              Expanded(child: Divider(color: Colors.grey.shade300, thickness: 1)),
-                            ],
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          // Google Sign-In Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: OutlinedButton(
-                              onPressed: _isLoading ? null : _handleGoogleLogin,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.black,
-                                side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                backgroundColor: Colors.white,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Image.network(
-                                    'https://www.google.com/favicon.ico',
-                                    width: 20,
-                                    height: 20,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: 20,
-                                        height: 20,
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            'G',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Continue with Google',
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          // Sign Up Text
-                          Center(
-                            child: RichText(
-                              text: TextSpan(
-                                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                                children: [
-                                  const TextSpan(text: "Don't have an account? "),
-                                  TextSpan(
-                                    text: 'Sign Up',
-                                    style: TextStyle(color: AppColors.tealGreen, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+                                
+            SizedBox(width: 10),
+            AppRichText.setTextPoppinsStyle(context, name, 15, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
+           
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSignUpPrompt() {
+    return Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AppRichText.setTextPoppinsStyle(context, 'Don\'t have an account?', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+
+         
+          SizedBox(width: 6),
+         AppButton.setGestureDetectorButtonStyle(context, 'Sign Up', 
+         () {
+           Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RegistrationPage()));
+         })
+         
+          
+        ],
       ),
     );
   }

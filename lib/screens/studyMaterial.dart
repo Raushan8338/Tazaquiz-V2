@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/utils/richText.dart';
+
 class StudyMaterialScreen extends StatefulWidget {
   @override
   _StudyMaterialScreenState createState() => _StudyMaterialScreenState();
@@ -113,7 +116,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF8F9FD),
+      backgroundColor: AppColors.greyS1,
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
@@ -131,12 +134,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
     return SliverAppBar(
       expandedHeight: 180,
       pinned: true,
-      backgroundColor: Color(0xFF003161),
+      backgroundColor: AppColors.darkNavy,
       leading: IconButton(
         icon: Container(
           padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+          child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -144,16 +147,16 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
         IconButton(
           icon: Container(
             padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.bookmark_outline, color: Colors.white, size: 20),
+            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.bookmark_outline, color: AppColors.white, size: 20),
           ),
           onPressed: () {},
         ),
         IconButton(
           icon: Container(
             padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.download, color: Colors.white, size: 20),
+            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.download, color: AppColors.white, size: 20),
           ),
           onPressed: () {},
         ),
@@ -164,7 +167,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF003161), Color(0xFF016A67)],
+              colors: [AppColors.darkNavy, AppColors.tealGreen],
             ),
           ),
           child: Stack(
@@ -175,7 +178,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                 child: Container(
                   width: 200,
                   height: 200,
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
               Positioned(
@@ -184,7 +187,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                 child: Container(
                   width: 180,
                   height: 180,
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
               SafeArea(
@@ -199,23 +202,19 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                           Container(
                             padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Color(0xFFFDEB9E),
+                              color: AppColors.lightGold,
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: Icon(Icons.library_books, color: Color(0xFF003161), size: 32),
+                            child: Icon(Icons.library_books, color: AppColors.darkNavy, size: 32),
                           ),
                           SizedBox(width: 16),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Study Materials',
-                                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
-                              ),
-                              Text(
-                                'Learn from the best resources',
-                                style: TextStyle(fontSize: 13, color: Color(0xFFFDEB9E)),
-                              ),
+                              AppRichText.setTextPoppinsStyle(context, 'Study Materials', 24, AppColors.white, FontWeight.w900, 1, TextAlign.left, 0.0),
+                            
+                              AppRichText.setTextPoppinsStyle(context, 'Learn from the best resources', 13, AppColors.lightGold, FontWeight.normal, 1, TextAlign.left, 0.0),
+                           
                             ],
                           ),
                         ],
@@ -237,19 +236,19 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
       padding: EdgeInsets.symmetric(horizontal: 20),
       height: 56,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Row(
         children: [
-          Icon(Icons.search, color: Color(0xFF016A67), size: 24),
+          Icon(Icons.search, color: AppColors.tealGreen, size: 24),
           SizedBox(width: 12),
           Expanded(
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search materials...',
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
+                hintStyle: TextStyle(color: AppColors.greyS400, fontSize: 15, fontFamily: "Poppins"),
                 border: InputBorder.none,
               ),
             ),
@@ -257,10 +256,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
           Container(
             padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+              gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.tune, color: Colors.white, size: 20),
+            child: Icon(Icons.tune, color: AppColors.white, size: 20),
           ),
         ],
       ),
@@ -275,18 +274,18 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFDEB9E), Color(0xFFFDD835)],
+          colors: [AppColors.lightGold, AppColors.lightGoldS2],
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Color(0xFFFDEB9E).withOpacity(0.4), blurRadius: 20, offset: Offset(0, 10))],
+        boxShadow: [BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 10))],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildStatItem(Icons.description, '1,234', 'Materials'),
-          Container(width: 1, height: 40, color: Color(0xFF003161).withOpacity(0.2)),
+          Container(width: 1, height: 40, color: AppColors.darkNavy.withOpacity(0.2)),
           _buildStatItem(Icons.download, '45,678', 'Downloads'),
-          Container(width: 1, height: 40, color: Color(0xFF003161).withOpacity(0.2)),
+          Container(width: 1, height: 40, color: AppColors.darkNavy.withOpacity(0.2)),
           _buildStatItem(Icons.people, '8,920', 'Learners'),
         ],
       ),
@@ -296,16 +295,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   Widget _buildStatItem(IconData icon, String value, String label) {
     return Column(
       children: [
-        Icon(icon, color: Color(0xFF003161), size: 24),
+        Icon(icon, color: AppColors.darkNavy, size: 24),
         SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF003161)),
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: Color(0xFF016A67), fontWeight: FontWeight.w600),
-        ),
+        AppRichText.setTextPoppinsStyle(context, value, 18, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
+
+      
+        AppRichText.setTextPoppinsStyle(context, label, 11, AppColors.tealGreen, FontWeight.w900, 1, TextAlign.left, 0.0),
       ],
     );
   }
@@ -330,12 +325,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
               margin: EdgeInsets.only(right: 12),
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                gradient: isSelected ? LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]) : null,
-                color: isSelected ? null : Colors.white,
+                gradient: isSelected ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
+                color: isSelected ? null : AppColors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: isSelected ? Color(0xFF016A67).withOpacity(0.3) : Colors.black.withOpacity(0.05),
+                    color: isSelected ? AppColors.tealGreen.withOpacity(0.3) : Colors.black.withOpacity(0.05),
                     blurRadius: isSelected ? 15 : 8,
                     offset: Offset(0, isSelected ? 5 : 2),
                   ),
@@ -347,7 +342,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: isSelected ? Colors.white : Colors.grey[700],
+                    color: isSelected ? AppColors.white : AppColors.greyS700,
                   ),
                 ),
               ),
@@ -371,13 +366,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
-          // Top Section with Thumbnail
           Container(
             height: 140,
             decoration: BoxDecoration(
@@ -396,14 +390,14 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                   child: Container(
                     width: 120,
                     height: 120,
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
                   ),
                 ),
                 Center(
                   child: Icon(
                     material['type'] == 'PDF' ? Icons.picture_as_pdf : Icons.play_circle_filled,
                     size: 60,
-                    color: Colors.white.withOpacity(0.9),
+                    color: AppColors.white.withOpacity(0.9),
                   ),
                 ),
                 Positioned(
@@ -415,25 +409,24 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [Color(0xFFFDEB9E), Color(0xFFFDD835)]),
+                            gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.workspace_premium, size: 12, color: Color(0xFF003161)),
+                              Icon(Icons.workspace_premium, size: 12, color: AppColors.darkNavy),
                               SizedBox(width: 4),
-                              Text(
-                                'PRO',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF003161)),
-                              ),
+                              AppRichText.setTextPoppinsStyle(context, 'PRO', 10, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
+
+                          
                             ],
                           ),
                         ),
                       SizedBox(width: 8),
                       Container(
                         padding: EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                        child: Icon(Icons.bookmark_outline, color: Colors.white, size: 18),
+                        decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), shape: BoxShape.circle),
+                        child: Icon(Icons.bookmark_outline, color: AppColors.white, size: 18),
                       ),
                     ],
                   ),
@@ -444,17 +437,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: AppColors.white.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
-                      material['type'],
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        color: _getSubjectColor(material['subject']),
-                      ),
-                    ),
+                    child: AppRichText.setTextPoppinsStyle(context,  material['type'], 11, _getSubjectColor(material['subject']), FontWeight.w900, 1, TextAlign.left, 0.0),
+
+                    
                   ),
                 ),
               ],
@@ -467,28 +455,26 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  material['title'],
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF003161)),
-                ),
+                AppRichText.setTextPoppinsStyle(context, material['title'], 18, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.left, 0.0),
+
                 SizedBox(height: 8),
                 Row(
                   children: [
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Color(0xFF016A67).withOpacity(0.1),
+                        color: AppColors.tealGreen.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        material['subject'],
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF016A67)),
-                      ),
+                      child: AppRichText.setTextPoppinsStyle(context, material['subject'], 11, AppColors.tealGreen, FontWeight.w700, 1, TextAlign.left, 0.0),
+
+                   
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.person_outline, size: 14, color: Colors.grey[600]),
+                    Icon(Icons.person_outline, size: 14, color: AppColors.greyS600),
                     SizedBox(width: 4),
-                    Text(material['author'], style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    AppRichText.setTextPoppinsStyle(context, material['author'], 12, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+
                   ],
                 ),
                 SizedBox(height: 12),
@@ -504,17 +490,16 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Color(0xFFFDEB9E).withOpacity(0.3),
+                        color: AppColors.lightGold.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.star, size: 14, color: Color(0xFFFDD835)),
+                          Icon(Icons.star, size: 14, color: AppColors.lightGoldS2),
                           SizedBox(width: 4),
-                          Text(
-                            '${material['rating']}',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
-                          ),
+                           AppRichText.setTextPoppinsStyle(context, '${material['rating']}', 12, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
+
+                     
                         ],
                       ),
                     ),
@@ -526,13 +511,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _showPreviewDialog(material),
-                        icon: Icon(Icons.visibility_outlined, size: 18, color: Color(0xFF003161)),
-                        label: Text(
-                          'Preview',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
-                        ),
+                        icon: Icon(Icons.visibility_outlined, size: 18, color: AppColors.darkNavy),
+                        label:  AppRichText.setTextPoppinsStyle(context, 'Preview', 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Color(0xFF003161), width: 2),
+                          side: BorderSide(color: AppColors.darkNavy, width: 2),
                           padding: EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -542,13 +524,11 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => _downloadMaterial(material),
-                        icon: Icon(Icons.download, size: 18, color: Colors.white),
-                        label: Text(
-                          'Download',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
-                        ),
+                        icon: Icon(Icons.download, size: 18, color: AppColors.white),
+                        label: AppRichText.setTextPoppinsStyle(context, 'Download', 13, AppColors.white, FontWeight.w700, 1, TextAlign.left, 0.0),
+                   
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
+                          backgroundColor: AppColors.transparent,
                           padding: EdgeInsets.zero,
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -557,7 +537,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                       // .apply(
                       //   decoration: BoxDecoration(
                       //     gradient: LinearGradient(
-                      //       colors: [Color(0xFF016A67), Color(0xFF003161)],
+                      //       colors: [AppColors.tealGreen, AppColors.darkNavy],
                       //     ),
                       //     borderRadius: BorderRadius.circular(12),
                       //   ),
@@ -569,9 +549,9 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${material['downloads']} downloads', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                    Text('Updated ${material['lastUpdated']}', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                  ],
+                    AppRichText.setTextPoppinsStyle(context, '${material['downloads']} downloads', 11, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+                    AppRichText.setTextPoppinsStyle(context, 'Updated ${material['lastUpdated']}', 11, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+                ],
                 ),
               ],
             ),
@@ -584,12 +564,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   Widget _buildInfoChip(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: Color(0xFF016A67)),
+        Icon(icon, size: 14, color: AppColors.tealGreen),
         SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w500),
-        ),
+        AppRichText.setTextPoppinsStyle(context, text, 12, AppColors.greyS700, FontWeight.w500, 1, TextAlign.left, 0.0),
+
       ],
     );
   }
@@ -597,34 +575,34 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   List<Color> _getGradientColors(String subject) {
     switch (subject) {
       case 'Mathematics':
-        return [Color(0xFF003161), Color(0xFF016A67)];
+        return [AppColors.darkNavy, AppColors.tealGreen];
       case 'Science':
-        return [Color(0xFF016A67), Color(0xFF00A896)];
+        return [AppColors.tealGreen, AppColors.greenS2];
       case 'Physics':
-        return [Color(0xFF000B58), Color(0xFF003161)];
+        return [AppColors.oxfordBlue, AppColors.darkNavy];
       case 'Chemistry':
-        return [Color(0xFF016A67), Color(0xFF003161)];
+        return [AppColors.tealGreen, AppColors.darkNavy];
       case 'English':
-        return [Color(0xFF003161), Color(0xFF000B58)];
+        return [AppColors.darkNavy, AppColors.oxfordBlue];
       default:
-        return [Color(0xFF016A67), Color(0xFF003161)];
+        return [AppColors.tealGreen, AppColors.darkNavy];
     }
   }
 
   Color _getSubjectColor(String subject) {
     switch (subject) {
       case 'Mathematics':
-        return Color(0xFF003161);
+        return AppColors.darkNavy;
       case 'Science':
-        return Color(0xFF016A67);
+        return AppColors.tealGreen;
       case 'Physics':
-        return Color(0xFF000B58);
+        return AppColors.oxfordBlue;
       case 'Chemistry':
-        return Color(0xFF016A67);
+        return AppColors.tealGreen;
       case 'English':
-        return Color(0xFF003161);
+        return AppColors.darkNavy;
       default:
-        return Color(0xFF016A67);
+        return AppColors.tealGreen;
     }
   }
 
@@ -647,43 +625,38 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                 child: Icon(
                   material['type'] == 'PDF' ? Icons.picture_as_pdf : Icons.play_circle_filled,
                   size: 48,
-                  color: Colors.white,
+                  color: AppColors.white,
                 ),
               ),
               SizedBox(height: 20),
-              Text(
-                material['title'],
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF003161)),
-                textAlign: TextAlign.center,
-              ),
+              AppRichText.setTextPoppinsStyle(context, material['title'], 20, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.left, 0.0),
+
               SizedBox(height: 12),
-              Text(
-                'Preview feature coming soon!',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
+              AppRichText.setTextPoppinsStyle(context, 'Preview feature coming soon!', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.center, 0.0),
+
+            
               SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
+                  backgroundColor: AppColors.transparent,
                   padding: EdgeInsets.zero,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Ink(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+                    gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: 14),
                     alignment: Alignment.center,
-                    child: Text(
-                      'Close',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
-                    ),
+                    child: AppRichText.setTextPoppinsStyle(context, 'Close', 15, AppColors.white, FontWeight.w700, 1, TextAlign.center, 0.0),
+ 
+                   
+                
                   ),
                 ),
               ),
@@ -702,12 +675,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.download, color: Colors.white),
+              Icon(Icons.download, color: AppColors.white),
               SizedBox(width: 12),
-              Text('Downloading ${material['title']}...'),
+              AppRichText.setTextPoppinsStyle(context, 'Downloading ${material['title']}...', 13, AppColors.black, FontWeight.normal, 1, TextAlign.center, 0.0),
             ],
           ),
-          backgroundColor: Color(0xFF016A67),
+          backgroundColor: AppColors.tealGreen,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -726,7 +699,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.white, Color(0xFFF8F9FD)],
+              colors: [AppColors.white, AppColors.greyS1],
             ),
             borderRadius: BorderRadius.circular(24),
           ),
@@ -736,22 +709,19 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
               Container(
                 padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFFFDEB9E), Color(0xFFFDD835)]),
+                  gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.workspace_premium, size: 48, color: Color(0xFF003161)),
+                child: Icon(Icons.workspace_premium, size: 48, color: AppColors.darkNavy),
               ),
               SizedBox(height: 20),
-              Text(
-                'Premium Content',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF003161)),
-              ),
+              AppRichText.setTextPoppinsStyle(context, 'Premium Content', 22, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
+
+             
               SizedBox(height: 12),
-              Text(
-                'Upgrade to Pro to access this material',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
+              AppRichText.setTextPoppinsStyle(context, 'Upgrade to Pro to access this material', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+
+            
               SizedBox(height: 24),
               Row(
                 children: [
@@ -759,14 +729,13 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.grey[300]!),
+                        side: BorderSide(color: AppColors.greyS300),
                         padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-                      ),
+                      child:  AppRichText.setTextPoppinsStyle(context, 'Cancel', 15, AppColors.greyS700, FontWeight.w600, 1, TextAlign.left, 0.0),
+
+                    
                     ),
                   ),
                   SizedBox(width: 12),
@@ -776,23 +745,21 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
+                        backgroundColor: AppColors.transparent,
                         padding: EdgeInsets.zero,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Ink(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Container(
                           padding: EdgeInsets.symmetric(vertical: 14),
                           alignment: Alignment.center,
-                          child: Text(
-                            'Upgrade',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
-                          ),
+                          child: AppRichText.setTextPoppinsStyle(context, 'Upgrade', 15, AppColors.white, FontWeight.w700, 1, TextAlign.left, 0.0),
+                       
                         ),
                       ),
                     ),

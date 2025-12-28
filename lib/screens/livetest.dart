@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/app_colors.dart';
 import 'dart:async';
+
+import 'package:tazaquiznew/utils/richText.dart';
 
 class LiveTestScreen extends StatefulWidget {
   final String testTitle;
@@ -123,7 +126,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF8F9FD),
+      backgroundColor: AppColors.greyS1,
       body: Column(
         children: [
           _buildHeader(),
@@ -150,8 +153,8 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Color(0xFF003161), Color(0xFF016A67)]),
-        boxShadow: [BoxShadow(color: Color(0xFF003161).withOpacity(0.3), blurRadius: 20, offset: Offset(0, 5))],
+        gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
+        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -162,10 +165,10 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 child: Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: AppColors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.close, color: Colors.white, size: 20),
+                  child: Icon(Icons.close, color: AppColors.white, size: 20),
                 ),
               ),
               SizedBox(width: 12),
@@ -177,35 +180,48 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                       children: [
                         Container(
                           width: MediaQuery.of(context).size.width / 2,
-                          child: Text(
-                            widget.testTitle,
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          child: AppRichText.setTextPoppinsStyle(
+                              context,
+                              widget.testTitle,
+                              16,
+                              AppColors.white,
+                              FontWeight.w700,
+                              3,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                         
                         ),
                       ],
                     ),
                     SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(widget.subject, style: TextStyle(fontSize: 12, color: Color(0xFFFDEB9E))),
+                        Text(widget.subject, style: TextStyle(fontSize: 12, color: AppColors.lightGold)),
                         SizedBox(width: 8),
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
+                          decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(8)),
                           child: Row(
                             children: [
                               Container(
                                 width: 6,
                                 height: 6,
-                                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                decoration: BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
                               ),
                               SizedBox(width: 4),
-                              Text(
+                              AppRichText.setTextPoppinsStyle(
+                                context,
                                 'LIVE',
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
+                                10,
+                                AppColors.white,
+                                FontWeight.w900,
+                                3,
+                                TextAlign.left,
+                                0.0,
                               ),
+
+                             
                             ],
                           ),
                         ),
@@ -216,15 +232,22 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(color: Color(0xFFFDEB9E), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   children: [
-                    Icon(Icons.emoji_events, color: Color(0xFF003161), size: 18),
+                    Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 18),
                     SizedBox(width: 6),
-                    Text(
-                      '$_score',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF003161)),
-                    ),
+                    AppRichText.setTextPoppinsStyle(
+                              context,
+                              '$_score',
+                              16,
+                              AppColors.darkNavy,
+                              FontWeight.w900,
+                              2,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                  
                   ],
                 ),
               ),
@@ -240,17 +263,24 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     double timeProgress = _timeLeft / 30;
 
     return Container(
-      color: Colors.white,
+      color: AppColors.white,
       padding: EdgeInsets.all(16),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Question $_currentQuestion/${widget.totalQuestions}',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF003161)),
-              ),
+              AppRichText.setTextPoppinsStyle(
+                            context,
+                            'Question $_currentQuestion/${widget.totalQuestions}',
+                            14,
+                            AppColors.darkNavy,
+                            FontWeight.w600,
+                            2,
+                            TextAlign.left,
+                            0.0,
+                          ),
+         
               ScaleTransition(
                 scale: _timeLeft <= 10 ? _pulseAnimation : AlwaysStoppedAnimation(1.0),
                 child: Container(
@@ -258,15 +288,15 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: _timeLeft <= 5
-                          ? [Colors.red, Colors.red[700]!]
+                          ? [AppColors.red, AppColors.redS1]
                           : _timeLeft <= 10
-                          ? [Colors.orange, Colors.orange[700]!]
-                          : [Color(0xFF016A67), Color(0xFF003161)],
+                          ? [AppColors.orange, AppColors.orangeS1]
+                          : [AppColors.tealGreen, AppColors.darkNavy],
                     ),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: (_timeLeft <= 10 ? Colors.red : Color(0xFF016A67)).withOpacity(0.3),
+                        color: (_timeLeft <= 10 ? AppColors.red : AppColors.tealGreen).withOpacity(0.3),
                         blurRadius: 12,
                         offset: Offset(0, 4),
                       ),
@@ -274,16 +304,29 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.timer, color: Colors.white, size: 18),
+                      Icon(Icons.timer, color: AppColors.white, size: 18),
                       SizedBox(width: 6),
-                      Text(
-                        '$_timeLeft',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
-                      ),
-                      Text(
-                        's',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
-                      ),
+                         AppRichText.setTextPoppinsStyle(
+                              context,
+                              '$_timeLeft',
+                              18,
+                              AppColors.white,
+                              FontWeight.w900,
+                              2,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                      AppRichText.setTextPoppinsStyle(
+                              context,
+                              's',
+                              14,
+                              AppColors.white,
+                              FontWeight.w600,
+                              2,
+                              TextAlign.left,
+                              0.0,
+                            ),
+                    
                     ],
                   ),
                 ),
@@ -297,14 +340,23 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Progress', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Progress',
+                          11,
+                          AppColors.greyS600,
+                          FontWeight.normal,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
                     SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
                         value: progress,
-                        backgroundColor: Colors.grey[200],
-                        valueColor: AlwaysStoppedAnimation(Color(0xFF016A67)),
+                        backgroundColor: AppColors.greyS200,
+                        valueColor: AlwaysStoppedAnimation(AppColors.tealGreen),
                         minHeight: 8,
                       ),
                     ),
@@ -316,19 +368,28 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Time', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    AppRichText.setTextPoppinsStyle(
+                        context,
+                        'Time',
+                        11,
+                        AppColors.greyS600,
+                        FontWeight.normal,
+                        2,
+                        TextAlign.left,
+                        0.0,
+                    ),
                     SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
                         value: timeProgress,
-                        backgroundColor: Colors.grey[200],
+                        backgroundColor: AppColors.greyS200,
                         valueColor: AlwaysStoppedAnimation(
                           _timeLeft <= 5
-                              ? Colors.red
+                              ? AppColors.red
                               : _timeLeft <= 10
-                              ? Colors.orange
-                              : Color(0xFF016A67),
+                              ? AppColors.orange
+                              : AppColors.tealGreen,
                         ),
                         minHeight: 8,
                       ),
@@ -348,9 +409,9 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       margin: EdgeInsets.all(16),
       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Color(0xFFFDEB9E).withOpacity(0.3), Color(0xFFFDD835).withOpacity(0.2)]),
+        gradient: LinearGradient(colors: [AppColors.lightGold.withOpacity(0.3), AppColors.lightGoldS2.withOpacity(0.2)]),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFFDEB9E), width: 2),
+        border: Border.all(color: AppColors.lightGold, width: 2),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -372,19 +433,33 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
                   ),
                   SizedBox(width: 6),
-                  Text(
-                    'Live Participants',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[700], fontWeight: FontWeight.w500),
-                  ),
+                  AppRichText.setTextPoppinsStyle(
+                      context,
+                      'Live Participants',
+                      11,
+                      AppColors.greyS700,
+                      FontWeight.w500,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+             
                 ],
               ),
-              Text(
-                '${widget.totalParticipants} competing now',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
-              ),
+               AppRichText.setTextPoppinsStyle(
+                      context,
+                      '${widget.totalParticipants} competing now',
+                      14,
+                      AppColors.darkNavy,
+                      FontWeight.w700,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+         
             ],
           ),
         ],
@@ -397,15 +472,22 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+        gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: AppColors.white, width: 2),
       ),
       child: Center(
-        child: Text(
-          letter,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
-        ),
+        child:  AppRichText.setTextPoppinsStyle(
+                      context,
+                      letter,
+                      12,
+                      AppColors.white,
+                      FontWeight.w700,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+
       ),
     );
   }
@@ -415,7 +497,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       margin: EdgeInsets.symmetric(horizontal: 16),
       padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 8))],
       ),
@@ -427,17 +509,24 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Color(0xFF016A67).withOpacity(0.1),
+                  color: AppColors.tealGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.category, color: Color(0xFF016A67), size: 14),
+                    Icon(Icons.category, color: AppColors.tealGreen, size: 14),
                     SizedBox(width: 6),
-                    Text(
+                    AppRichText.setTextPoppinsStyle(
+                      context,
                       widget.subject,
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF016A67)),
+                      12,
+                      AppColors.tealGreen,
+                      FontWeight.w700,
+                      2,
+                      TextAlign.left,
+                      0.0,
                     ),
+              
                   ],
                 ),
               ),
@@ -445,36 +534,57 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFFFDEB9E), Color(0xFFFDD835)]),
+                  gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.stars, color: Color(0xFF003161), size: 14),
+                    Icon(Icons.stars, color: AppColors.darkNavy, size: 14),
                     SizedBox(width: 6),
-                    Text(
+                    AppRichText.setTextPoppinsStyle(
+                      context,
                       '+${_currentQuestionData['points']} XP',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
+                      11,
+                      AppColors.darkNavy,
+                      FontWeight.w700,
+                      2,
+                      TextAlign.left,
+                      0.0,
                     ),
+                   
                   ],
                 ),
               ),
               Spacer(),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text(
-                  _currentQuestionData['difficulty'],
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.red),
-                ),
+                decoration: BoxDecoration(color: AppColors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                child: AppRichText.setTextPoppinsStyle(
+                      context,
+                      _currentQuestionData['difficulty'],
+                      11,
+                      AppColors.red,
+                      FontWeight.w700,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+       
               ),
             ],
           ),
           SizedBox(height: 20),
-          Text(
-            _currentQuestionData['question'],
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF003161), height: 1.4),
-          ),
+          AppRichText.setTextPoppinsStyle(
+                      context,
+                      _currentQuestionData['question'],
+                      20,
+                      AppColors.darkNavy,
+                      FontWeight.w700,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+   
         ],
       ),
     );
@@ -497,23 +607,23 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     bool isCorrect = _answered && index == _correctAnswer;
     bool isWrong = _answered && isSelected && index != _correctAnswer;
 
-    Color backgroundColor = Colors.white;
-    Color borderColor = Colors.grey[300]!;
-    Color letterBgColor = Color(0xFFF8F9FD);
-    Color textColor = Color(0xFF003161);
+    Color backgroundColor = AppColors.white;
+    Color borderColor = AppColors.greyS300;
+    Color letterBgColor = AppColors.greyS1;
+    Color textColor = AppColors.darkNavy;
 
     if (isCorrect) {
-      backgroundColor = Color(0xFF016A67).withOpacity(0.1);
-      borderColor = Color(0xFF016A67);
-      letterBgColor = Color(0xFF016A67);
+      backgroundColor = AppColors.tealGreen.withOpacity(0.1);
+      borderColor = AppColors.tealGreen;
+      letterBgColor = AppColors.tealGreen;
     } else if (isWrong) {
-      backgroundColor = Colors.red.withOpacity(0.1);
-      borderColor = Colors.red;
-      letterBgColor = Colors.red;
+      backgroundColor = AppColors.red.withOpacity(0.1);
+      borderColor = AppColors.red;
+      letterBgColor = AppColors.red;
     } else if (isSelected) {
-      backgroundColor = Color(0xFFFDEB9E).withOpacity(0.2);
-      borderColor = Color(0xFFFDEB9E);
-      letterBgColor = Color(0xFFFDEB9E);
+      backgroundColor = AppColors.lightGold.withOpacity(0.2);
+      borderColor = AppColors.lightGold;
+      letterBgColor = AppColors.lightGold;
     }
 
     return GestureDetector(
@@ -527,7 +637,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
           border: Border.all(color: borderColor, width: 2),
           borderRadius: BorderRadius.circular(16),
           boxShadow: isSelected && !_answered
-              ? [BoxShadow(color: Color(0xFFFDEB9E).withOpacity(0.4), blurRadius: 15, offset: Offset(0, 5))]
+              ? [BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 15, offset: Offset(0, 5))]
               : [],
         ),
         child: Row(
@@ -537,28 +647,38 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               height: 48,
               decoration: BoxDecoration(color: letterBgColor, borderRadius: BorderRadius.circular(12)),
               child: Center(
-                child: Text(
-                  letter,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: (isCorrect || isWrong || (isSelected && !_answered)) ? Colors.white : Color(0xFF003161),
-                  ),
-                ),
+                child: AppRichText.setTextPoppinsStyle(
+                      context,
+                      letter,
+                      18,
+                      (isCorrect || isWrong || (isSelected && !_answered)) ? AppColors.white : AppColors.darkNavy,
+                      FontWeight.w900,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+               
               ),
             ),
             SizedBox(width: 16),
             Expanded(
-              child: Text(
-                text,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textColor),
-              ),
+              child: AppRichText.setTextPoppinsStyle(
+                      context,
+                      text,
+                      16,
+                      textColor,
+                      FontWeight.w600,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+
             ),
             if (_answered && (isCorrect || isWrong))
               Container(
                 padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(color: isCorrect ? Color(0xFF016A67) : Colors.red, shape: BoxShape.circle),
-                child: Icon(isCorrect ? Icons.check : Icons.close, color: Colors.white, size: 20),
+                decoration: BoxDecoration(color: isCorrect ? AppColors.tealGreen : AppColors.red, shape: BoxShape.circle),
+                child: Icon(isCorrect ? Icons.check : Icons.close, color: AppColors.white, size: 20),
               ),
           ],
         ),
@@ -574,19 +694,19 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       child: ElevatedButton(
         onPressed: canSubmit ? _submitAnswer : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppColors.transparent,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 0,
-          disabledBackgroundColor: Colors.grey[300],
+          disabledBackgroundColor: AppColors.greyS300,
         ),
         child: Ink(
           decoration: BoxDecoration(
-            gradient: canSubmit ? LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]) : null,
-            color: canSubmit ? null : Colors.grey[300],
+            gradient: canSubmit ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
+            color: canSubmit ? null : AppColors.greyS300,
             borderRadius: BorderRadius.circular(16),
             boxShadow: canSubmit
-                ? [BoxShadow(color: Color(0xFF016A67).withOpacity(0.4), blurRadius: 20, offset: Offset(0, 10))]
+                ? [BoxShadow(color: AppColors.tealGreen.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 10))]
                 : [],
           ),
           child: Container(
@@ -595,16 +715,19 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle, color: canSubmit ? Colors.white : Colors.grey[500], size: 24),
+                Icon(Icons.check_circle, color: canSubmit ? AppColors.white : AppColors.greyS500, size: 24),
                 SizedBox(width: 12),
-                Text(
-                  'Submit Answer',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: canSubmit ? Colors.white : Colors.grey[500],
-                  ),
-                ),
+                AppRichText.setTextPoppinsStyle(
+                      context,
+                      'Submit Answer',
+                      16,
+                      canSubmit ? AppColors.white : AppColors.greyS500,
+                      FontWeight.w700,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+         
               ],
             ),
           ),
@@ -625,7 +748,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.white, Color(0xFFF8F9FD)],
+            colors: [AppColors.white, AppColors.greyS1],
           ),
           borderRadius: BorderRadius.circular(24),
         ),
@@ -635,27 +758,43 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             Container(
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+                gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: Color(0xFF016A67).withOpacity(0.4), blurRadius: 20, offset: Offset(0, 10)),
+                  BoxShadow(color: AppColors.tealGreen.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 10)),
                 ],
               ),
-              child: Icon(Icons.emoji_events, color: Color(0xFFFDEB9E), size: 56),
+              child: Icon(Icons.emoji_events, color: AppColors.lightGold, size: 56),
             ),
             SizedBox(height: 24),
-            Text(
-              'Test Completed!',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF003161)),
-            ),
+            AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Test Completed!',
+                    26,
+                    AppColors.darkNavy,
+                    FontWeight.w900,
+                    2,
+                    TextAlign.left,
+                    0.0,
+                  ),
+          
             SizedBox(height: 8),
-            Text('Great job! Here\'s your performance', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+            AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Great job! Here\'s your performance',
+                    14,
+                    AppColors.greyS600,
+                    FontWeight.normal,
+                    2,
+                    TextAlign.left,
+                    0.0,
+                  ),
             SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildResultStat('Score', '$_score', Icons.stars, Color(0xFF016A67)),
-                _buildResultStat('Rank', '#$rank', Icons.leaderboard, Color(0xFF003161)),
+                _buildResultStat('Score', '$_score', Icons.stars, AppColors.tealGreen),
+                _buildResultStat('Rank', '#$rank', Icons.leaderboard, AppColors.darkNavy),
                 _buildResultStat('Accuracy', '${accuracy.toInt()}%', Icons.percent, Color(0xFF000B58)),
               ],
             ),
@@ -664,24 +803,40 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFFDEB9E).withOpacity(0.3), Color(0xFFFDD835).withOpacity(0.2)],
+                  colors: [AppColors.lightGold.withOpacity(0.3), AppColors.lightGoldS2.withOpacity(0.2)],
                 ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Color(0xFFFDEB9E)),
+                border: Border.all(color: AppColors.lightGold),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.emoji_events, color: Color(0xFF003161), size: 24),
+                  Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 24),
                   SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        AppRichText.setTextPoppinsStyle(
+                          context,
                           'You earned $_score XP',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
+                          14,
+                          AppColors.darkNavy,
+                          FontWeight.w700,
+                          2,
+                          TextAlign.left,
+                          0.0,
                         ),
-                        Text('Keep practicing to improve!', style: TextStyle(fontSize: 11, color: Colors.grey[700])),
+                    
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Keep practicing to improve!',
+                          11,
+                          AppColors.greyS700,
+                          FontWeight.normal,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
                       ],
                     ),
                   ),
@@ -698,14 +853,21 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                       Navigator.pop(context);
                     },
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Color(0xFF003161), width: 2),
+                      side: BorderSide(color: AppColors.darkNavy, width: 2),
                       padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text(
-                      'Review',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
-                    ),
+                    child: AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Review',
+                          15,
+                          AppColors.darkNavy,
+                          FontWeight.w700,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
+               
                   ),
                 ),
                 SizedBox(width: 12),
@@ -716,23 +878,30 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
+                      backgroundColor: AppColors.transparent,
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     child: Ink(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]),
+                        gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Container(
                         padding: EdgeInsets.symmetric(vertical: 16),
                         alignment: Alignment.center,
-                        child: Text(
+                        child: AppRichText.setTextPoppinsStyle(
+                          context,
                           'Done',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                          15,
+                          AppColors.white,
+                          FontWeight.w700,
+                          2,
+                          TextAlign.left,
+                          0.0,
                         ),
+                       
                       ),
                     ),
                   ),
@@ -754,11 +923,27 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
           child: Icon(icon, color: color, size: 24),
         ),
         SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color),
-        ),
-        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+        AppRichText.setTextPoppinsStyle(
+                          context,
+                          value,
+                          20,
+                          color,
+                          FontWeight.w900,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
+    
+        AppRichText.setTextPoppinsStyle(
+                          context,
+                          label,
+                          11,
+                          AppColors.greyS600,
+                          FontWeight.normal,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
       ],
     );
   }
@@ -775,20 +960,33 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             children: [
               Container(
                 padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(Icons.warning_amber_rounded, color: Colors.red, size: 40),
+                decoration: BoxDecoration(color: AppColors.red.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(Icons.warning_amber_rounded, color: AppColors.red, size: 40),
               ),
               SizedBox(height: 20),
-              Text(
-                'Exit Test?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
-              ),
-              SizedBox(height: 12),
-              Text(
-                'Your progress will be lost if you exit now.',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
+                AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Exit Test?',
+                          20,
+                          AppColors.darkNavy,
+                          FontWeight.w700,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
+         
+                SizedBox(height: 12),
+                AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Your progress will be lost if you exit now.',
+                          14,
+                          AppColors.greyS600,
+                          FontWeight.normal,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
+             
               SizedBox(height: 24),
               Row(
                 children: [
@@ -796,14 +994,21 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.grey[300]!),
+                        side: BorderSide(color: AppColors.greyS300),
                         padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-                      ),
+                      child: AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Cancel',
+                          15,
+                          AppColors.greyS700,
+                          FontWeight.w600,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
+                  
                     ),
                   ),
                   SizedBox(width: 12),
@@ -814,14 +1019,21 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                        backgroundColor: AppColors.red,
                         padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text(
-                        'Exit',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
-                      ),
+                      child: AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Exit',
+                          15,
+                          AppColors.white,
+                          FontWeight.w700,
+                          2,
+                          TextAlign.left,
+                          0.0,
+                        ),
+                      
                     ),
                   ),
                 ],
