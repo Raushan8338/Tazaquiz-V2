@@ -140,7 +140,8 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
 
       if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);
-        Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
+        print(responseFuture.data);
+        Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
       } else {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -182,6 +183,98 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
     }
   }
 
+<<<<<<< Updated upstream
+=======
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.check, color: AppColors.white, size: 48),
+                  ),
+                  SizedBox(height: 24),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Verification Successful!',
+                    22,
+                    AppColors.darkNavy,
+                    FontWeight.w800,
+                    1,
+                    TextAlign.center,
+                    0.0,
+                  ),
+
+                  SizedBox(height: 12),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'You have been verified successfully',
+                    14,
+                    AppColors.greyS600,
+                    FontWeight.normal,
+                    1,
+                    TextAlign.center,
+                    0.0,
+                  ),
+
+                  SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Navigator.pop(context);
+                        // Navigator.pop(context);
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.transparent,
+                        shadowColor: AppColors.transparent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: AppRichText.setTextPoppinsStyle(
+                            context,
+                            'Continue',
+                            16,
+                            AppColors.white,
+                            FontWeight.w700,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+>>>>>>> Stashed changes
   @override
   Widget build(BuildContext context) {
     return Scaffold(
