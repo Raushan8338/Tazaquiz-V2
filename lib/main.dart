@@ -2,12 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/screens/buyCourse.dart';
-import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/login.dart';
-import 'package:tazaquiznew/screens/studyMaterial.dart';
-import 'package:tazaquiznew/screens/testSeries.dart';
-import 'package:tazaquiznew/testpage.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

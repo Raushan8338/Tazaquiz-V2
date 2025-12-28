@@ -4,7 +4,6 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/home.dart';
-import 'package:tazaquiznew/screens/homeSceen.dart';
 import 'package:tazaquiznew/screens/singup.dart';
 import 'dart:async';
 
@@ -12,13 +11,15 @@ import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
 
 class OTPBasedVerificationPage extends StatefulWidget {
-  final String phoneNumber, name, email, referalCode;
+  final String phoneNumber, name, email;
+  final String? referalCode;
 
   OTPBasedVerificationPage({
+    super.key,
     required this.phoneNumber,
     required this.name,
     required this.email,
-    required this.referalCode,
+    this.referalCode,
   });
 
   @override
@@ -60,7 +61,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
   }
 
   void _resendOTP() async {
-    //
+    // Ye check kro
     setState(() {
       _otpControllers.forEach((controller) => controller.clear());
       _focusNodes[0].requestFocus();
@@ -126,11 +127,17 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         'name': widget.name,
         'email': widget.email,
         'device_id': '',
-        'referalCode': widget.referalCode,
+        'referalCode': 'widget.referalCode',
         'androidInfo': '',
       };
 
+      print(data);
+
       final responseFuture = await authRepository.signupVerifyOTP(data);
+
+      print("STATUS => ${responseFuture.statusCode}");
+      print("DATA => ${responseFuture.data}");
+
       if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);
         Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
@@ -173,95 +180,6 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         ),
       );
     }
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.check, color: AppColors.white, size: 48),
-                  ),
-                  SizedBox(height: 24),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Verification Successful!',
-                    22,
-                    AppColors.darkNavy,
-                    FontWeight.w800,
-                    1,
-                    TextAlign.center,
-                    0.0,
-                  ),
-
-                  SizedBox(height: 12),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'You have been verified successfully',
-                    14,
-                    AppColors.greyS600,
-                    FontWeight.normal,
-                    1,
-                    TextAlign.center,
-                    0.0,
-                  ),
-
-                  SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Navigator.pop(context);
-                        // Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.transparent,
-                        shadowColor: AppColors.transparent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: Ink(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Container(
-                          alignment: Alignment.center,
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Continue',
-                            16,
-                            AppColors.white,
-                            FontWeight.w700,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-    );
   }
 
   @override

@@ -64,7 +64,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     phoneNumber: _phoneController.text.trim(),
                     name: _nameController.text.trim(),
                     email: _emailController.text.trim(),
-                    referalCode: _hasReferralCode ? _referralController.text.trim() : '',
+                    referalCode: _referralController.text.trim(),
                   ),
             ),
           );
