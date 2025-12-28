@@ -48,7 +48,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         'referalCode': '',
         'androidInfo': '',
       };
-
+      //
       final responseFuture = await authRepository.signupVerifyOTP(data);
       print('Signup Response: ${responseFuture.data}');
       if (responseFuture.statusCode == 200) {

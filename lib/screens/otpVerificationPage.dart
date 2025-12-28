@@ -60,6 +60,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
   }
 
   void _resendOTP() async {
+    //
     setState(() {
       _otpControllers.forEach((controller) => controller.clear());
       _focusNodes[0].requestFocus();
