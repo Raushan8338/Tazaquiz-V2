@@ -11,7 +11,7 @@ import 'package:tazaquiznew/testpage.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  Api_Client.init(); // 🔥 MUST
+  Api_Client.init();
   runApp(const MyApp());
 }
 

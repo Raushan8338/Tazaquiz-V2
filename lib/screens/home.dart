@@ -129,7 +129,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+
     );
   }
 
@@ -942,74 +942,5 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home, 'Home', 0),
-            _buildNavItem(Icons.school, 'Courses', 1),
-            _buildNavItem(Icons.quiz, 'Quiz', 2),
-            _buildNavItem(Icons.person, 'Profile', 3),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    bool isActive = _selectedNavIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedNavIndex = index;
-        });
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: isActive
-                  ? LinearGradient(
-                      colors: [AppColors.tealGreen, AppColors.darkNavy],
-                    )
-                  : null,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              icon,
-              color: isActive ? AppColors.white : AppColors.greyS600,
-              size: 24,
-            ),
-          ),
-          SizedBox(height: 4),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            label,
-            11,
-            isActive ? AppColors.darkNavy : AppColors.greyS600,
-            isActive ? FontWeight.w700 : FontWeight.w500,
-            1,
-            TextAlign.center,
-            0.0,
-          ),
-        ],
-      ),
-    );
-  }
 }
 

@@ -60,7 +60,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         final response = await authRepository.loginUser(data);
 
         if (response.statusCode == 200) {
-          print('Login Response: ${response.data}');
           final data = jsonDecode(response.data); // ✅ FIX
 
           final status = data['status'];
@@ -158,7 +157,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       ),
       child: Stack(
         children: [
-          // Background circles
           Positioned(
             top: -60,
             right: -60,
