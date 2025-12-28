@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/buyCourse.dart';
+import 'package:tazaquiznew/screens/notificationPage.dart';
 import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/screens/testSeries.dart';
 import 'package:tazaquiznew/utils/richText.dart';
@@ -175,7 +176,9 @@ class _HomePageState extends State<HomePage> {
                 decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
                 child: const Icon(Icons.notifications_outlined, color: AppColors.darkNavy, size: 22),
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationsPage()));
+              },
             ),
 
             /// Notification Badge

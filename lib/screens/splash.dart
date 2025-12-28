@@ -51,7 +51,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
       });
     } else {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => OtpLoginPage()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
     }
   }
 

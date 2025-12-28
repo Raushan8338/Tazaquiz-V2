@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
-import 'package:tazaquiznew/testpage.dart';
+import 'package:tazaquiznew/testpage.dart' hide ContactUsPage;
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 
 class StudentProfilePage extends StatefulWidget {
   @override
@@ -10,18 +12,18 @@ class StudentProfilePage extends StatefulWidget {
 }
 
 class _StudentProfilePageState extends State<StudentProfilePage> {
- //hyggtt
-  final Map<String, dynamic> _studentData = {
-    'name': 'Rahul Sharma',
-    'email': 'rahul.sharma@email.com',
-    'phone': '+91 98765 43210',
-    'studentId': 'STU2024001',
-    'enrollmentDate': 'Jan 15, 2024',
-    'class': 'Class 12 - Science',
-    'rollNumber': 'A-101',
-    'dateOfBirth': '15 Aug 2006',
-    'address': 'Mumbai, Maharashtra',
-  };
+  UserModel? _user;
+  @override
+  void initState() {
+    super.initState();
+    _getUserData();
+  }
+
+  void _getUserData() async {
+    // Fetch and set user data here if needed
+    _user = await SessionManager.getUser();
+    setState(() {});
+  }
 
   final Map<String, dynamic> _statistics = {
     'coursesEnrolled': 8,
@@ -40,12 +42,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       'icon': Icons.quiz,
       'color': AppColors.green,
     },
-    {
-      'title': 'Downloaded Physics Notes',
-      'date': '5 hours ago',
-      'icon': Icons.download,
-      'color': AppColors.blue,
-    },
+    {'title': 'Downloaded Physics Notes', 'date': '5 hours ago', 'icon': Icons.download, 'color': AppColors.blue},
     {
       'title': 'Earned Achievement Badge',
       'badge': 'Top Performer',
@@ -53,39 +50,19 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       'icon': Icons.emoji_events,
       'color': AppColors.orange,
     },
-    {
-      'title': 'Started Chemistry Course',
-      'date': '2 days ago',
-      'icon': Icons.play_circle,
-      'color': AppColors.purple,
-    },
+    {'title': 'Started Chemistry Course', 'date': '2 days ago', 'icon': Icons.play_circle, 'color': AppColors.purple},
   ];
 
   final List<Map<String, dynamic>> _achievements = [
-    {
-      'title': 'Top Scorer',
-      'description': 'Scored 90+ in 5 tests',
-      'icon': Icons.emoji_events,
-      'earned': true,
-    },
-    {
-      'title': 'Quick Learner',
-      'description': 'Complete 10 courses',
-      'icon': Icons.speed,
-      'earned': true,
-    },
+    {'title': 'Top Scorer', 'description': 'Scored 90+ in 5 tests', 'icon': Icons.emoji_events, 'earned': true},
+    {'title': 'Quick Learner', 'description': 'Complete 10 courses', 'icon': Icons.speed, 'earned': true},
     {
       'title': 'Streak Master',
       'description': '7 day login streak',
       'icon': Icons.local_fire_department,
       'earned': false,
     },
-    {
-      'title': 'Subject Expert',
-      'description': 'Master one subject',
-      'icon': Icons.star,
-      'earned': false,
-    },
+    {'title': 'Subject Expert', 'description': 'Master one subject', 'icon': Icons.star, 'earned': false},
   ];
 
   @override
@@ -93,26 +70,26 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       appBar: AppBar(
-         title:  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'My Profile',
-                    20,
-                    AppColors.white,
-                    FontWeight.w900,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-      centerTitle: false,
-      flexibleSpace: Container(
-      decoration:  BoxDecoration(
-      gradient: LinearGradient(
+        title: AppRichText.setTextPoppinsStyle(
+          context,
+          'My Profile',
+          20,
+          AppColors.white,
+          FontWeight.w900,
+          1,
+          TextAlign.left,
+          0.0,
+        ),
+        centerTitle: false,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [AppColors.darkNavy, AppColors.tealGreen],
             ),
-    ),
-  ),
+          ),
+        ),
       ),
       body: CustomScrollView(
         slivers: [
@@ -207,13 +184,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -224,15 +195,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [AppColors.tealGreen, AppColors.darkNavy],
-                  ),
+                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                   border: Border.all(color: AppColors.lightGold, width: 3),
                 ),
                 child: Center(
                   child: AppRichText.setTextPoppinsStyle(
                     context,
-                    _studentData['name'].substring(0, 1),
+                    '${_user?.username}'.substring(0, 1),
                     32,
                     AppColors.white,
                     FontWeight.w900,
@@ -249,7 +218,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   children: [
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      _studentData['name'],
+                      '${_user?.username}',
                       20,
                       AppColors.darkNavy,
                       FontWeight.w900,
@@ -282,7 +251,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         SizedBox(width: 4),
                         AppRichText.setTextPoppinsStyle(
                           context,
-                          _studentData['studentId'],
+                          'STD + ${_user?.referalId}',
                           12,
                           AppColors.greyS600,
                           FontWeight.w600,
@@ -310,9 +279,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           Divider(),
           SizedBox(height: 16),
 
-          _buildInfoRow(Icons.email, _studentData['email']),
-          _buildInfoRow(Icons.phone, _studentData['phone']),
-          _buildInfoRow(Icons.calendar_today, 'Enrolled: ${_studentData['enrollmentDate']}'),
+          _buildInfoRow(Icons.email, '${_user?.email}'),
+          _buildInfoRow(Icons.phone, '${_user?.phone}'),
+          _buildInfoRow(Icons.calendar_today, 'Enrolled: ${_user?.createdAt}'),
         ],
       ),
     );
@@ -323,10 +292,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       children: [
         Container(
           padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.greyS1,
-            borderRadius: BorderRadius.circular(8),
-          ),
+          decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, size: 18, color: AppColors.tealGreen),
         ),
         SizedBox(width: 12),
@@ -346,69 +312,58 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-Widget _buildStatsGrid() {
-  return Container(
-    margin: EdgeInsets.symmetric(horizontal: 16),
-    padding: EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppColors.tealGreen, AppColors.darkNavy],
+  Widget _buildStatsGrid() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.tealGreen, AppColors.darkNavy],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 10))],
       ),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: AppColors.tealGreen.withOpacity(0.3),
-          blurRadius: 20,
-          offset: Offset(0, 10),
-        ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppRichText.setTextPoppinsStyle(
-          context,
-          'Performance Overview',
-          18,
-          AppColors.white,
-          FontWeight.w900,
-          1,
-          TextAlign.left,
-          0.0,
-        ),
-        SizedBox(height: 20), 
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1,
-          padding: EdgeInsets.zero,
-          children: [
-            _buildStatCard('Courses', '${_statistics['coursesEnrolled']}', Icons.school),
-            _buildStatCard('Tests', '${_statistics['testsCompleted']}', Icons.quiz),
-            _buildStatCard('Rank', '#${_statistics['rank']}', Icons.leaderboard),
-            _buildStatCard('Avg Score', '${_statistics['averageScore']}%', Icons.analytics),
-            _buildStatCard('XP Points', '${_statistics['totalXP']}', Icons.stars),
-            _buildStatCard('Study Hrs', '${_statistics['studyHours']}h', Icons.schedule),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppRichText.setTextPoppinsStyle(
+            context,
+            'Performance Overview',
+            18,
+            AppColors.white,
+            FontWeight.w900,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+          SizedBox(height: 20),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1,
+            padding: EdgeInsets.zero,
+            children: [
+              _buildStatCard('Courses', '${_statistics['coursesEnrolled']}', Icons.school),
+              _buildStatCard('Tests', '${_statistics['testsCompleted']}', Icons.quiz),
+              _buildStatCard('Rank', '#${_statistics['rank']}', Icons.leaderboard),
+              _buildStatCard('Avg Score', '${_statistics['averageScore']}%', Icons.analytics),
+              _buildStatCard('XP Points', '${_statistics['totalXP']}', Icons.stars),
+              _buildStatCard('Study Hrs', '${_statistics['studyHours']}h', Icons.schedule),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildStatCard(String label, String value, IconData icon) {
     return Container(
-
-      decoration: BoxDecoration(
-        color: AppColors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -462,45 +417,17 @@ Widget _buildStatsGrid() {
           SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: _buildActionCard(
-                  'My Courses',
-                  Icons.school,
-                  AppColors.tealGreen,
-                  () {},
-                ),
-              ),
+              Expanded(child: _buildActionCard('My Courses', Icons.school, AppColors.tealGreen, () {})),
               SizedBox(width: 12),
-              Expanded(
-                child: _buildActionCard(
-                  'Certificates',
-                  Icons.card_membership,
-                  AppColors.darkNavy,
-                  () {},
-                ),
-              ),
+              Expanded(child: _buildActionCard('Certificates', Icons.card_membership, AppColors.darkNavy, () {})),
             ],
           ),
           SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: _buildActionCard(
-                  'Test History',
-                  Icons.history,
-                  AppColors.oxfordBlue,
-                  () {},
-                ),
-              ),
+              Expanded(child: _buildActionCard('Test History', Icons.history, AppColors.oxfordBlue, () {})),
               SizedBox(width: 12),
-              Expanded(
-                child: _buildActionCard(
-                  'Downloads',
-                  Icons.download,
-                  AppColors.tealGreen,
-                  () {},
-                ),
-              ),
+              Expanded(child: _buildActionCard('Downloads', Icons.download, AppColors.tealGreen, () {})),
             ],
           ),
         ],
@@ -517,22 +444,14 @@ Widget _buildStatsGrid() {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withOpacity(0.3), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))],
         ),
         child: Column(
           children: [
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [color, color.withOpacity(0.7)],
-                ),
+                gradient: LinearGradient(colors: [color, color.withOpacity(0.7)]),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: AppColors.white, size: 28),
@@ -561,13 +480,7 @@ Widget _buildStatsGrid() {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -577,9 +490,7 @@ Widget _buildStatsGrid() {
               Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.tealGreen, AppColors.darkNavy],
-                  ),
+                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Icons.history, color: AppColors.white, size: 20),
@@ -598,15 +509,13 @@ Widget _buildStatsGrid() {
             ],
           ),
 
-          SizedBox(
-            height: 20,
-          ),
-         
+          SizedBox(height: 20),
+
           ListView.separated(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
             itemCount: _recentActivity.length,
-            padding: EdgeInsets.zero, 
+            padding: EdgeInsets.zero,
             separatorBuilder: (context, index) => Divider(height: 24),
             itemBuilder: (context, index) {
               final activity = _recentActivity[index];
@@ -618,11 +527,7 @@ Widget _buildStatsGrid() {
                       color: activity['color'].withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
-                      activity['icon'],
-                      color: activity['color'],
-                      size: 24,
-                    ),
+                    child: Icon(activity['icon'], color: activity['color'], size: 24),
                   ),
                   SizedBox(width: 12),
                   Expanded(
@@ -687,13 +592,7 @@ Widget _buildStatsGrid() {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -706,9 +605,7 @@ Widget _buildStatsGrid() {
                   Container(
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.lightGold, AppColors.orange],
-                      ),
+                      gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.orange]),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 20),
@@ -748,7 +645,7 @@ Widget _buildStatsGrid() {
           SizedBox(height: 16),
           GridView.builder(
             shrinkWrap: true,
-            padding: EdgeInsets.zero, 
+            padding: EdgeInsets.zero,
             physics: NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
@@ -762,31 +659,22 @@ Widget _buildStatsGrid() {
               return Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: achievement['earned']
-                      ? LinearGradient(
-                          colors: [
-                            AppColors.lightGold.withOpacity(0.2),
-                            AppColors.lightGold.withOpacity(0.1),
-                          ],
-                        )
-                      : null,
+                  gradient:
+                      achievement['earned']
+                          ? LinearGradient(
+                            colors: [AppColors.lightGold.withOpacity(0.2), AppColors.lightGold.withOpacity(0.1)],
+                          )
+                          : null,
                   color: achievement['earned'] ? null : AppColors.greyS1,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: achievement['earned']
-                        ? AppColors.lightGold
-                        :AppColors.greyS300,
-                    width: 2,
-                  ),
+                  border: Border.all(color: achievement['earned'] ? AppColors.lightGold : AppColors.greyS300, width: 2),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       achievement['icon'],
-                      color: achievement['earned']
-                          ? AppColors.tealGreen
-                          :AppColors.greyS400,
+                      color: achievement['earned'] ? AppColors.tealGreen : AppColors.greyS400,
                       size: 32,
                     ),
                     SizedBox(height: 8),
@@ -794,9 +682,7 @@ Widget _buildStatsGrid() {
                       context,
                       achievement['title'],
                       13,
-                      achievement['earned']
-                          ? AppColors.darkNavy
-                          : AppColors.greyS600,
+                      achievement['earned'] ? AppColors.darkNavy : AppColors.greyS600,
                       FontWeight.w700,
                       2,
                       TextAlign.center,
@@ -830,13 +716,7 @@ Widget _buildStatsGrid() {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -846,9 +726,7 @@ Widget _buildStatsGrid() {
               Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.oxfordBlue, AppColors.darkNavy],
-                  ),
+                  gradient: LinearGradient(colors: [AppColors.oxfordBlue, AppColors.darkNavy]),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(Icons.settings, color: AppColors.white, size: 20),
@@ -876,9 +754,9 @@ Widget _buildStatsGrid() {
           InkWell(
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
-
             },
-            child: _buildSettingItem(Icons.help_outline, 'Help & Support', () {})),
+            child: _buildSettingItem(Icons.help_outline, 'Help & Support', () {}),
+          ),
           Divider(height: 24),
           _buildSettingItem(Icons.logout, 'Logout', () {}, isLogout: true),
         ],
@@ -886,8 +764,7 @@ Widget _buildStatsGrid() {
     );
   }
 
-  Widget _buildSettingItem(IconData icon, String title, VoidCallback onTap,
-      {bool isLogout = false}) {
+  Widget _buildSettingItem(IconData icon, String title, VoidCallback onTap, {bool isLogout = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Row(
@@ -895,16 +772,10 @@ Widget _buildStatsGrid() {
           Container(
             padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isLogout
-                  ? AppColors.red.withOpacity(0.1)
-                  : AppColors.greyS1,
+              color: isLogout ? AppColors.red.withOpacity(0.1) : AppColors.greyS1,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: isLogout ? AppColors.red : AppColors.tealGreen,
-            ),
+            child: Icon(icon, size: 20, color: isLogout ? AppColors.red : AppColors.tealGreen),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -919,11 +790,7 @@ Widget _buildStatsGrid() {
               0.0,
             ),
           ),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color:AppColors.greyS400,
-          ),
+          Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.greyS400),
         ],
       ),
     );

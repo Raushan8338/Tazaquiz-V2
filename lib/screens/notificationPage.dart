@@ -4,14 +4,12 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
 
-
 class NotificationsPage extends StatefulWidget {
   @override
   _NotificationsPageState createState() => _NotificationsPageState();
 }
 
-class _NotificationsPageState extends State<NotificationsPage>
-    with SingleTickerProviderStateMixin {
+class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _selectedFilter = 'All';
 
@@ -145,84 +143,67 @@ class _NotificationsPageState extends State<NotificationsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
-       appBar: AppBar(
-        leading: AppButton.setBackIcon(context, (){Navigator.pop(context);}, AppColors.white),
-         title:  Column(
+      appBar: AppBar(
+        leading: AppButton.setBackIcon(context, () {
+          Navigator.pop(context);
+        }, AppColors.white),
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-             AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Notifications',
-                        20,
-                        AppColors.white,
-                        FontWeight.w900,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                SizedBox(height: 2),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Stay updated with your activities',
-                    13,
-                    AppColors.lightGold,
-                    FontWeight.w600,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                    SizedBox(height: 4),
-           ],
-         ),
+          children: [
+            AppRichText.setTextPoppinsStyle(
+              context,
+              'Notifications',
+              20,
+              AppColors.white,
+              FontWeight.w900,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+            SizedBox(height: 2),
+            AppRichText.setTextPoppinsStyle(
+              context,
+              'Stay updated with your activities',
+              13,
+              AppColors.lightGold,
+              FontWeight.w600,
+              1,
+              TextAlign.left,
+              0.0,
+            ),
+            SizedBox(height: 4),
+          ],
+        ),
 
-
-      centerTitle: false,
-      // leading: 
-      flexibleSpace: Container(
-      decoration:  BoxDecoration(
-      gradient: LinearGradient(
+        centerTitle: false,
+        // leading:
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [AppColors.darkNavy, AppColors.tealGreen],
             ),
-    ),
-  ),
+          ),
+        ),
       ),
-     
-      body: CustomScrollView(
-        slivers: [
-       
-          _buildNotificationsList(),
-        ],
-      ),
+
+      body: CustomScrollView(slivers: [_buildNotificationsList()]),
     );
   }
-
 
   Widget _buildStatItem(IconData icon, String value, String label) {
     return Column(
       children: [
         Container(
           padding: EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
           child: Icon(icon, color: AppColors.lightGold, size: 24),
         ),
         SizedBox(height: 10),
-       AppRichText.setTextPoppinsStyle(
-          context,
-          value,
-          20,
-          AppColors.white,
-          FontWeight.w900,
-          1,
-          TextAlign.center,
-          0.0,
-        ),
+        AppRichText.setTextPoppinsStyle(context, value, 20, AppColors.white, FontWeight.w900, 1, TextAlign.center, 0.0),
         SizedBox(height: 2),
-       AppRichText.setTextPoppinsStyle(
+        AppRichText.setTextPoppinsStyle(
           context,
           label,
           11,
@@ -247,18 +228,11 @@ class _NotificationsPageState extends State<NotificationsPage>
             children: [
               Container(
                 padding: EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.greyS1,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.notifications_off,
-                  size: 64,
-                  color: AppColors.greyS400,
-                ),
+                decoration: BoxDecoration(color: AppColors.greyS1, shape: BoxShape.circle),
+                child: Icon(Icons.notifications_off, size: 64, color: AppColors.greyS400),
               ),
               SizedBox(height: 20),
-             AppRichText.setTextPoppinsStyle(
+              AppRichText.setTextPoppinsStyle(
                 context,
                 'No Notifications',
                 18,
@@ -269,7 +243,7 @@ class _NotificationsPageState extends State<NotificationsPage>
                 0.0,
               ),
               SizedBox(height: 8),
-             AppRichText.setTextPoppinsStyle(
+              AppRichText.setTextPoppinsStyle(
                 context,
                 'You\'re all caught up!',
                 13,
@@ -295,36 +269,33 @@ class _NotificationsPageState extends State<NotificationsPage>
     }
 
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final entries = groupedNotifications.entries.toList();
-          final dateKey = entries[index].key;
-          final dateNotifications = entries[index].value;
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final entries = groupedNotifications.entries.toList();
+        final dateKey = entries[index].key;
+        final dateNotifications = entries[index].value;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(24, 20, 24, 12),
-                child:AppRichText.setTextPoppinsStyle(
-                  context,
-                  dateKey,
-                  14,
-                  AppColors.darkNavy,
-                  FontWeight.w900,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(24, 20, 24, 12),
+              child: AppRichText.setTextPoppinsStyle(
+                context,
+                dateKey,
+                14,
+                AppColors.darkNavy,
+                FontWeight.w900,
+                1,
+                TextAlign.left,
+                0.0,
               ),
-              ...dateNotifications.map((notification) {
-                return _buildNotificationCard(notification);
-              }).toList(),
-            ],
-          );
-        },
-        childCount: groupedNotifications.length,
-      ),
+            ),
+            ...dateNotifications.map((notification) {
+              return _buildNotificationCard(notification);
+            }).toList(),
+          ],
+        );
+      }, childCount: groupedNotifications.length),
     );
   }
 
@@ -337,10 +308,7 @@ class _NotificationsPageState extends State<NotificationsPage>
       background: Container(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         padding: EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(16)),
         alignment: Alignment.centerRight,
         child: Icon(Icons.delete, color: AppColors.white, size: 28),
       ),
@@ -368,16 +336,8 @@ class _NotificationsPageState extends State<NotificationsPage>
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          border: isImportant
-              ? Border.all(color: AppColors.lightGold, width: 2)
-              : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+          border: isImportant ? Border.all(color: AppColors.lightGold, width: 2) : null,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))],
         ),
         child: Stack(
           children: [
@@ -389,19 +349,10 @@ class _NotificationsPageState extends State<NotificationsPage>
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          notification['color'],
-                          notification['color'].withOpacity(0.7),
-                        ],
-                      ),
+                      gradient: LinearGradient(colors: [notification['color'], notification['color'].withOpacity(0.7)]),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      notification['icon'],
-                      color: AppColors.white,
-                      size: 24,
-                    ),
+                    child: Icon(notification['icon'], color: AppColors.white, size: 24),
                   ),
                   SizedBox(width: 16),
                   Expanded(
@@ -411,7 +362,7 @@ class _NotificationsPageState extends State<NotificationsPage>
                         Row(
                           children: [
                             Expanded(
-                              child:AppRichText.setTextPoppinsStyle(
+                              child: AppRichText.setTextPoppinsStyle(
                                 context,
                                 notification['title'],
                                 14,
@@ -426,15 +377,12 @@ class _NotificationsPageState extends State<NotificationsPage>
                               Container(
                                 width: 8,
                                 height: 8,
-                                decoration: BoxDecoration(
-                                  color: AppColors.tealGreen,
-                                  shape: BoxShape.circle,
-                                ),
+                                decoration: BoxDecoration(color: AppColors.tealGreen, shape: BoxShape.circle),
                               ),
                           ],
                         ),
                         SizedBox(height: 6),
-                       AppRichText.setTextPoppinsStyle(
+                        AppRichText.setTextPoppinsStyle(
                           context,
                           notification['message'],
                           12,
@@ -447,10 +395,9 @@ class _NotificationsPageState extends State<NotificationsPage>
                         SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.access_time,
-                                size: 14, color: AppColors.greyS500),
+                            Icon(Icons.access_time, size: 14, color: AppColors.greyS500),
                             SizedBox(width: 4),
-                           AppRichText.setTextPoppinsStyle(
+                            AppRichText.setTextPoppinsStyle(
                               context,
                               _formatTime(notification['time']),
                               11,
@@ -462,13 +409,12 @@ class _NotificationsPageState extends State<NotificationsPage>
                             ),
                             SizedBox(width: 12),
                             Container(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: notification['color'].withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child:AppRichText.setTextPoppinsStyle(
+                              child: AppRichText.setTextPoppinsStyle(
                                 context,
                                 notification['category'],
                                 10,
@@ -493,10 +439,7 @@ class _NotificationsPageState extends State<NotificationsPage>
                 right: 8,
                 child: Container(
                   padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightGold,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: AppColors.lightGold, shape: BoxShape.circle),
                   child: Icon(Icons.star, color: AppColors.darkNavy, size: 12),
                 ),
               ),
@@ -505,7 +448,6 @@ class _NotificationsPageState extends State<NotificationsPage>
       ),
     );
   }
-
 
   String _getDateLabel(DateTime date) {
     final now = DateTime.now();
@@ -537,4 +479,3 @@ class _NotificationsPageState extends State<NotificationsPage>
     }
   }
 }
-

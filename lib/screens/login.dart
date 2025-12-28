@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/API/api_endpoint.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
@@ -19,7 +20,7 @@ class OtpLoginPage extends StatefulWidget {
 }
 
 class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMixin {
-   //hyggtt
+  //hyggtt
   bool _isPhoneLogin = true;
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -48,6 +49,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   }
 
   void _handleLogin() async {
+    //final GoogleData = await GoogleSignInApi.login();
+    // print(GoogleData?.email);
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       Authrepository authRepository = Authrepository(Api_Client.dio);
@@ -488,4 +491,10 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       ),
     );
   }
+}
+
+class GoogleSignInApi {
+  static final _googlesignin = GoogleSignIn();
+  static Future<GoogleSignInAccount?> login() => _googlesignin.signIn();
+  static Future<GoogleSignInAccount?> logout() => _googlesignin.disconnect();
 }

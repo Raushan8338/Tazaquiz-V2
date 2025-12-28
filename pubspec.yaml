@@ -37,6 +37,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   dio: ^5.9.0
   shared_preferences: ^2.5.3
+  cached_network_image: ^3.4.1
+  google_sign_in: ^6.2.2
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
