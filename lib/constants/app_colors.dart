@@ -15,8 +15,13 @@ class AppColors {
   static const Color orange = Colors.orange;
   static Color orangeS1 = Colors.orange[700]!;
   static const Color greyS1 = Color(0xFFF8F9FD);
+<<<<<<< Updated upstream
   
 
+=======
+  static const Color purple =Colors.purple;
+  static const Color blue =Colors.blue;
+>>>>>>> Stashed changes
   static const Color white = Colors.white;
   static const Color black = Colors.black;
   static  Color greyS700 =Colors.grey.shade700;

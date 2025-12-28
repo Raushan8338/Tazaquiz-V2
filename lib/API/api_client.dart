@@ -31,7 +31,7 @@ class Api_Client {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          print("FULL URL => ${options.uri}");
+          // print("FULL URL => ${options.uri}");
           // You can add authorization headers or logging here
 
           return handler.next(options);

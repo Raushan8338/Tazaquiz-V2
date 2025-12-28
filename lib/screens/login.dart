@@ -83,7 +83,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
               SnackBar(
                 content: AppRichText.setTextPoppinsStyle(
                   context,
-                  'Something went wrong. Please try again.',
+                  'Account not found. Please sign up to continue.',
                   12,
                   AppColors.white,
                   FontWeight.normal,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/screens/home.dart';
+import 'package:tazaquiznew/screens/profileScreen.dart';
 import 'package:tazaquiznew/screens/studyMaterial.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,7 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
     HomePage(),   
     HomePage(),      
     HomePage(), 
-    StudyMaterialScreen(), 
+    StudentProfilePage(), 
   ];
 
   void _onNavItemTapped(int index) {
