@@ -179,7 +179,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                     context,
                     widget.seriesName,
                     20,
-                    Colors.white,
+                    AppColors.white,
                     FontWeight.w900,
                     2,
                     TextAlign.left,
@@ -215,18 +215,18 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: AppColors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.library_books, size: 14, color: Colors.white),
+                            Icon(Icons.library_books, size: 14, color: AppColors.white),
                             SizedBox(width: 4),
                             AppRichText.setTextPoppinsStyle(
                               context,
                               '${_studyMaterials.length} Materials',
                               11,
-                              Colors.white,
+                              AppColors.white,
                               FontWeight.w700,
                               1,
                               TextAlign.left,
@@ -247,10 +247,10 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
         icon: Container(
           padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: AppColors.white.withOpacity(0.2),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -265,11 +265,11 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
       margin: EdgeInsets.all(16),
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.black.withOpacity(0.05),
             blurRadius: 15,
             offset: Offset(0, 5),
           ),
@@ -288,7 +288,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.info_outline, color: Colors.white, size: 20),
+                child: Icon(Icons.info_outline, color: AppColors.white, size: 20),
               ),
               SizedBox(width: 12),
               AppRichText.setTextPoppinsStyle(
@@ -306,9 +306,9 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
           SizedBox(height: 12),
           AppRichText.setTextPoppinsStyle(
             context,
-            'Master mathematics with our comprehensive test series. Complete all quizzes to unlock advanced levels and earn certificates.',
+            'Master mathematics with our comprehensive test series. Complete all quizzes to unlock advanced levels',
             13,
-            Colors.grey[700]!,
+            AppColors.greyS700,
             FontWeight.w500,
             10,
             TextAlign.left,
@@ -351,7 +351,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                 context,
                 'Your Progress',
                 16,
-                Colors.white,
+                AppColors.white,
                 FontWeight.w800,
                 1,
                 TextAlign.left,
@@ -382,7 +382,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 12,
-              backgroundColor: Colors.white.withOpacity(0.3),
+              backgroundColor: AppColors.white.withOpacity(0.3),
               valueColor: AlwaysStoppedAnimation(AppColors.lightGold),
             ),
           ),
@@ -408,7 +408,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
           context,
           value,
           16,
-          Colors.white,
+          AppColors.white,
           FontWeight.w900,
           1,
           TextAlign.left,
@@ -419,7 +419,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
           context,
           label,
           11,
-          Colors.white.withOpacity(0.8),
+          AppColors.white.withOpacity(0.8),
           FontWeight.w600,
           1,
           TextAlign.left,
@@ -434,11 +434,11 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
       margin: EdgeInsets.all(16),
       padding: EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -452,7 +452,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
           ),
           borderRadius: BorderRadius.circular(10),
         ),
-        labelColor: Colors.white,
+        labelColor: AppColors.white,
         unselectedLabelColor: AppColors.darkNavy,
         labelStyle: TextStyle(
           fontFamily: 'Poppins',
@@ -482,6 +482,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                 Icon(Icons.library_books, size: 18),
                 SizedBox(width: 8),
                 Text('Materials'),
+       
               ],
             ),
           ),
@@ -507,26 +508,26 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
     bool isAttempted = quiz['attempted'] ?? false;
     
     Color difficultyColor = quiz['difficulty'] == 'Easy'
-        ? Colors.green
+        ? AppColors.green
         : quiz['difficulty'] == 'Medium'
-            ? Colors.orange
-            : Colors.red;
+            ? AppColors.orange
+            : AppColors.red;
 
     return Opacity(
       opacity: isLocked ? 0.6 : 1.0,
       child: Container(
         margin: EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
           border: isLocked
-              ? Border.all(color: Colors.grey[300]!, width: 2)
+              ? Border.all(color: AppColors.greyS300, width: 2)
               : null,
           boxShadow: isLocked
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: AppColors.black.withOpacity(0.08),
                     blurRadius: 15,
                     offset: Offset(0, 5),
                   ),
@@ -559,19 +560,19 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: isAttempted
-                                ? [Colors.green, Colors.green.shade700]
+                                ? [AppColors.green, AppColors.greenS3]
                                 : [AppColors.tealGreen, AppColors.darkNavy],
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
                           child: isAttempted
-                              ? Icon(Icons.check_circle, color: Colors.white, size: 28)
+                              ? Icon(Icons.check_circle, color: AppColors.white, size: 28)
                               : AppRichText.setTextPoppinsStyle(
                                   context,
                                   '$number',
                                   20,
-                                  Colors.white,
+                                  AppColors.white,
                                   FontWeight.w900,
                                   1,
                                   TextAlign.center,
@@ -599,7 +600,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                               context,
                               quiz['description'],
                               12,
-                              Colors.grey[600]!,
+                              AppColors.greyS600,
                               FontWeight.w500,
                               1,
                               TextAlign.left,
@@ -683,16 +684,16 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                Colors.green.withOpacity(0.1),
-                                Colors.green.withOpacity(0.05),
+                                AppColors.green.withOpacity(0.1),
+                                AppColors.green.withOpacity(0.05),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.green.withOpacity(0.3)),
+                            border: Border.all(color: AppColors.green.withOpacity(0.3)),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.emoji_events, color: Colors.green, size: 20),
+                              Icon(Icons.emoji_events, color: AppColors.green, size: 20),
                               SizedBox(width: 8),
                               Expanded(
                                 child: Column(
@@ -713,7 +714,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                                       context,
                                       'Attempted ${quiz['attempts']} time(s) • ${quiz['lastAttempted']}',
                                       11,
-                                      Colors.grey[600]!,
+                                      AppColors.greyS600,
                                       FontWeight.w500,
                                       1,
                                       TextAlign.left,
@@ -733,20 +734,20 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                         Container(
                           padding: EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.grey[200],
+                            color: AppColors.greyS200,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey[400]!),
+                            border: Border.all(color: AppColors.greyS400),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.lock, color: Colors.grey[600], size: 20),
+                              Icon(Icons.lock, color: AppColors.greyS600, size: 20),
                               SizedBox(width: 8),
                               Expanded(
                                 child: AppRichText.setTextPoppinsStyle(
                                   context,
                                   quiz['unlockCondition'],
                                   12,
-                                  Colors.grey[700]!,
+                                  AppColors.greyS700,
                                   FontWeight.w600,
                                   1,
                                   TextAlign.left,
@@ -760,7 +761,6 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
 
                       SizedBox(height: 16),
 
-                      // Action Buttons
                       Row(
                         children: [
                           if (isAttempted && !isLocked) ...[
@@ -801,25 +801,25 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                               child: ElevatedButton(
                                 onPressed: isLocked ? null : () {},
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
+                                  backgroundColor: AppColors.transparent,
+                                  shadowColor: AppColors.transparent,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   padding: EdgeInsets.zero,
-                                  disabledBackgroundColor: Colors.grey[300],
+                                  disabledBackgroundColor: AppColors.greyS300,
                                 ),
                                 child: isLocked
                                     ? Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.lock, color: Colors.grey[600], size: 18),
+                                          Icon(Icons.lock, color: AppColors.greyS600, size: 18),
                                           SizedBox(width: 8),
                                           AppRichText.setTextPoppinsStyle(
                                             context,
                                             'Locked',
                                             13,
-                                            Colors.grey[700]!,
+                                            AppColors.greyS700,
                                             FontWeight.w700,
                                             1,
                                             TextAlign.center,
@@ -841,7 +841,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                                             children: [
                                               Icon(
                                                 isAttempted ? Icons.replay : Icons.play_arrow,
-                                                color: Colors.white,
+                                                color: AppColors.white,
                                                 size: 18,
                                               ),
                                               SizedBox(width: 8),
@@ -849,7 +849,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                                                 context,
                                                 isAttempted ? 'Retake Quiz' : 'Start Quiz',
                                                 13,
-                                                Colors.white,
+                                                AppColors.white,
                                                 FontWeight.w700,
                                                 1,
                                                 TextAlign.center,
@@ -878,13 +878,13 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
   Widget _buildQuizStat(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
+        Icon(icon, size: 16, color: AppColors.greyS600),
         SizedBox(width: 4),
         AppRichText.setTextPoppinsStyle(
           context,
           text,
           12,
-          Colors.grey[600]!,
+          AppColors.greyS600,
           FontWeight.w600,
           1,
           TextAlign.left,
@@ -908,16 +908,16 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
 
   Widget _buildMaterialCard(Map<String, dynamic> material) {
     bool isPDF = material['type'] == 'PDF';
-    Color typeColor = isPDF ? Colors.red : Colors.purple;
+    Color typeColor = isPDF ? AppColors.red : AppColors.purple;
 
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: AppColors.black.withOpacity(0.08),
             blurRadius: 15,
             offset: Offset(0, 5),
           ),
@@ -926,7 +926,6 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with gradient
           Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -948,7 +947,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                   ),
                   child: Icon(
                     isPDF ? Icons.picture_as_pdf : Icons.play_circle_filled,
-                    color: Colors.white,
+                    color: AppColors.white,
                     size: 24,
                   ),
                 ),
@@ -972,7 +971,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                         context,
                         material['description'],
                         12,
-                        Colors.grey[600]!,
+                        AppColors.greyS600,
                         FontWeight.w500,
                         1,
                         TextAlign.left,
@@ -1094,8 +1093,8 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                         child: ElevatedButton(
                           onPressed: () {},
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
+                            backgroundColor: AppColors.transparent,
+                            shadowColor: AppColors.transparent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -1113,13 +1112,13 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.download, color: Colors.white, size: 18),
+                                  Icon(Icons.download, color: AppColors.white, size: 18),
                                   SizedBox(width: 8),
                                   AppRichText.setTextPoppinsStyle(
                                     context,
                                     'Download',
                                     13,
-                                    Colors.white,
+                                    AppColors.white,
                                     FontWeight.w700,
                                     1,
                                     TextAlign.center,
@@ -1146,13 +1145,13 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
+        Icon(icon, size: 16, color: AppColors.greyS600),
         SizedBox(width: 4),
         AppRichText.setTextPoppinsStyle(
           context,
           text,
           12,
-          Colors.grey[600]!,
+          AppColors.greyS600,
           FontWeight.w600,
           1,
           TextAlign.left,
@@ -1163,10 +1162,3 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
   }
 }
 
-// Example usage
-void main() {
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: TestSeriesDetailPage(),
-  ));
-}

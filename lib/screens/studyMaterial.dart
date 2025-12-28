@@ -238,7 +238,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Row(
         children: [
@@ -330,7 +330,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: isSelected ? AppColors.tealGreen.withOpacity(0.3) : Colors.black.withOpacity(0.05),
+                    color: isSelected ? AppColors.tealGreen.withOpacity(0.3) : AppColors.black.withOpacity(0.05),
                     blurRadius: isSelected ? 15 : 8,
                     offset: Offset(0, isSelected ? 5 : 2),
                   ),
@@ -368,7 +368,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -534,14 +534,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
-                      // .apply(
-                      //   decoration: BoxDecoration(
-                      //     gradient: LinearGradient(
-                      //       colors: [AppColors.tealGreen, AppColors.darkNavy],
-                      //     ),
-                      //     borderRadius: BorderRadius.circular(12),
-                      //   ),
-                      // ),
+
                     ),
                   ],
                 ),
