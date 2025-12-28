@@ -4,6 +4,7 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/home.dart';
+import 'package:tazaquiznew/screens/homeSceen.dart';
 import 'package:tazaquiznew/screens/singup.dart';
 import 'dart:async';
 
@@ -221,7 +222,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
                       onPressed: () {
                         // Navigator.pop(context);
                         // Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.transparent,

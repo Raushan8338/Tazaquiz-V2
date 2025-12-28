@@ -57,6 +57,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         };
         final response = await authRepository.loginUser(data);
         if (response.statusCode == 200) {
+        
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => OTPBasedVerificationPage(phoneNumber: _phoneController.text)),
@@ -121,7 +122,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       ),
       child: Stack(
         children: [
-          // Background circles
           Positioned(
             top: -60,
             right: -60,
