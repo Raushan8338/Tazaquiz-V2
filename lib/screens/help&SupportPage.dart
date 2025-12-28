@@ -202,68 +202,6 @@ class _ContactUsPageState extends State<ContactUsPage>
     );
   }
 
-  // Widget _buildAppBar() {
-  //   return SliverAppBar(
-  //     expandedHeight: 140,
-  //     pinned: true,
-  //     backgroundColor: AppColors.darkNavy,
-  //     flexibleSpace: FlexibleSpaceBar(
-  //       background: Container(
-  //         decoration: BoxDecoration(
-  //           gradient: LinearGradient(
-  //             begin: Alignment.topLeft,
-  //             end: Alignment.bottomRight,
-  //             colors: [AppColors.darkNavy, AppColors.tealGreen],
-  //           ),
-  //         ),
-  //         child: SafeArea(
-  //           child: Padding(
-  //             padding: EdgeInsets.fromLTRB(60, 40, 20, 20),
-  //             child: Column(
-  //               crossAxisAlignment: CrossAxisAlignment.start,
-  //               mainAxisAlignment: MainAxisAlignment.end,
-  //               children: [
-  //                 AppRichText.setTextPoppinsStyle(
-  //                   context,
-  //                   'Help & Support',
-  //                   28,
-  //                   AppColors.white,
-  //                   FontWeight.w900,
-  //                   1,
-  //                   TextAlign.left,
-  //                   1.2,
-  //                 ),
-  //                 SizedBox(height: 6),
-  //                 AppRichText.setTextPoppinsStyle(
-  //                   context,
-  //                   'We\'re here to help you 24/7',
-  //                   13,
-  //                   AppColors.lightGold,
-  //                   FontWeight.w600,
-  //                   1,
-  //                   TextAlign.left,
-  //                   0.0,
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //     leading: IconButton(
-  //       icon: Container(
-  //         padding: EdgeInsets.all(8),
-  //         decoration: BoxDecoration(
-  //           color: AppColors.white.withOpacity(0.2),
-  //           borderRadius: BorderRadius.circular(10),
-  //         ),
-  //         child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
-  //       ),
-  //       onPressed: () => Navigator.pop(context),
-  //     ),
-  //   );
-  // }
-
   Widget _buildHeaderSection() {
     return Container(
       margin: EdgeInsets.all(16),
@@ -618,7 +556,7 @@ class _ContactUsPageState extends State<ContactUsPage>
                   hintStyle: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 13,
-                    color: Colors.grey[400],
+                    color: AppColors.greyS400,
                   ),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16),
@@ -731,7 +669,7 @@ class _ContactUsPageState extends State<ContactUsPage>
               hintStyle: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 13,
-                color: Colors.grey[400],
+                color: AppColors.greyS400,
               ),
               prefixIcon: Icon(icon, color: AppColors.tealGreen, size: 20),
               border: InputBorder.none,
@@ -749,216 +687,6 @@ class _ContactUsPageState extends State<ContactUsPage>
     );
   }
 
-  // Widget _buildContactMethodsTab() {
-  //   return SingleChildScrollView(
-  //     padding: EdgeInsets.all(16),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         // Contact Methods
-  //         ...List.generate(_contactMethods.length, (index) {
-  //           final method = _contactMethods[index];
-  //           return Container(
-  //             margin: EdgeInsets.only(bottom: 16),
-  //             decoration: BoxDecoration(
-  //               color: AppColors.white,
-  //               borderRadius: BorderRadius.circular(16),
-  //               boxShadow: [
-  //                 BoxShadow(
-  //                   color: Colors.black.withOpacity(0.05),
-  //                   blurRadius: 15,
-  //                   offset: Offset(0, 5),
-  //                 ),
-  //               ],
-  //             ),
-  //             child: Column(
-  //               children: [
-  //                 Container(
-  //                   padding: EdgeInsets.all(20),
-  //                   child: Row(
-  //                     children: [
-  //                       Container(
-  //                         padding: EdgeInsets.all(14),
-  //                         decoration: BoxDecoration(
-  //                           gradient: LinearGradient(
-  //                             colors: [method['color'], method['color'].withOpacity(0.7)],
-  //                           ),
-  //                           borderRadius: BorderRadius.circular(14),
-  //                         ),
-  //                         child: Icon(
-  //                           method['icon'],
-  //                           color: AppColors.white,
-  //                           size: 28,
-  //                         ),
-  //                       ),
-  //                       SizedBox(width: 16),
-  //                       Expanded(
-  //                         child: Column(
-  //                           crossAxisAlignment: CrossAxisAlignment.start,
-  //                           children: [
-  //                             AppRichText.setTextPoppinsStyle(
-  //                               context,
-  //                               method['title'],
-  //                               16,
-  //                               AppColors.darkNavy,
-  //                               FontWeight.w800,
-  //                               1,
-  //                               TextAlign.left,
-  //                               1.4,
-  //                             ),
-  //                             SizedBox(height: 4),
-  //                             AppRichText.setTextPoppinsStyle(
-  //                               context,
-  //                               method['subtitle'],
-  //                               14,
-  //                               AppColors.tealGreen,
-  //                               FontWeight.w700,
-  //                               1,
-  //                               TextAlign.left,
-  //                               0.0,
-  //                             ),
-  //                             SizedBox(height: 6),
-  //                             AppRichText.setTextPoppinsStyle(
-  //                               context,
-  //                               method['description'],
-  //                               11,
-  //                               Colors.grey[600]!,
-  //                               FontWeight.w500,
-  //                               1,
-  //                               TextAlign.left,
-  //                               1.3,
-  //                             ),
-  //                           ],
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                 ),
-  //                 Container(
-  //                   width: double.infinity,
-  //                   height: 48,
-  //                   child: ElevatedButton(
-  //                     onPressed: () {},
-  //                     style: ElevatedButton.styleFrom(
-  //                       backgroundColor: method['color'].withOpacity(0.1),
-  //                       shadowColor: Colors.transparent,
-  //                       shape: RoundedRectangleBorder(
-  //                         borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-  //                       ),
-  //                     ),
-  //                     child: Row(
-  //                       mainAxisAlignment: MainAxisAlignment.center,
-  //                       children: [
-  //                         AppRichText.setTextPoppinsStyle(
-  //                           context,
-  //                           method['action'],
-  //                           14,
-  //                           method['color'],
-  //                           FontWeight.w700,
-  //                           1,
-  //                           TextAlign.center,
-  //                           0.0,
-  //                         ),
-  //                         SizedBox(width: 8),
-  //                         Icon(Icons.arrow_forward, color: method['color'], size: 18),
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           );
-  //         }),
-
-  //         SizedBox(height: 24),
-
-  //         // Social Media
-  //         Container(
-  //           padding: EdgeInsets.all(20),
-  //           decoration: BoxDecoration(
-  //             color: AppColors.white,
-  //             borderRadius: BorderRadius.circular(16),
-  //             boxShadow: [
-  //               BoxShadow(
-  //                 color: Colors.black.withOpacity(0.05),
-  //                 blurRadius: 15,
-  //                 offset: Offset(0, 5),
-  //               ),
-  //             ],
-  //           ),
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Row(
-  //                 children: [
-  //                   Container(
-  //                     padding: EdgeInsets.all(10),
-  //                     decoration: BoxDecoration(
-  //                       gradient: LinearGradient(
-  //                         colors: [AppColors.tealGreen, AppColors.darkNavy],
-  //                       ),
-  //                       borderRadius: BorderRadius.circular(10),
-  //                     ),
-  //                     child: Icon(Icons.share, color: AppColors.white, size: 20),
-  //                   ),
-  //                   SizedBox(width: 12),
-  //                   AppRichText.setTextPoppinsStyle(
-  //                     context,
-  //                     'Follow Us',
-  //                     16,
-  //                     AppColors.darkNavy,
-  //                     FontWeight.w800,
-  //                     1,
-  //                     TextAlign.left,
-  //                     0.0,
-  //                   ),
-  //                 ],
-  //               ),
-  //               SizedBox(height: 16),
-  //               Row(
-  //                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-  //                 children: _socialLinks.map((social) {
-  //                   return GestureDetector(
-  //                     onTap: () {},
-  //                     child: Column(
-  //                       children: [
-  //                         Container(
-  //                           padding: EdgeInsets.all(14),
-  //                           decoration: BoxDecoration(
-  //                             color: social['color'].withOpacity(0.1),
-  //                             shape: BoxShape.circle,
-  //                           ),
-  //                           child: Icon(
-  //                             social['icon'],
-  //                             color: social['color'],
-  //                             size: 26,
-  //                           ),
-  //                         ),
-  //                         SizedBox(height: 8),
-  //                         AppRichText.setTextPoppinsStyle(
-  //                           context,
-  //                           social['name'],
-  //                           11,
-  //                           Colors.grey[700]!,
-  //                           FontWeight.w600,
-  //                           1,
-  //                           TextAlign.center,
-  //                           0.0,
-  //                         ),
-  //                       ],
-  //                     ),
-  //                   );
-  //                 }).toList(),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-
-  //         SizedBox(height: 20),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   Widget _buildFAQTab() {
     return SingleChildScrollView(
@@ -1040,7 +768,7 @@ class _ContactUsPageState extends State<ContactUsPage>
                       context,
                       faq['answer'],
                       12,
-                      Colors.grey[700]!,
+                      AppColors.greyS700,
                       FontWeight.w500,
                       15,
                       TextAlign.left,
@@ -1175,7 +903,7 @@ class _ContactUsPageState extends State<ContactUsPage>
                 context,
                 'Your concern has been successfully submitted. We\'ll get back to you within 2-4 hours.',
                 13,
-                Colors.grey[700]!,
+                AppColors.greyS700,
                 FontWeight.w500,
                 5,
                 TextAlign.center,
