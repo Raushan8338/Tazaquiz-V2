@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/home.dart';
 import 'package:tazaquiznew/screens/homeSceen.dart';
 import 'package:tazaquiznew/screens/singup.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
 
 class OTPBasedVerificationPage extends StatefulWidget {
@@ -28,7 +30,7 @@ class OTPBasedVerificationPage extends StatefulWidget {
 }
 
 class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
-   //hyggtt
+  //hyggtt
   final List<TextEditingController> _otpControllers = List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
   bool _isLoading = false;
@@ -136,14 +138,12 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
       print(data);
 
       final responseFuture = await authRepository.signupVerifyOTP(data);
-
-      print("STATUS => ${responseFuture.statusCode}");
-      print("DATA => ${responseFuture.data}");
-
       if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);
-        print(responseFuture.data);
-        Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
+        final userJson = responseFuture.data['series'];
+        final user = UserModel.fromJson(userJson);
+        await SessionManager.saveUser(user);
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomePage()), (route) => false);
       } else {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

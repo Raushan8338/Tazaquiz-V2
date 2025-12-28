@@ -8,9 +8,8 @@ class SubjectContentPage extends StatefulWidget {
   _SubjectContentPageState createState() => _SubjectContentPageState();
 }
 
-class _SubjectContentPageState extends State<SubjectContentPage>
-    with SingleTickerProviderStateMixin {
-       //hyggtt
+class _SubjectContentPageState extends State<SubjectContentPage> with SingleTickerProviderStateMixin {
+  //hyggtt
   late TabController _tabController;
   int _selectedSubjectIndex = 0;
 
@@ -22,27 +21,9 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       'totalTests': 45,
       'totalMaterials': 128,
     },
-    {
-      'name': 'Science',
-      'icon': Icons.science,
-      'color': AppColors.darkNavy,
-      'totalTests': 38,
-      'totalMaterials': 96,
-    },
-    {
-      'name': 'English',
-      'icon': Icons.book,
-      'color': AppColors.oxfordBlue,
-      'totalTests': 32,
-      'totalMaterials': 84,
-    },
-    {
-      'name': 'Physics',
-      'icon': Icons.bolt,
-      'color': AppColors.tealGreen,
-      'totalTests': 28,
-      'totalMaterials': 72,
-    },
+    {'name': 'Science', 'icon': Icons.science, 'color': AppColors.darkNavy, 'totalTests': 38, 'totalMaterials': 96},
+    {'name': 'English', 'icon': Icons.book, 'color': AppColors.oxfordBlue, 'totalTests': 32, 'totalMaterials': 84},
+    {'name': 'Physics', 'icon': Icons.bolt, 'color': AppColors.tealGreen, 'totalTests': 28, 'totalMaterials': 72},
   ];
 
   final List<Map<String, dynamic>> _testSeries = [
@@ -95,7 +76,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       'isPremium': false,
     },
 
-     {
+    {
       'title': 'Geometry Practice',
       'description': 'Comprehensive geometry test',
       'questions': 45,
@@ -178,26 +159,11 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                _buildSubjectSelector(),
-                _buildStatsCards(),
-                _buildTabBar(),
-             
-              ],
-            ),
-          ),
+          SliverToBoxAdapter(child: Column(children: [_buildSubjectSelector(), _buildStatsCards(), _buildTabBar()])),
           SliverFillRemaining(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildTestSeriesTab(),
-                _buildStudyMaterialsTab(),
-                   SizedBox(
-                  height: 20,
-                )
-              ],
+              children: [_buildTestSeriesTab(), _buildStudyMaterialsTab(), SizedBox(height: 20)],
             ),
           ),
         ],
@@ -257,9 +223,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
         icon: Icon(Icons.arrow_back, color: AppColors.white),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: [
-       
-      ],
+      actions: [],
     );
   }
 
@@ -270,7 +234,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16),
-       
+
         itemCount: _subjects.length,
         itemBuilder: (context, index) {
           final subject = _subjects[index];
@@ -285,24 +249,20 @@ class _SubjectContentPageState extends State<SubjectContentPage>
               width: 100,
               margin: EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                gradient: isSelected
-                    ? LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [subject['color'], subject['color'].withOpacity(0.7)],
-                      )
-                    : null,
+                gradient:
+                    isSelected
+                        ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [subject['color'], subject['color'].withOpacity(0.7)],
+                        )
+                        : null,
                 color: isSelected ? null : AppColors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isSelected ? AppColors.transparent : AppColors.greyS300,
-                  width: 2,
-                ),
+                border: Border.all(color: isSelected ? AppColors.transparent : AppColors.greyS300, width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: isSelected
-                        ? subject['color'].withOpacity(0.3)
-                        : AppColors.black.withOpacity(0.05),
+                    color: isSelected ? subject['color'].withOpacity(0.3) : AppColors.black.withOpacity(0.05),
                     blurRadius: isSelected ? 15 : 10,
                     offset: Offset(0, isSelected ? 8 : 4),
                   ),
@@ -314,16 +274,10 @@ class _SubjectContentPageState extends State<SubjectContentPage>
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.white.withOpacity(0.2)
-                          : subject['color'].withOpacity(0.1),
+                      color: isSelected ? AppColors.white.withOpacity(0.2) : subject['color'].withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      subject['icon'],
-                      color: isSelected ? AppColors.white : subject['color'],
-                      size: 28,
-                    ),
+                    child: Icon(subject['icon'], color: isSelected ? AppColors.white : subject['color'], size: 28),
                   ),
                   SizedBox(height: 8),
                   AppRichText.setTextPoppinsStyle(
@@ -353,29 +307,14 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Row(
         children: [
           Expanded(
-            child: _buildStatItem(
-              Icons.quiz,
-              '${selectedSubject['totalTests']}',
-              'Test Series',
-              AppColors.tealGreen,
-            ),
+            child: _buildStatItem(Icons.quiz, '${selectedSubject['totalTests']}', 'Test Series', AppColors.tealGreen),
           ),
-          Container(
-            width: 1,
-            height: 50,
-            color: AppColors.greyS300,
-          ),
+          Container(width: 1, height: 50, color: AppColors.greyS300),
           Expanded(
             child: _buildStatItem(
               Icons.library_books,
@@ -394,23 +333,11 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       children: [
         Container(
           padding: EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
           child: Icon(icon, color: color, size: 24),
         ),
         SizedBox(height: 8),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          value,
-          20,
-          color,
-          FontWeight.w900,
-          1,
-          TextAlign.center,
-          0.0,
-        ),
+        AppRichText.setTextPoppinsStyle(context, value, 20, color, FontWeight.w900, 1, TextAlign.center, 0.0),
         SizedBox(height: 2),
         AppRichText.setTextPoppinsStyle(
           context,
@@ -433,53 +360,29 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
       ),
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.tealGreen, AppColors.darkNavy],
-          ),
+          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
           borderRadius: BorderRadius.circular(10),
         ),
         labelColor: AppColors.white,
         unselectedLabelColor: AppColors.darkNavy,
-        labelStyle: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
+        labelStyle: TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w600),
         tabs: [
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.quiz, size: 18),
-                SizedBox(width: 8),
-                Text('Test Series'),
-              ],
+              children: [Icon(Icons.quiz, size: 18), SizedBox(width: 8), Text('Test Series')],
             ),
           ),
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.library_books, size: 18),
-                SizedBox(width: 8),
-                Text('Materials'),
-              ],
+              children: [Icon(Icons.library_books, size: 18), SizedBox(width: 8), Text('Materials')],
             ),
           ),
         ],
@@ -492,7 +395,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       padding: EdgeInsets.all(16),
       shrinkWrap: true,
       itemCount: _testSeries.length,
-      physics: NeverScrollableScrollPhysics(),
+      // physics: NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final test = _testSeries[index];
         return _buildTestCard(test);
@@ -501,19 +404,12 @@ class _SubjectContentPageState extends State<SubjectContentPage>
   }
 
   Widget _buildTestCard(Map<String, dynamic> test) {
-
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.08),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -526,9 +422,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
                 Container(
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.tealGreen, AppColors.darkNavy],
-                    ),
+                    gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(Icons.quiz, color: AppColors.white, size: 24),
@@ -595,11 +489,9 @@ class _SubjectContentPageState extends State<SubjectContentPage>
               ],
             ),
           ),
-    
-         
-    
+
           SizedBox(height: 12),
-    
+
           if (test['attempted'])
             Container(
               margin: EdgeInsets.symmetric(horizontal: 16),
@@ -623,14 +515,12 @@ class _SubjectContentPageState extends State<SubjectContentPage>
                     TextAlign.left,
                     0.0,
                   ),
-               
-        
                 ],
               ),
             ),
-    
+
           SizedBox(height: 16),
-    
+
           // Action Button
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -639,24 +529,17 @@ class _SubjectContentPageState extends State<SubjectContentPage>
               height: 48,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TestSeriesDetailPage()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => TestSeriesDetailPage()));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.transparent,
                   shadowColor: AppColors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: EdgeInsets.zero,
                 ),
                 child: Ink(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.tealGreen, AppColors.darkNavy],
-                    ),
+                    gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Container(
@@ -683,7 +566,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
               ),
             ),
           ),
-    
+
           SizedBox(height: 16),
         ],
       ),
@@ -695,16 +578,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       children: [
         Icon(icon, size: 16, color: AppColors.greyS600),
         SizedBox(width: 4),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          text,
-          12,
-          AppColors.greyS600,
-          FontWeight.w600,
-          1,
-          TextAlign.left,
-          0.0,
-        ),
+        AppRichText.setTextPoppinsStyle(context, text, 12, AppColors.greyS600, FontWeight.w600, 1, TextAlign.left, 0.0),
       ],
     );
   }
@@ -714,7 +588,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       padding: EdgeInsets.all(16),
       shrinkWrap: true,
       itemCount: _studyMaterials.length,
-      physics: NeverScrollableScrollPhysics(),
+      // physics: NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final material = _studyMaterials[index];
         return _buildMaterialCard(material);
@@ -731,13 +605,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.08),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,15 +617,8 @@ class _SubjectContentPageState extends State<SubjectContentPage>
               children: [
                 Container(
                   padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: typeColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    isPDF ? Icons.picture_as_pdf : Icons.play_circle_filled,
-                    color: typeColor,
-                    size: 24,
-                  ),
+                  decoration: BoxDecoration(color: typeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(isPDF ? Icons.picture_as_pdf : Icons.play_circle_filled, color: typeColor, size: 24),
                 ),
                 SizedBox(width: 12),
                 Expanded(
@@ -870,9 +731,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: AppColors.tealGreen, width: 2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: EdgeInsets.symmetric(vertical: 14),
                     ),
                     child: Row(
@@ -903,16 +762,12 @@ class _SubjectContentPageState extends State<SubjectContentPage>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.transparent,
                         shadowColor: AppColors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: EdgeInsets.zero,
                       ),
                       child: Ink(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.tealGreen, AppColors.darkNavy],
-                          ),
+                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Container(
@@ -955,18 +810,8 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       children: [
         Icon(icon, size: 16, color: AppColors.greyS600),
         SizedBox(width: 4),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          text,
-          12,
-          AppColors.greyS600,
-          FontWeight.w600,
-          1,
-          TextAlign.left,
-          0.0,
-        ),
+        AppRichText.setTextPoppinsStyle(context, text, 12, AppColors.greyS600, FontWeight.w600, 1, TextAlign.left, 0.0),
       ],
     );
   }
 }
-

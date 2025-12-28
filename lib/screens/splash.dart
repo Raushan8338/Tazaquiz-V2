@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
-import 'dart:async';
+import 'package:tazaquiznew/screens/home.dart';
 import 'package:tazaquiznew/screens/homeSceen.dart';
+import 'dart:async';
 import 'package:tazaquiznew/screens/login.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-       //hyggtt
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  //hyggtt
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -20,41 +21,38 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 2000),
-    );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(0.0, 0.6, curve: Curves.easeIn),
-      ),
-    );
+    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 2000));
 
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(0.0, 0.6, curve: Curves.elasticOut),
-      ),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Interval(0.0, 0.6, curve: Curves.easeIn)));
 
-    _slideAnimation = Tween<double>(begin: 50, end: 0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Interval(0.3, 0.8, curve: Curves.easeOut),
-      ),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Interval(0.0, 0.6, curve: Curves.elasticOut)));
+
+    _slideAnimation = Tween<double>(
+      begin: 50,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Interval(0.3, 0.8, curve: Curves.easeOut)));
 
     _controller.forward();
 
-    Timer(Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => OtpLoginPage()), 
-      );
-    });
+    _checkloggedin();
+  }
+
+  void _checkloggedin() async {
+    final bool isLoggedIn = await SessionManager.isLoggedIn();
+    if (isLoggedIn) {
+      Timer(Duration(seconds: 2), () {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
+      });
+    } else {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => OtpLoginPage()));
+    }
   }
 
   @override
@@ -83,7 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
           children: [
             // Animated background circles
             _buildBackgroundCircles(),
-            
+
             // Main content
             Center(
               child: Column(
@@ -125,10 +123,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 ],
                               ),
                               padding: EdgeInsets.all(20),
-                              child: Image.asset(
-                                'assets/images/logo.png', 
-                                fit: BoxFit.contain,
-                              ),
+                              child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
                             ),
                           ),
                         ),
@@ -163,11 +158,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 height: 4,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.lightGold,
-                                      AppColors.white,
-                                      AppColors.lightGold,
-                                    ],
+                                    colors: [AppColors.lightGold, AppColors.white, AppColors.lightGold],
                                   ),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
@@ -244,7 +235,6 @@ class _SplashScreenState extends State<SplashScreen>
             //     },
             //   ),
             // ),
-          
           ],
         ),
       ),
@@ -268,19 +258,14 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 300,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        AppColors.lightGold,
-                        AppColors.transparent,
-                      ],
-                    ),
+                    gradient: RadialGradient(colors: [AppColors.lightGold, AppColors.transparent]),
                   ),
                 ),
               );
             },
           ),
         ),
-        
+
         // Bottom left circle
         Positioned(
           bottom: -150,
@@ -295,12 +280,7 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 400,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        AppColors.lightGold,
-                        AppColors.transparent,
-                      ],
-                    ),
+                    gradient: RadialGradient(colors: [AppColors.lightGold, AppColors.transparent]),
                   ),
                 ),
               );
@@ -319,10 +299,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Container(
                   width: 200,
                   height: 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.white,
-                  ),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.white),
                 ),
               );
             },
@@ -346,11 +323,7 @@ class _SplashScreenState extends State<SplashScreen>
                       shape: BoxShape.circle,
                       color: AppColors.lightGold,
                       boxShadow: [
-                        BoxShadow(
-                          color: AppColors.lightGold.withOpacity(0.5),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
+                        BoxShadow(color: AppColors.lightGold.withOpacity(0.5), blurRadius: 10, spreadRadius: 2),
                       ],
                     ),
                   ),
@@ -363,5 +336,3 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 }
-
-

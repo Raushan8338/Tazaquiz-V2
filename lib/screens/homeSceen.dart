@@ -9,16 +9,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-   //hyggtt
+  //hyggtt
   int _selectedNavIndex = 0;
 
-
-  final List<Widget> _pages = [
-    HomePage(),   
-    HomePage(),      
-    HomePage(), 
-    StudentProfilePage(), 
-  ];
+  final List<Widget> _pages = [HomePage(), HomePage(), HomePage(), StudentProfilePage()];
 
   void _onNavItemTapped(int index) {
     setState(() {
@@ -29,10 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedNavIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _selectedNavIndex, children: _pages),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -42,13 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: Offset(0, -5),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: Offset(0, -5))],
       ),
       child: SafeArea(
         child: Row(
@@ -66,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     bool isActive = _selectedNavIndex == index;
-    
+
     return GestureDetector(
       onTap: () => _onNavItemTapped(index),
       child: Column(
@@ -75,18 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
-              gradient: isActive
-                  ? LinearGradient(
-                      colors: [Color(0xFF016A67), Color(0xFF003161)],
-                    )
-                  : null,
+              gradient: isActive ? LinearGradient(colors: [Color(0xFF016A67), Color(0xFF003161)]) : null,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: isActive ? Colors.white : Colors.grey[600],
-              size: 24,
-            ),
+            child: Icon(icon, color: isActive ? Colors.white : Colors.grey[600], size: 24),
           ),
           SizedBox(height: 4),
           Text(

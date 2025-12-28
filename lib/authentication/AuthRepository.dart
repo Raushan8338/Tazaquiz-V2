@@ -14,4 +14,18 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.signupVerifyOTPEndpoint, data: formData);
   }
+
+  Future<Response> fetchAppBanner() async {
+    return await _dio.get(BaseUrl.app_banner);
+  }
+
+  Future<Response> fetchNotificationCount(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.notification_count, data: formData);
+  }
+
+  Future<Response> fetchNotificationHistory(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.noification_history, data: formData);
+  }
 }
