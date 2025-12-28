@@ -495,7 +495,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
     return ListView.builder(
       padding: EdgeInsets.all(16),
       itemCount: _quizList.length,
-      physics: NeverScrollableScrollPhysics(),
+      // physics: NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final quiz = _quizList[index];
         return _buildQuizCard(quiz, index + 1);
@@ -897,7 +897,7 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage>
   Widget _buildStudyMaterialsTab() {
     return ListView.builder(
       padding: EdgeInsets.all(16),
-      physics: NeverScrollableScrollPhysics(),
+      // physics: NeverScrollableScrollPhysics(),
       itemCount: _studyMaterials.length,
       itemBuilder: (context, index) {
         final material = _studyMaterials[index];

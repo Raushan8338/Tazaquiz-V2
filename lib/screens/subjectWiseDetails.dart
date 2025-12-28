@@ -492,7 +492,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       padding: EdgeInsets.all(16),
       shrinkWrap: true,
       itemCount: _testSeries.length,
-      physics: NeverScrollableScrollPhysics(),
+      // physics: NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final test = _testSeries[index];
         return _buildTestCard(test);
@@ -714,7 +714,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
       padding: EdgeInsets.all(16),
       shrinkWrap: true,
       itemCount: _studyMaterials.length,
-      physics: NeverScrollableScrollPhysics(),
+      // physics: NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final material = _studyMaterials[index];
         return _buildMaterialCard(material);

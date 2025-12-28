@@ -72,11 +72,24 @@ import 'package:tazaquiznew/utils/richText.dart';
     
   ) {
     return GestureDetector(
-            onTap: onPress,
-            child: AppRichText.setTextPoppinsStyle(context, text, 14, AppColors.tealGreen, FontWeight.w800, 1, TextAlign.left, 0.0),
+        onTap: onPress,
+        child: AppRichText.setTextPoppinsStyle(context, text, 14, AppColors.tealGreen, FontWeight.w800, 1, TextAlign.left, 0.0),
 
-          
-          ); }
+ ); }
+
+ static Widget setBackIcon(
+    context,
+    onPress,
+    Color color
+  ) {
+    return GestureDetector(
+            onTap: onPress,
+            child: Icon(Icons.arrow_back_ios_outlined,
+              size: 22,
+              color: color,
+              )
+ ); }
+
 
 
   }
