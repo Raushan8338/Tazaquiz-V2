@@ -12,9 +12,14 @@ import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
 
 class OTPBasedVerificationPage extends StatefulWidget {
-  final String phoneNumber;
+  final String phoneNumber, name, email, referalCode;
 
-  OTPBasedVerificationPage({required this.phoneNumber});
+  OTPBasedVerificationPage({
+    required this.phoneNumber,
+    required this.name,
+    required this.email,
+    required this.referalCode,
+  });
 
   @override
   _OTPBasedVerificationPageState createState() => _OTPBasedVerificationPageState();
@@ -117,17 +122,17 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
       final data = {
         'mobile': widget.phoneNumber,
         'OTP': otp,
-        'name': '',
-        'email': '',
+        'name': widget.name,
+        'email': widget.email,
         'device_id': '',
-        'referalCode': '',
+        'referalCode': widget.referalCode,
         'androidInfo': '',
       };
 
       final responseFuture = await authRepository.signupVerifyOTP(data);
       if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);
-        _showSuccessDialog();
+        Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
       } else {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -222,7 +227,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
                       onPressed: () {
                         // Navigator.pop(context);
                         // Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomePage()));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.transparent,

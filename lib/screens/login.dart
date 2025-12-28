@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -56,8 +58,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
           'androidInfo': 'android',
         };
         final response = await authRepository.loginUser(data);
+
         if (response.statusCode == 200) {
-        
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => OTPBasedVerificationPage(phoneNumber: _phoneController.text)),
