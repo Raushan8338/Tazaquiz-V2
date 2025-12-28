@@ -34,6 +34,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   void _handleRegister() async {
+    //
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       Authrepository authRepository = Authrepository(Api_Client.dio);
