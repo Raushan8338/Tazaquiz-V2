@@ -6,6 +6,7 @@ class AppColors {
   static const Color tealGreen = Color(0xFF016A67);
   static const Color green = Colors.green;
   static const Color greenS2 = Color(0xFF00A896);
+  static  Color greenS3 = Colors.green.shade700!;
   static const Color oxfordBlue = Color(0xFF000B58);
   static const Color lightGold = Color(0xFFFDEB9E);
   static const Color lightGoldS2 = Color(0xFFFDD835);
@@ -14,6 +15,7 @@ class AppColors {
   static const Color orange = Colors.orange;
   static Color orangeS1 = Colors.orange[700]!;
   static const Color greyS1 = Color(0xFFF8F9FD);
+   static const Color purple =Colors.purple;
 
   static const Color white = Colors.white;
   static const Color black = Colors.black;
