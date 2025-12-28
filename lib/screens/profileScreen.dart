@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/testpage.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class StudentProfilePage extends StatefulWidget {
@@ -90,9 +91,31 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
+      appBar: AppBar(
+         title:  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'My Profile',
+                    20,
+                    AppColors.white,
+                    FontWeight.w900,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
+      centerTitle: false,
+      flexibleSpace: Container(
+      decoration:  BoxDecoration(
+      gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.darkNavy, AppColors.tealGreen],
+            ),
+    ),
+  ),
+      ),
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(),
+          // _buildAppBar(),
           SliverToBoxAdapter(
             child: Column(
               children: [
@@ -111,70 +134,70 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 120,
-      pinned: true,
-      backgroundColor: AppColors.darkNavy,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.darkNavy, AppColors.tealGreen],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 40, 20, 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'My Profile',
-                    20,
-                    AppColors.white,
-                    FontWeight.w900,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      actions: [
-        // IconButton(
-        //   icon: Container(
-        //     padding: EdgeInsets.all(8),
-        //     decoration: BoxDecoration(
-        //       color: AppColors.white.withOpacity(0.2),
-        //       borderRadius: BorderRadius.circular(10),
-        //     ),
-        //     child: Icon(Icons.edit, color: AppColors.white, size: 20),
-        //   ),
-        //   onPressed: () {},
-        // ),
-        // IconButton(
-        //   icon: Container(
-        //     padding: EdgeInsets.all(8),
-        //     decoration: BoxDecoration(
-        //       color: AppColors.white.withOpacity(0.2),
-        //       borderRadius: BorderRadius.circular(10),
-        //     ),
-        //     child: Icon(Icons.settings, color: AppColors.white, size: 20),
-        //   ),
-        //   onPressed: () {},
-        // ),
-        // SizedBox(width: 8),
-      ],
-    );
-  }
+  // Widget _buildAppBar() {
+  //   return SliverAppBar(
+  //     expandedHeight: 120,
+  //     pinned: true,
+  //     backgroundColor: AppColors.darkNavy,
+  //     flexibleSpace: FlexibleSpaceBar(
+  //       background: Container(
+  //         decoration: BoxDecoration(
+  //           gradient: LinearGradient(
+  //             begin: Alignment.topLeft,
+  //             end: Alignment.bottomRight,
+  //             colors: [AppColors.darkNavy, AppColors.tealGreen],
+  //           ),
+  //         ),
+  //         child: SafeArea(
+  //           child: Padding(
+  //             padding: EdgeInsets.fromLTRB(20, 40, 20, 20),
+  //             child: Row(
+  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //               crossAxisAlignment: CrossAxisAlignment.end,
+  //               children: [
+  //                 AppRichText.setTextPoppinsStyle(
+  //                   context,
+  //                   'My Profile',
+  //                   20,
+  //                   AppColors.white,
+  //                   FontWeight.w900,
+  //                   1,
+  //                   TextAlign.left,
+  //                   0.0,
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //     ),
+  //     actions: [
+  //       // IconButton(
+  //       //   icon: Container(
+  //       //     padding: EdgeInsets.all(8),
+  //       //     decoration: BoxDecoration(
+  //       //       color: AppColors.white.withOpacity(0.2),
+  //       //       borderRadius: BorderRadius.circular(10),
+  //       //     ),
+  //       //     child: Icon(Icons.edit, color: AppColors.white, size: 20),
+  //       //   ),
+  //       //   onPressed: () {},
+  //       // ),
+  //       // IconButton(
+  //       //   icon: Container(
+  //       //     padding: EdgeInsets.all(8),
+  //       //     decoration: BoxDecoration(
+  //       //       color: AppColors.white.withOpacity(0.2),
+  //       //       borderRadius: BorderRadius.circular(10),
+  //       //     ),
+  //       //     child: Icon(Icons.settings, color: AppColors.white, size: 20),
+  //       //   ),
+  //       //   onPressed: () {},
+  //       // ),
+  //       // SizedBox(width: 8),
+  //     ],
+  //   );
+  // }
 
   Widget _buildProfileHeader() {
     return Container(
@@ -774,7 +797,7 @@ Widget _buildStatsGrid() {
                           ? AppColors.darkNavy
                           : AppColors.greyS600,
                       FontWeight.w700,
-                      1,
+                      2,
                       TextAlign.center,
                       1.2,
                     ),
@@ -785,7 +808,7 @@ Widget _buildStatsGrid() {
                       10,
                       AppColors.greyS600,
                       FontWeight.w500,
-                      1,
+                      3,
                       TextAlign.center,
                       1.3,
                     ),
@@ -849,7 +872,12 @@ Widget _buildStatsGrid() {
           Divider(height: 24),
           _buildSettingItem(Icons.privacy_tip, 'Privacy Policy', () {}),
           Divider(height: 24),
-          _buildSettingItem(Icons.help_outline, 'Help & Support', () {}),
+          InkWell(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
+
+            },
+            child: _buildSettingItem(Icons.help_outline, 'Help & Support', () {})),
           Divider(height: 24),
           _buildSettingItem(Icons.logout, 'Logout', () {}, isLogout: true),
         ],
