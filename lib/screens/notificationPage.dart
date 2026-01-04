@@ -16,7 +16,6 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
   List<NotificationItem> notifications = [];
   UserModel? _user;
 

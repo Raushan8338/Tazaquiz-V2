@@ -1,21 +1,21 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 
 class LiveTestScreen extends StatefulWidget {
   final String testTitle;
   final String subject;
-  final int totalQuestions;
-  final int totalParticipants;
+  final String Quiz_id;
 
-  LiveTestScreen({
-    this.testTitle = 'Advanced Mathematics Challenge',
-    this.subject = 'Mathematics',
-    this.totalQuestions = 25,
-    this.totalParticipants = 1234,
-  });
+  LiveTestScreen({required this.testTitle, required this.subject, required this.Quiz_id});
 
   @override
   _LiveTestScreenState createState() => _LiveTestScreenState();
@@ -23,8 +23,10 @@ class LiveTestScreen extends StatefulWidget {
 
 class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProviderStateMixin {
   //hyggtt
-  int _currentQuestion = 1;
-  int _timeLeft = 30;
+  int _currentQuestion = 0;
+  List<dynamic> _questions = [];
+  int totalQuestions = 0;
+  int _timeLeft = 5;
   int _score = 0;
   int? _selectedOption;
   bool _answered = false;
@@ -34,14 +36,9 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   late Animation<double> _pulseAnimation;
 
   // Sample question data
-  final Map<String, dynamic> _currentQuestionData = {
-    'question': 'What is the derivative of x² + 3x + 5?',
-    'options': ['2x + 3', 'x² + 3', '2x + 5', '3x + 3'],
-    'correctAnswer': 0,
-    'difficulty': 'Hard',
-    'points': 50,
-  };
+  Map<String, dynamic> _currentQuestionData = {};
 
+  UserModel? _user;
   @override
   void initState() {
     super.initState();
@@ -51,6 +48,55 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       begin: 1.0,
       end: 1.1,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
+    _getUserData();
+  }
+
+  void _getUserData() async {
+    // Fetch and set user data here if needed
+    _user = await SessionManager.getUser();
+    setState(() {});
+    loadQuizData();
+  }
+
+  void loadQuizData() async {
+    final data = {'user_id': _user?.id, 'quiz_id': widget.Quiz_id, 'score': ''};
+
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    final responseFuture = await authRepository.fetchQuizQuestion(data);
+
+    final Map<String, dynamic> apiResponse =
+        responseFuture.data is String
+            ? jsonDecode(responseFuture.data)
+            : Map<String, dynamic>.from(responseFuture.data);
+
+    _questions = apiResponse['questions'] ?? [];
+    totalQuestions = _questions.length;
+
+    if (_questions.isNotEmpty) {
+      setQuestionFromApi(0); // 👈 first question load
+    }
+  }
+
+  void setQuestionFromApi(int index) {
+    final question = _questions[index];
+    final List answers = question['answers'] ?? [];
+
+    int correctIndex = answers.indexWhere((ans) => ans['is_correct'] == true);
+
+    setState(() {
+      _currentQuestion = index;
+      _correctAnswer = correctIndex == -1 ? 0 : correctIndex;
+      _currentQuestionData = {
+        'question': question['question_text'],
+        'options': answers.map((a) => a['answer_text']).toList(),
+        'correctAnswer': correctIndex == -1 ? 0 : correctIndex,
+        'difficulty': question['difficulty_level'] ?? 'Medium',
+        'points': question['points'] ?? 0,
+        'attempt_id': question['attempt_id'] ?? 0,
+        'question_ans_id': question['question_ans_id'] ?? 0,
+        'question_id': question['question_id'] ?? 0,
+      };
+    });
   }
 
   @override
@@ -61,7 +107,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   }
 
   void _startTimer() {
-    _timeLeft = 30;
+    _timeLeft = 10;
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
         if (_timeLeft > 0) {
@@ -81,46 +127,107 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     });
   }
 
-  void _submitAnswer() {
+  void _submitAnswer() async {
     if (_selectedOption == null || _answered) return;
 
     setState(() {
       _answered = true;
       _timer?.cancel();
+      // Score update karo agar correct hai
       if (_selectedOption == _correctAnswer) {
-        // _score += _currentQuestionData['points'];
+        _score += _currentQuestionData['points'] as int;
       }
     });
 
-    Future.delayed(Duration(seconds: 2), () {
+    // API call karke answer submit karo
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+
+    final data = {
+      'attempt_id': _currentQuestionData['attempt_id'].toString(),
+      'question_id': _currentQuestionData['question_id'].toString(),
+      'answer_id': _currentQuestionData['question_ans_id'].toString(),
+      'score': (_selectedOption == _correctAnswer ? _currentQuestionData['points'] : 0).toString(),
+      'is_correct': (_selectedOption == _correctAnswer ? '1' : '0'),
+      'time_spent': (10 - _timeLeft).toString(),
+    };
+
+    print('Manual submit data: $data');
+
+    try {
+      final responseData = await authRepository.submitQuizAnswers(data);
+      print('Submit response: ${responseData.statusCode}');
+    } catch (e) {
+      print('Error submitting answer: $e');
+    }
+
+    // ✅ OPTION 1: Agar correct answer SHOW nahi karna chahte
+    // Directly next question pe jao
+    Future.delayed(Duration(milliseconds: 500), () {
       _nextQuestion();
     });
+
+    // ✅ OPTION 2: Agar correct answer SHOW karna chahte (2 seconds)
+    // Uncomment below code and comment above code
+    /*
+  Future.delayed(Duration(seconds: 2), () {
+    _nextQuestion();
+  });
+  */
   }
 
-  void _autoSubmit() {
+  void _autoSubmit() async {
     if (_answered) return;
     setState(() {
       _answered = true;
     });
-    Future.delayed(Duration(seconds: 2), () {
-      _nextQuestion();
-    });
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    final data = {
+      'attempt_id': _currentQuestionData['attempt_id'].toString(),
+      'question_id': _currentQuestionData['question_id'].toString(),
+      'answer_id': _currentQuestionData['question_ans_id'].toString(),
+      'score': _currentQuestionData['points'].toString(),
+      'is_correct': _selectedOption == _correctAnswer ? '1' : '0'.toString(),
+      'time_spent': _timeLeft.toString(),
+    };
+    print('Auto submitting data: $data');
+
+    final responseData = await authRepository.submitQuizAnswers(data);
+
+    if (responseData.statusCode == 200) {
+      Future.delayed(Duration(milliseconds: 500), () {
+        _nextQuestion();
+      });
+    } else {
+      print('Failed to submit answer');
+    }
+
+    // Future.delayed(Duration(seconds: 2), () {
+    //   _nextQuestion();
+    // });
   }
 
   void _nextQuestion() {
-    if (_currentQuestion < widget.totalQuestions) {
+    if (_currentQuestion < totalQuestions - 1) {
+      // ✅ Change: totalQuestions - 1
       setState(() {
         _currentQuestion++;
         _selectedOption = null;
         _answered = false;
       });
+      setQuestionFromApi(_currentQuestion); // ✅ Add this line - yeh bhul gaye the
       _startTimer();
     } else {
       _showResultDialog();
     }
   }
 
-  void _showResultDialog() {
+  void _showResultDialog() async {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+
+    final data = {'attempt_id': _currentQuestionData['attempt_id'].toString(), 'Passingscore': '$_score'};
+
+    final responseData = await authRepository.finalSubmitQuiz(data);
+
     showDialog(context: context, barrierDismissible: false, builder: (context) => _buildResultDialog());
   }
 
@@ -256,8 +363,8 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   }
 
   Widget _buildProgressSection() {
-    double progress = _currentQuestion / widget.totalQuestions;
-    double timeProgress = _timeLeft / 30;
+    double progress = _currentQuestion / totalQuestions;
+    double timeProgress = _timeLeft / 10;
 
     return Container(
       color: AppColors.white,
@@ -269,7 +376,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             children: [
               AppRichText.setTextPoppinsStyle(
                 context,
-                'Question $_currentQuestion/${widget.totalQuestions}',
+                'Question $_currentQuestion/$totalQuestions',
                 14,
                 AppColors.darkNavy,
                 FontWeight.w600,
@@ -401,93 +508,6 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildLiveParticipants() {
-    return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.lightGold.withOpacity(0.3), AppColors.lightGoldS2.withOpacity(0.2)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.lightGold, width: 2),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            children: [
-              _buildParticipantAvatar('A', 0),
-              Padding(padding: EdgeInsets.only(left: 24), child: _buildParticipantAvatar('B', 1)),
-              Padding(padding: EdgeInsets.only(left: 48), child: _buildParticipantAvatar('C', 2)),
-              Padding(padding: EdgeInsets.only(left: 72), child: _buildParticipantAvatar('+', 3)),
-            ],
-          ),
-          SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
-                  ),
-                  SizedBox(width: 6),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Live Participants',
-                    11,
-                    AppColors.greyS700,
-                    FontWeight.w500,
-                    2,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                ],
-              ),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                '${widget.totalParticipants} competing now',
-                14,
-                AppColors.darkNavy,
-                FontWeight.w700,
-                2,
-                TextAlign.left,
-                0.0,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildParticipantAvatar(String letter, int index) {
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.white, width: 2),
-      ),
-      child: Center(
-        child: AppRichText.setTextPoppinsStyle(
-          context,
-          letter,
-          12,
-          AppColors.white,
-          FontWeight.w700,
-          2,
-          TextAlign.left,
-          0.0,
-        ),
-      ),
-    );
-  }
-
   Widget _buildQuestionCard() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
@@ -538,7 +558,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                     SizedBox(width: 6),
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      '+${_currentQuestionData['points']} XP',
+                      '${_currentQuestionData['points']} Points',
                       11,
                       AppColors.darkNavy,
                       FontWeight.w700,
@@ -734,8 +754,8 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   }
 
   Widget _buildResultDialog() {
-    double accuracy = (_score / (widget.totalQuestions * 50) * 100);
-    int rank = (widget.totalParticipants * (1 - accuracy / 100)).toInt() + 1;
+    double accuracy = (_score / (totalQuestions * 50) * 100);
+    int rank = 1;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/coaching_item_modal.dart';
+import 'package:tazaquiznew/models/home_page_modal.dart';
+import 'package:tazaquiznew/utils/htmlText.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class CoachingProfileWidget extends StatelessWidget {
-  const CoachingProfileWidget({super.key});
+  final List<CoachingItem> coachingProfiles;
+  final HomeSection homeSections;
+
+  CoachingProfileWidget({super.key, required this.coachingProfiles, required this.homeSections});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +31,7 @@ class CoachingProfileWidget extends StatelessWidget {
                 children: [
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    '🔥 Coaching Profiles',
+                    '🔥 ${homeSections.title}',
                     14,
                     AppColors.darkNavy,
                     FontWeight.w800,
@@ -34,7 +42,7 @@ class CoachingProfileWidget extends StatelessWidget {
                   SizedBox(height: 4),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Most loved by students',
+                    homeSections.subtitle ?? 'Most loved by students',
                     12,
                     AppColors.greyS600,
                     FontWeight.w500,
@@ -76,11 +84,11 @@ class CoachingProfileWidget extends StatelessWidget {
           ),
         ),
         Container(
-          height: 280,
+          height: 270,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             shrinkWrap: true,
-            itemCount: 5,
+            itemCount: coachingProfiles.length,
             itemBuilder: (context, index) {
               return Container(
                 width: MediaQuery.of(context).size.width / 1.3,
@@ -107,41 +115,59 @@ class CoachingProfileWidget extends StatelessWidget {
                               topLeft: Radius.circular(24),
                               topRight: Radius.circular(24),
                             ),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [AppColors.darkNavy, AppColors.tealGreen],
-                            ),
+                            gradient:
+                                coachingProfiles[index].bannerImg != null &&
+                                        coachingProfiles[index].bannerImg!.isNotEmpty
+                                    ? null // Banner hai to gradient nahi chahiye
+                                    : LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [AppColors.darkNavy, AppColors.tealGreen],
+                                    ),
+                            image:
+                                coachingProfiles[index].bannerImg != null &&
+                                        coachingProfiles[index].bannerImg!.isNotEmpty
+                                    ? DecorationImage(
+                                      image: NetworkImage(Api_Client.baseUrl + coachingProfiles[index].bannerImg!),
+                                      fit: BoxFit.cover,
+                                      onError: (error, stackTrace) {
+                                        print('Banner image load failed: $error');
+                                      },
+                                    )
+                                    : null,
                           ),
-                          child: Stack(
-                            children: [
-                              // Decorative circles
-                              Positioned(
-                                right: -50,
-                                top: -50,
-                                child: Container(
-                                  width: 150,
-                                  height: 150,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.white.withOpacity(0.08),
+                          child:
+                              coachingProfiles[index].bannerImg != null && coachingProfiles[index].bannerImg!.isNotEmpty
+                                  ? null // Banner hai to decorative circles nahi chahiye
+                                  : Stack(
+                                    children: [
+                                      // Decorative circles (only when no banner)
+                                      Positioned(
+                                        right: -50,
+                                        top: -50,
+                                        child: Container(
+                                          width: 150,
+                                          height: 150,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: AppColors.white.withOpacity(0.08),
+                                          ),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        left: -30,
+                                        bottom: -30,
+                                        child: Container(
+                                          width: 100,
+                                          height: 100,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: AppColors.lightGold.withOpacity(0.1),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
-                              Positioned(
-                                left: -30,
-                                bottom: -30,
-                                child: Container(
-                                  width: 100,
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.lightGold.withOpacity(0.1),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
 
                         // Rating Badge
@@ -200,28 +226,30 @@ class CoachingProfileWidget extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: Container(
-                              margin: EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [AppColors.tealGreen.withOpacity(0.3), AppColors.darkNavy.withOpacity(0.2)],
-                                ),
-                              ),
-                              child: Center(
-                                child: AppRichText.setTextPoppinsStyle(
-                                  context,
-                                  'IG',
-                                  20,
-                                  AppColors.darkNavy,
-                                  FontWeight.w900,
-                                  1,
-                                  TextAlign.center,
-                                  0.0,
-                                ),
-                              ),
+                            child: ClipOval(
+                              child:
+                                  coachingProfiles[index].profileIcon != null &&
+                                          coachingProfiles[index].profileIcon!.isNotEmpty
+                                      ? Image.network(
+                                        Api_Client.baseUrl + coachingProfiles[index].profileIcon!,
+                                        width: 62,
+                                        height: 62,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          // Image load nahi hua to fallback
+                                          return _buildNameInitial(coachingProfiles[index].coachingName, context);
+                                        },
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null) return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: AppColors.tealGreen,
+                                            ),
+                                          );
+                                        },
+                                      )
+                                      : _buildNameInitial(coachingProfiles[index].coachingName, context),
                             ),
                           ),
                         ),
@@ -237,8 +265,8 @@ class CoachingProfileWidget extends StatelessWidget {
                           // Coaching Name
                           AppRichText.setTextPoppinsStyle(
                             context,
-                            'IG Coding Classes',
-                            16,
+                            coachingProfiles[index].coachingName,
+                            14,
                             AppColors.darkNavy,
                             FontWeight.w900,
                             2,
@@ -247,16 +275,13 @@ class CoachingProfileWidget extends StatelessWidget {
                           ),
                           SizedBox(height: 2),
 
-                          // Tagline
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Best coding classes in the city',
-                            12,
-                            AppColors.darkNavy.withOpacity(0.6),
-                            FontWeight.w500,
-                            2,
-                            TextAlign.left,
-                            1.4,
+                          AppHtmlText(
+                            html: coachingProfiles[index].bioInfo ?? '',
+                            fontSize: 12,
+                            color: AppColors.darkNavy.withOpacity(0.6),
+                            fontWeight: FontWeight.w500,
+                            lineHeight: 1.4,
+                            maxLines: 2, // optional
                           ),
                         ],
                       ),
@@ -268,6 +293,35 @@ class CoachingProfileWidget extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildNameInitial(String name, BuildContext context) {
+    // First letter nikalo
+    String initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
+
+    return Container(
+      margin: EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.tealGreen.withOpacity(0.3), AppColors.darkNavy.withOpacity(0.2)],
+        ),
+      ),
+      child: Center(
+        child: AppRichText.setTextPoppinsStyle(
+          context,
+          initial,
+          20,
+          AppColors.darkNavy,
+          FontWeight.w900,
+          1,
+          TextAlign.center,
+          0.0,
+        ),
+      ),
     );
   }
 }

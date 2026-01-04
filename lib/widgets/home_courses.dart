@@ -1,37 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/course_item_modal.dart';
+import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/screens/buyCourse.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class Home_courses extends StatelessWidget {
-  Home_courses({super.key});
+  final List<CourseItem> popularCourses;
+  final HomeSection homeSections;
 
-  List<Map<String, String>> _popularCourses = [
-    {
-      'title': 'Flutter Development',
-      'description': 'Learn to build beautiful apps',
-      'image': 'assets/images/course_flutter.png',
-      'rating': '4.8',
-      'price': '999',
-      'duration': '12 weeks',
-    },
-    {
-      'title': 'Data Science',
-      'description': 'Master data analysis and visualization',
-      'image': 'assets/images/course_data_science.png',
-      'rating': '4.7',
-      'price': '1299',
-      'duration': '10 weeks',
-    },
-    {
-      'title': 'Digital Marketing',
-      'description': 'Grow your business online',
-      'image': 'assets/images/course_digital_marketing.png',
-      'rating': '4.9',
-      'price': '799',
-      'duration': '8 weeks',
-    },
-  ];
+  Home_courses({required this.popularCourses, required this.homeSections});
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +29,7 @@ class Home_courses extends StatelessWidget {
                     children: [
                       AppRichText.setTextPoppinsStyle(
                         context,
-                        'Popular Courses 🔥',
+                        '${homeSections.title}🔥',
                         15,
                         AppColors.darkNavy,
                         FontWeight.w800,
@@ -62,7 +40,7 @@ class Home_courses extends StatelessWidget {
                       SizedBox(height: 2),
                       AppRichText.setTextPoppinsStyle(
                         context,
-                        'Most loved by students',
+                        homeSections.subtitle ?? '',
                         11,
                         AppColors.greyS600,
                         FontWeight.w500,
@@ -110,9 +88,9 @@ class Home_courses extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 5),
-            itemCount: _popularCourses.length,
+            itemCount: popularCourses.length,
             itemBuilder: (context, index) {
-              final course = _popularCourses[index];
+              final course = popularCourses[index];
               return InkWell(
                 onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => BuyCoursePage()));
@@ -199,7 +177,7 @@ class Home_courses extends StatelessWidget {
                           children: [
                             AppRichText.setTextPoppinsStyle(
                               context,
-                              course['title']!,
+                              course.courseName,
                               14,
                               AppColors.darkNavy,
                               FontWeight.w800,
@@ -210,11 +188,11 @@ class Home_courses extends StatelessWidget {
                             SizedBox(height: 4),
                             AppRichText.setTextPoppinsStyle(
                               context,
-                              course['description']!,
+                              course.description,
                               11,
                               AppColors.greyS600,
                               FontWeight.w500,
-                              2,
+                              1,
                               TextAlign.left,
                               1.1,
                             ),
@@ -224,7 +202,7 @@ class Home_courses extends StatelessWidget {
                               children: [
                                 AppRichText.setTextPoppinsStyle(
                                   context,
-                                  '₹${course['price']}',
+                                  '₹${course.price}',
                                   16,
                                   AppColors.tealGreen,
                                   FontWeight.w900,
@@ -245,7 +223,7 @@ class Home_courses extends StatelessWidget {
                                       SizedBox(width: 3),
                                       AppRichText.setTextPoppinsStyle(
                                         context,
-                                        course['duration']!,
+                                        course.duration,
                                         9,
                                         AppColors.darkNavy,
                                         FontWeight.w600,

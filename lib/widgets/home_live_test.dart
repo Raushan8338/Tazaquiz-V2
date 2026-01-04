@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/home_page_modal.dart';
+import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/testSeries.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class Home_live_test extends StatelessWidget {
-  const Home_live_test({super.key});
+  final List<QuizItem> liveTests;
+  final HomeSection homeSections;
+
+  Home_live_test({super.key, required this.liveTests, required this.homeSections});
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,7 @@ class Home_live_test extends StatelessWidget {
                 children: [
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    '🔴 Live Test',
+                    homeSections.title == 'Live Tests' ? '🔴 ${homeSections.title}' : homeSections.title,
                     14,
                     AppColors.darkNavy,
                     FontWeight.w800,
@@ -36,7 +41,7 @@ class Home_live_test extends StatelessWidget {
                   SizedBox(height: 4),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Test Your self in live environment',
+                    homeSections.subtitle ?? '',
                     12,
                     AppColors.greyS600,
                     FontWeight.w500,
@@ -82,12 +87,22 @@ class Home_live_test extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             shrinkWrap: true,
-            itemCount: 5,
+            itemCount: liveTests.length,
             padding: EdgeInsets.symmetric(horizontal: 0),
             itemBuilder: (context, index) {
               return InkWell(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => LiveTestScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => LiveTestScreen(
+                            testTitle: liveTests[index].title,
+                            subject: liveTests[index].difficultyLevel,
+                            Quiz_id: liveTests[index].quizId,
+                          ),
+                    ),
+                  );
                 },
                 child: Container(
                   width: 280,
@@ -115,37 +130,43 @@ class Home_live_test extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: AppColors.red,
+                                    color: liveTests[index].quizStatus == 'live' ? AppColors.red : AppColors.orange,
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
-                                      ),
-                                      SizedBox(width: 6),
+                                      // 🔴 DOT ONLY FOR LIVE
+                                      if (liveTests[index].quizStatus == 'live') ...[
+                                        Container(
+                                          width: 7,
+                                          height: 7,
+                                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                        ),
+                                        const SizedBox(width: 6),
+                                      ],
+
+                                      // TEXT
                                       AppRichText.setTextPoppinsStyle(
                                         context,
-                                        'LIVE',
-                                        9,
+                                        liveTests[index].quizStatus == 'live' ? 'LIVE' : 'UPCOMING',
+                                        10,
                                         AppColors.white,
-                                        FontWeight.w900,
+                                        liveTests[index].quizStatus == 'live' ? FontWeight.w700 : FontWeight.w600,
                                         1,
                                         TextAlign.left,
-                                        0.0,
+                                        0.2,
                                       ),
                                     ],
                                   ),
                                 ),
+
                                 SizedBox(height: 8),
                                 AppRichText.setTextPoppinsStyle(
                                   context,
-                                  'Test Starting Soon',
+                                  liveTests[index].title,
                                   14,
                                   AppColors.white,
                                   FontWeight.w900,
@@ -156,7 +177,7 @@ class Home_live_test extends StatelessWidget {
                                 SizedBox(height: 4),
                                 AppRichText.setTextPoppinsStyle(
                                   context,
-                                  'Mathematics • 234 joined',
+                                  liveTests[index].difficultyLevel,
                                   11,
                                   AppColors.lightGold,
                                   FontWeight.w600,

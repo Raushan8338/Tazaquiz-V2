@@ -33,8 +33,22 @@ class Authrepository {
     return await _dio.get(BaseUrl.home_weekly_progress, queryParameters: params);
   }
 
-  Future<Response> fetchHomePageData(Map<String, dynamic> data) async {
+  Future<Response> fetchHomePageData() async {
+    return await _dio.get(BaseUrl.get_home_page_data);
+  }
+
+  Future<Response> fetchQuizQuestion(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
-    return await _dio.post(BaseUrl.get_home_page_data, data: formData);
+    return await _dio.post(BaseUrl.get_Quiz_Question, data: formData);
+  }
+
+  Future<Response> submitQuizAnswers(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.submit_quiz_answers, data: formData);
+  }
+
+  Future<Response> finalSubmitQuiz(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.final_submit_quiz, data: formData);
   }
 }

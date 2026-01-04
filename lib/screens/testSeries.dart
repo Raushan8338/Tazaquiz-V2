@@ -11,7 +11,7 @@ class LiveTestSeriesPage extends StatefulWidget {
 }
 
 class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTickerProviderStateMixin {
-   //hyggtt
+  //hyggtt
   late TabController _tabController;
   int _selectedFilter = 0;
 
@@ -132,6 +132,7 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
         ),
         onPressed: () => Navigator.pop(context),
       ),
+
       // actions: [
       //   IconButton(
       //     icon: Container(
@@ -150,8 +151,7 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
       //     onPressed: () => _showFilterSheet(),
       //   ),
       // ],
-       
-       flexibleSpace: FlexibleSpaceBar(
+      flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -199,21 +199,18 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                           ),
                           SizedBox(width: 12),
                           AppRichText.setTextPoppinsStyle(
-                              context,
-                              'Live Test Series',
-                              24,
-                              AppColors.white,
-                              FontWeight.w900,
-                              1,
-                              TextAlign.left,
-                              0.0,
-                            ),
-                          
+                            context,
+                            'Live Test Series',
+                            24,
+                            AppColors.white,
+                            FontWeight.w900,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
                         ],
                       ),
                       SizedBox(height: 6),
-                      
-                      
                     ],
                   ),
                 ),
@@ -251,16 +248,15 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                     Icon(Icons.star, color: AppColors.lightGold, size: 14),
                     SizedBox(width: 4),
                     AppRichText.setTextPoppinsStyle(
-                              context,
-                              'FEATURED',
-                              10,
-                              AppColors.white,
-                              FontWeight.w900,
-                              1,
-                              TextAlign.left,
-                              0.0,
-                            ),
-                   
+                      context,
+                      'FEATURED',
+                      10,
+                      AppColors.white,
+                      FontWeight.w900,
+                      1,
+                      TextAlign.left,
+                      0.0,
+                    ),
                   ],
                 ),
               ),
@@ -270,28 +266,28 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
           ),
           SizedBox(height: 16),
           AppRichText.setTextPoppinsStyle(
-              context,
-              'Weekly Championship',
-              20,
-              AppColors.darkNavy,
-              FontWeight.w900,
-              1,
-              TextAlign.left,
-              0.0,
-            ),
-         
+            context,
+            'Weekly Championship',
+            20,
+            AppColors.darkNavy,
+            FontWeight.w900,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+
           SizedBox(height: 8),
           AppRichText.setTextPoppinsStyle(
-              context,
-              'Win exciting prizes worth ₹500',
-              14,
-              AppColors.tealGreen,
-              FontWeight.w600,
-              1,
-              TextAlign.left,
-              0.0,
-            ),
-         
+            context,
+            'Win exciting prizes worth ₹500',
+            14,
+            AppColors.tealGreen,
+            FontWeight.w600,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+
           SizedBox(height: 16),
           Row(
             children: [
@@ -310,7 +306,10 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
       children: [
         Container(
           padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.darkNavy.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(
+            color: AppColors.darkNavy.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Icon(icon, color: AppColors.darkNavy, size: 18),
         ),
         SizedBox(width: 8),
@@ -374,27 +373,17 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
             child: Icon(icon, color: color, size: 24),
           ),
           SizedBox(height: 8),
+          AppRichText.setTextPoppinsStyle(context, value, 18, color, FontWeight.w900, 1, TextAlign.left, 0.0),
           AppRichText.setTextPoppinsStyle(
-              context,
-              value,
-              18,
-              color,
-              FontWeight.w900,
-              1,
-              TextAlign.left,
-              0.0,
-            ),
-          AppRichText.setTextPoppinsStyle(
-              context,
-              label,
-              11,
-              AppColors.greyS600,
-              FontWeight.normal,
-              1,
-              TextAlign.center,
-              0.0,
-            ),
-          
+            context,
+            label,
+            11,
+            AppColors.greyS600,
+            FontWeight.normal,
+            1,
+            TextAlign.center,
+            0.0,
+          ),
         ],
       ),
     );
@@ -441,7 +430,6 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                   TextAlign.left,
                   0.0,
                 ),
-               
               ),
             ),
           );
@@ -452,29 +440,27 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
 
   Widget _buildTestSeriesList() {
     return Column(
-      children: _testSeries.map((test) {
-        if (_selectedFilter == 1 && test['status'] != 'live') return SizedBox.shrink();
-        if (_selectedFilter == 2 && test['status'] != 'upcoming') return SizedBox.shrink();
-        if (_selectedFilter == 3 && test['status'] != 'completed') return SizedBox.shrink();
+      children:
+          _testSeries.map((test) {
+            if (_selectedFilter == 1 && test['status'] != 'live') return SizedBox.shrink();
+            if (_selectedFilter == 2 && test['status'] != 'upcoming') return SizedBox.shrink();
+            if (_selectedFilter == 3 && test['status'] != 'completed') return SizedBox.shrink();
 
-        if (test['status'] == 'live') {
-          return _buildLiveTestCard(test);
-        } else if (test['status'] == 'upcoming') {
-          return _buildUpcomingTestCard(test);
-        } else {
-          return _buildCompletedTestCard(test);
-        }
-      }).toList(),
+            if (test['status'] == 'live') {
+              return _buildLiveTestCard(test);
+            } else if (test['status'] == 'upcoming') {
+              return _buildUpcomingTestCard(test);
+            } else {
+              return _buildCompletedTestCard(test);
+            }
+          }).toList(),
     );
   }
 
   Widget _buildLiveTestCard(Map<String, dynamic> test) {
     return InkWell(
-      onTap: (){
-         Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LiveTestScreen()));
+      onTap: () {
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => LiveTestScreen(Quiz_id: '1')));
       },
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -527,7 +513,6 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                               TextAlign.left,
                               0.0,
                             ),
-                           
                           ],
                         ),
                       ),
@@ -540,16 +525,16 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                   ),
                   SizedBox(height: 16),
                   AppRichText.setTextPoppinsStyle(
-                              context,
-                              test['title'],
-                              18,
-                              AppColors.white,
-                              FontWeight.w800,
-                              2,
-                              TextAlign.left,
-                              0.0,
-                            ),
-                 
+                    context,
+                    test['title'],
+                    18,
+                    AppColors.white,
+                    FontWeight.w800,
+                    2,
+                    TextAlign.left,
+                    0.0,
+                  ),
+
                   SizedBox(height: 8),
                   Row(
                     children: [
@@ -560,29 +545,27 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: AppRichText.setTextPoppinsStyle(
-                              context,
-                              test['subject'],
-                              11,
-                              AppColors.lightGold,
-                              FontWeight.w600,
-                              1,
-                              TextAlign.left,
-                              0.0,
-                            ),
-                    
+                          context,
+                          test['subject'],
+                          11,
+                          AppColors.lightGold,
+                          FontWeight.w600,
+                          1,
+                          TextAlign.left,
+                          0.0,
+                        ),
                       ),
                       SizedBox(width: 8),
                       AppRichText.setTextPoppinsStyle(
-                            context,
-                            '${test['questions']} Questions • ${test['duration']}',
-                            12,
-                            AppColors.white.withOpacity(0.8),
-                            FontWeight.normal,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                     
+                        context,
+                        '${test['questions']} Questions • ${test['duration']}',
+                        12,
+                        AppColors.white.withOpacity(0.8),
+                        FontWeight.normal,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
                     ],
                   ),
                   SizedBox(height: 16),
@@ -599,27 +582,26 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Time Left',
-                            11,
-                            AppColors.white.withOpacity(0.7),
-                            FontWeight.normal,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
+                              context,
+                              'Time Left',
+                              11,
+                              AppColors.white.withOpacity(0.7),
+                              FontWeight.normal,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
                             SizedBox(height: 4),
                             AppRichText.setTextPoppinsStyle(
-                            context,
-                            '${test['timeLeft']['minutes'].toString().padLeft(2, '0')}:${test['timeLeft']['seconds'].toString().padLeft(2, '0')}',
-                            24,
-                            AppColors.lightGold,
-                            FontWeight.w900,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                           
+                              context,
+                              '${test['timeLeft']['minutes'].toString().padLeft(2, '0')}:${test['timeLeft']['seconds'].toString().padLeft(2, '0')}',
+                              24,
+                              AppColors.lightGold,
+                              FontWeight.w900,
+                              1,
+                              TextAlign.left,
+                              0.0,
+                            ),
                           ],
                         ),
                         Column(
@@ -630,23 +612,25 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                                 Icon(Icons.people, color: AppColors.lightGold, size: 16),
                                 SizedBox(width: 4),
                                 AppRichText.setTextPoppinsStyle(
-                                    context,
-                                    '${test['participants']} playing',
-                                    12,
-                                    AppColors.white,
-                                    FontWeight.w600,
-                                    1,
-                                    TextAlign.left,
-                                    0.0,
-                                  ),
-                               
+                                  context,
+                                  '${test['participants']} playing',
+                                  12,
+                                  AppColors.white,
+                                  FontWeight.w600,
+                                  1,
+                                  TextAlign.left,
+                                  0.0,
+                                ),
                               ],
                             ),
                             SizedBox(height: 8),
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(8)),
-                              child:  AppRichText.setTextPoppinsStyle(
+                              decoration: BoxDecoration(
+                                color: AppColors.lightGold,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: AppRichText.setTextPoppinsStyle(
                                 context,
                                 'Join Now',
                                 12,
@@ -656,7 +640,6 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                                 TextAlign.left,
                                 0.0,
                               ),
-                              
                             ),
                           ],
                         ),
@@ -707,7 +690,6 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                       TextAlign.left,
                       0.0,
                     ),
-                   
                   ],
                 ),
               ),
@@ -722,16 +704,15 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                     Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 14),
                     SizedBox(width: 4),
                     AppRichText.setTextPoppinsStyle(
-                                context,
-                                test['prize'],
-                                11,
-                                AppColors.darkNavy,
-                                FontWeight.w900,
-                                1,
-                                TextAlign.left,
-                                0.0,
-                              ),
-                   
+                      context,
+                      test['prize'],
+                      11,
+                      AppColors.darkNavy,
+                      FontWeight.w900,
+                      1,
+                      TextAlign.left,
+                      0.0,
+                    ),
                   ],
                 ),
               ),
@@ -739,16 +720,16 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
           ),
           SizedBox(height: 16),
           AppRichText.setTextPoppinsStyle(
-                              context,
-                              test['title'],
-                              18,
-                              AppColors.darkNavy,
-                              FontWeight.w800,
-                              1,
-                              TextAlign.left,
-                              0.0,
-                            ),
-         
+            context,
+            test['title'],
+            18,
+            AppColors.darkNavy,
+            FontWeight.w800,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+
           SizedBox(height: 8),
           Row(
             children: [
@@ -770,31 +751,31 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       AppRichText.setTextPoppinsStyle(
-                              context,
-                              'Starts In',
-                              11,
-                              AppColors.greyS600,
-                              FontWeight.normal,
-                              1,
-                              TextAlign.left,
-                              0.0,
-                            ),
+                        context,
+                        'Starts In',
+                        11,
+                        AppColors.greyS600,
+                        FontWeight.normal,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
                       SizedBox(height: 4),
                       Row(
                         children: [
                           _buildCountdownBox(test['timeLeft']['hours'].toString(), 'HRS'),
                           SizedBox(width: 4),
                           AppRichText.setTextPoppinsStyle(
-                          context,
-                          ':',
-                          11,
-                          AppColors.darkNavy,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                       
+                            context,
+                            ':',
+                            11,
+                            AppColors.darkNavy,
+                            FontWeight.w700,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
+
                           SizedBox(width: 4),
                           _buildCountdownBox(test['timeLeft']['minutes'].toString().padLeft(2, '0'), 'MIN'),
                         ],
@@ -806,16 +787,16 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     AppRichText.setTextPoppinsStyle(
-                        context,
-                        '${test['participants']} registered',
-                        11,
-                        AppColors.white,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                      
+                      context,
+                      '${test['participants']} registered',
+                      11,
+                      AppColors.white,
+                      FontWeight.w600,
+                      1,
+                      TextAlign.left,
+                      0.0,
+                    ),
+
                     SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: () {},
@@ -846,7 +827,6 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                                 TextAlign.left,
                                 0.0,
                               ),
-                             
                             ],
                           ),
                         ),
@@ -886,60 +866,57 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                     Icon(Icons.check_circle, color: AppColors.greyS600, size: 14),
                     SizedBox(width: 6),
                     AppRichText.setTextPoppinsStyle(
-                              context,
-                              'COMPLETED',
-                              11,
-                              AppColors.greyS600,
-                              FontWeight.w900,
-                              1,
-                              TextAlign.left,
-                              0.0,
-                            ),
-                  
+                      context,
+                      'COMPLETED',
+                      11,
+                      AppColors.greyS600,
+                      FontWeight.w900,
+                      1,
+                      TextAlign.left,
+                      0.0,
+                    ),
                   ],
                 ),
               ),
               AppRichText.setTextPoppinsStyle(
-                            context,
-                            test['prize'],
-                            14,
-                            AppColors.tealGreen,
-                            FontWeight.w700,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-            
+                context,
+                test['prize'],
+                14,
+                AppColors.tealGreen,
+                FontWeight.w700,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
             ],
           ),
           SizedBox(height: 16),
           AppRichText.setTextPoppinsStyle(
-                        context,
-                        test['title'],
-                        18,
-                        AppColors.darkNavy,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-          
+            context,
+            test['title'],
+            18,
+            AppColors.darkNavy,
+            FontWeight.w700,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+
           SizedBox(height: 12),
           Row(
             children: [
               Icon(Icons.emoji_events, color: AppColors.lightGold, size: 20),
               SizedBox(width: 8),
               AppRichText.setTextPoppinsStyle(
-                      context,
-                      'Winner: ${test['winner']}',
-                      13,
-                      AppColors.darkNavy,
-                      FontWeight.w600,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-             
+                context,
+                'Winner: ${test['winner']}',
+                13,
+                AppColors.darkNavy,
+                FontWeight.w600,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
             ],
           ),
           SizedBox(height: 12),
@@ -973,7 +950,6 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                         TextAlign.left,
                         0.0,
                       ),
-               
                     ],
                   ),
                 ),
@@ -981,16 +957,16 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                   onPressed: () {},
                   icon: Icon(Icons.visibility_outlined, size: 16, color: AppColors.darkNavy),
                   label: AppRichText.setTextPoppinsStyle(
-                        context,
-                        'View Results',
-                        12,
-                        AppColors.darkNavy,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-              
+                    context,
+                    'View Results',
+                    12,
+                    AppColors.darkNavy,
+                    FontWeight.w700,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
+
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: AppColors.darkNavy, width: 2),
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1013,17 +989,7 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
         children: [
           Icon(icon, size: 14, color: color),
           SizedBox(width: 4),
-          AppRichText.setTextPoppinsStyle(
-                        context,
-                        text,
-                        11,
-                        color,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-          
+          AppRichText.setTextPoppinsStyle(context, text, 11, color, FontWeight.w600, 1, TextAlign.left, 0.0),
         ],
       ),
     );
@@ -1039,29 +1005,18 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
             borderRadius: BorderRadius.circular(8),
           ),
           child: AppRichText.setTextPoppinsStyle(
-                        context,
-                        value,
-                        18,
-                        AppColors.white,
-                        FontWeight.w900,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-        
+            context,
+            value,
+            18,
+            AppColors.white,
+            FontWeight.w900,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
         ),
         SizedBox(height: 4),
-        AppRichText.setTextPoppinsStyle(
-                        context,
-                        label,
-                        9,
-                        AppColors.greyS600,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-    
+        AppRichText.setTextPoppinsStyle(context, label, 9, AppColors.greyS600, FontWeight.w600, 1, TextAlign.left, 0.0),
       ],
     );
   }
@@ -1070,63 +1025,64 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-              AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Filter Tests',
-                        20,
-                        AppColors.darkNavy,
-                        FontWeight.w800,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-              
-                IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-              ],
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            SizedBox(height: 20),
-            _buildFilterOption('All Subjects', true),
-            _buildFilterOption('Mathematics', false),
-            _buildFilterOption('Science', false),
-            _buildFilterOption('English', false),
-            SizedBox(height: 16),
-            Divider(),
-            SizedBox(height: 16),
-            _buildFilterOption('Easy', false),
-            _buildFilterOption('Medium', false),
-            _buildFilterOption('Hard', false),
-            SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.transparent,
-                padding: EdgeInsets.zero,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Ink(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                  borderRadius: BorderRadius.circular(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    AppRichText.setTextPoppinsStyle(
+                      context,
+                      'Filter Tests',
+                      20,
+                      AppColors.darkNavy,
+                      FontWeight.w800,
+                      1,
+                      TextAlign.left,
+                      0.0,
+                    ),
+
+                    IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
                 ),
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  alignment: Alignment.center,
-                  child: AppRichText.setTextPoppinsStyle(
+                SizedBox(height: 20),
+                _buildFilterOption('All Subjects', true),
+                _buildFilterOption('Mathematics', false),
+                _buildFilterOption('Science', false),
+                _buildFilterOption('English', false),
+                SizedBox(height: 16),
+                Divider(),
+                SizedBox(height: 16),
+                _buildFilterOption('Easy', false),
+                _buildFilterOption('Medium', false),
+                _buildFilterOption('Hard', false),
+                SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.transparent,
+                    padding: EdgeInsets.zero,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      alignment: Alignment.center,
+                      child: AppRichText.setTextPoppinsStyle(
                         context,
                         'Apply Filters',
                         16,
@@ -1136,13 +1092,12 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
                         TextAlign.left,
                         0.0,
                       ),
-                 
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -1159,16 +1114,16 @@ class _LiveTestSeriesPageState extends State<LiveTestSeriesPage> with SingleTick
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           AppRichText.setTextPoppinsStyle(
-                        context,
-                        text,
-                        14,
-                        AppColors.darkNavy,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-        
+            context,
+            text,
+            14,
+            AppColors.darkNavy,
+            FontWeight.w600,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+
           if (isSelected) Icon(Icons.check_circle, color: AppColors.tealGreen, size: 20),
         ],
       ),

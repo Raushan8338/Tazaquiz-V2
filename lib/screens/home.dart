@@ -5,7 +5,12 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/coaching_item_modal.dart';
+import 'package:tazaquiznew/models/course_item_modal.dart';
+import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/models/quizItem_modal.dart';
+import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/screens/buyCourse.dart';
 import 'package:tazaquiznew/screens/notificationPage.dart';
 import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
@@ -27,46 +32,23 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Timer? _bannerTimer;
   List _banners = [];
-
-  final List<Map<String, dynamic>> _categories = [
-    {'name': 'Mathematics', 'icon': Icons.calculate, 'courses': 45},
-    {'name': 'Science', 'icon': Icons.science, 'courses': 38},
-    {'name': 'English', 'icon': Icons.book, 'courses': 32},
-    {'name': 'Physics', 'icon': Icons.bolt, 'courses': 28},
-  ];
-
-  final List<Map<String, dynamic>> _popularCourses = [
-    {
-      'title': 'Complete Mathematics',
-      'instructor': 'Dr. Sarah Johnson',
-      'rating': 4.8,
-      'students': 12450,
-      'price': 2499,
-      'image': 'math',
-    },
-    {
-      'title': 'Science Fundamentals',
-      'instructor': 'Prof. Mike Chen',
-      'rating': 4.6,
-      'students': 8920,
-      'price': 1999,
-      'image': 'science',
-    },
-    {
-      'title': 'English Grammar',
-      'instructor': 'Lisa Williams',
-      'rating': 4.7,
-      'students': 6750,
-      'price': 1499,
-      'image': 'english',
-    },
-  ];
+  List<QuizItem> liveTests = [];
+  List<CourseItem> popularCourses = [];
+  List<CoachingItem> coachingProfiles = [];
+  List<StudyMaterialItem> studyMaterials = [];
   UserModel? _user;
   int notificationCount = 0;
+  List<HomeSection> homePageItemData = [];
+  // Sections
+  HomeSection? quizSection;
+  HomeSection? courseSection;
+  HomeSection? coachingSection;
+  HomeSection? studySection;
   @override
   void initState() {
     super.initState();
     _getUserData();
+    get_home_page_data();
     getAppBanner();
   }
 
@@ -86,7 +68,6 @@ class _HomePageState extends State<HomePage> {
     var jsonResponses = jsonDecode(responseFuture.data);
     _banners = jsonResponses['slider'];
     setState(() {});
-
     // You can use Authrepository's fetchAppBanner method here
   }
 
@@ -95,13 +76,54 @@ class _HomePageState extends State<HomePage> {
     Authrepository authRepository = Authrepository(Api_Client.dio);
 
     final data = {'user_id': _user?.id};
-
     final responseFuture = await authRepository.fetchNotificationCount(data);
     var jsonResponsesCount = jsonDecode(responseFuture.data);
 
     setState(() {
       notificationCount = jsonResponsesCount['count'];
     });
+    // Handle the response as needed
+  }
+
+  void get_home_page_data() async {
+    // Fetch home page data from API if needed
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+
+    final responseFuture = await authRepository.fetchHomePageData();
+    print(responseFuture.statusCode);
+    if (responseFuture.statusCode == 200) {
+      var jsonResponse = responseFuture.data;
+      HomeDataResponse response = HomeDataResponse.fromJson(jsonResponse);
+      homePageItemData = response.data;
+
+      liveTests.clear();
+      popularCourses.clear();
+      coachingProfiles.clear();
+      studyMaterials.clear();
+      for (var section in homePageItemData) {
+        if (section.section == 'quiz') {
+          quizSection = section;
+
+          liveTests = section.items.cast<QuizItem>();
+        } else if (section.section == 'course') {
+          courseSection = section;
+          popularCourses = section.items.cast<CourseItem>();
+        } else if (section.section == 'coaching') {
+          coachingSection = section;
+          coachingProfiles = section.items.cast<CoachingItem>();
+        } else if (section.section == 'study_material') {
+          studySection = section;
+          studyMaterials = section.items.cast<StudyMaterialItem>();
+        }
+      }
+
+      setState(() {});
+
+      // Process the data as needed
+    } else {
+      // Handle error case
+    }
+
     // Handle the response as needed
   }
 
@@ -113,6 +135,22 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (quizSection == null || quizSection!.items.isEmpty || liveTests.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Row(
+            mainAxisSize: MainAxisSize.min, // ⭐ IMPORTANT
+            children: const [
+              SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+              SizedBox(width: 10),
+              Text("Loading Please wait...", style: TextStyle(fontSize: 15)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       body: SafeArea(
@@ -131,10 +169,12 @@ class _HomePageState extends State<HomePage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildStatsSection(),
-                        Home_live_test(),
-                        Home_courses(),
-                        CoachingProfileWidget(),
-                        HomeStudyMaterials(),
+
+                        Home_live_test(liveTests: liveTests, homeSections: quizSection!),
+                        Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
+                        CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
+                        HomeStudyMaterials(studyMaterials: studyMaterials, homeSections: studySection!),
+
                         _buildAchievementsSection(),
                       ],
                     ),
@@ -230,148 +270,6 @@ class _HomePageState extends State<HomePage> {
         boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [WeeklyProgressWidget()]),
-    );
-  }
-
-  Widget _buildStatCard(String value, String label, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: Icon(icon, color: color, size: 28),
-        ),
-        SizedBox(height: 10),
-        AppRichText.setTextPoppinsStyle(context, value, 18, color, FontWeight.w900, 1, TextAlign.center, 0.0),
-        SizedBox(height: 4),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          label,
-          12,
-          AppColors.greyS600,
-          FontWeight.w600,
-          1,
-          TextAlign.center,
-          0.0,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoriesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Categories',
-                    20,
-                    AppColors.darkNavy,
-                    FontWeight.w800,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                  SizedBox(height: 4),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Explore by subject',
-                    13,
-                    AppColors.greyS600,
-                    FontWeight.w500,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () {},
-                child: AppRichText.setTextPoppinsStyle(
-                  context,
-                  'View All →',
-                  13,
-                  AppColors.tealGreen,
-                  FontWeight.w700,
-                  1,
-                  TextAlign.right,
-                  0.0,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 12),
-        Container(
-          height: 130,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _categories.length,
-            itemBuilder: (context, index) {
-              final category = _categories[index];
-              return InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage())),
-                child: Container(
-                  width: 130,
-                  margin: EdgeInsets.only(right: 12),
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4)),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(category['icon'], color: AppColors.white, size: 24),
-                      ),
-                      SizedBox(height: 10),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        category['name'],
-                        13,
-                        AppColors.darkNavy,
-                        FontWeight.w700,
-                        2,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                      SizedBox(height: 4),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        '${category['courses']} courses',
-                        10,
-                        AppColors.greyS600,
-                        FontWeight.w500,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
 

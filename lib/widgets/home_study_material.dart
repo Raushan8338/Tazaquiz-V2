@@ -2,19 +2,21 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/home_page_modal.dart';
+import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class HomeStudyMaterials extends StatefulWidget {
-  const HomeStudyMaterials({super.key});
+  final List<StudyMaterialItem> studyMaterials;
+  final HomeSection homeSections;
+
+  HomeStudyMaterials({super.key, required this.studyMaterials, required this.homeSections});
 
   @override
   State<HomeStudyMaterials> createState() => _HomeStudyMaterialsState();
 }
 
 class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
-  String title = '';
-  String subtitle = '';
-  List<Map<String, dynamic>> items = [];
   bool isLoading = true;
   bool hasData = false;
 
@@ -41,7 +43,7 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
                 children: [
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    '📚 Study Materials',
+                    '📚 ${widget.homeSections.title}',
                     14,
                     AppColors.darkNavy,
                     FontWeight.w800,
@@ -50,15 +52,18 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
                     0.0,
                   ),
                   const SizedBox(height: 4),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Explore curated learning resources',
-                    12,
-                    AppColors.greyS600,
-                    FontWeight.w500,
-                    1,
-                    TextAlign.left,
-                    0.0,
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.6,
+                    child: AppRichText.setTextPoppinsStyle(
+                      context,
+                      widget.homeSections.subtitle ?? '',
+                      12,
+                      AppColors.greyS600,
+                      FontWeight.w500,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
                   ),
                 ],
               ),
@@ -94,14 +99,15 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
           ),
         ),
         Container(
-          height: 225,
+          height: 240,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             shrinkWrap: true,
-            itemCount: 5,
+            itemCount: widget.studyMaterials.length,
             padding: const EdgeInsets.symmetric(horizontal: 0),
             itemBuilder: (context, index) {
-              return _buildMaterialCard(index);
+              StudyMaterialItem material = widget.studyMaterials[index];
+              return _buildMaterialCard(material);
             },
           ),
         ),
@@ -131,22 +137,46 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
     return icons[index % icons.length];
   }
 
-  Widget _buildMaterialCard(int index) {
-    final colors = _getCardColors(index);
-    final icon = _getIconForIndex(index);
-
+  Widget _buildMaterialCard(material) {
     return InkWell(
       onTap: () {
-        print('Tapped on: Study Material ${index + 1}');
+        print('Tapped on: Study Material ${material.id}');
       },
       child: Container(
         width: 280,
         margin: const EdgeInsets.only(left: 6, right: 6, top: 16, bottom: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+          gradient:
+              material.boardIcon != null && material.boardIcon!.isNotEmpty
+                  ? null // Image hai to gradient nahi
+                  : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _getCardColors(int.parse(material.id)),
+                  ),
+          image:
+              material.boardIcon != null && material.boardIcon!.isNotEmpty
+                  ? DecorationImage(
+                    image: NetworkImage(material.boardIcon!),
+                    fit: BoxFit.cover,
+                    colorFilter: ColorFilter.mode(
+                      Colors.black.withOpacity(0.3), // Dark overlay for text readability
+                      BlendMode.darken,
+                    ),
+                  )
+                  : null,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+          boxShadow: [
+            BoxShadow(
+              color:
+                  material.boardIcon != null && material.boardIcon!.isNotEmpty
+                      ? Colors.black.withOpacity(0.3)
+                      : _getCardColors(int.parse(material.id))[0].withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -172,13 +202,20 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
                             ),
                           ],
                         ),
-                        child: Icon(icon, size: 24, color: colors[0]),
+                        child: Icon(
+                          _getIconForIndex(int.parse(material.id)),
+                          size: 24,
+                          color:
+                              material.boardIcon != null && material.boardIcon!.isNotEmpty
+                                  ? AppColors.darkNavy
+                                  : _getCardColors(int.parse(material.id))[0],
+                        ),
                       ),
                       const SizedBox(height: 10),
                       AppRichText.setTextPoppinsStyle(
                         context,
-                        'Study Material ${index + 1}',
-                        14,
+                        material.title,
+                        12,
                         AppColors.white,
                         FontWeight.w900,
                         2,
@@ -188,22 +225,19 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
                       const SizedBox(height: 4),
                       AppRichText.setTextPoppinsStyle(
                         context,
-                        'Comprehensive notes and resources',
+                        material.description,
                         11,
                         AppColors.white.withOpacity(0.85),
                         FontWeight.w600,
                         2,
                         TextAlign.left,
-                        1.1,
+                        1.0,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
 
                   ElevatedButton(
-                    onPressed: () {
-                      print('View material: Study Material ${index + 1}');
-                    },
+                    onPressed: () {},
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.lightGold,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
