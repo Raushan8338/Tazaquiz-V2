@@ -7,4 +7,6 @@ class BaseUrl {
   static String app_banner = "app_banner.php";
   static String notification_count = "notification_count.php";
   static String noification_history = "notificationHistory.php";
+  static String home_weekly_progress = "homeweeklyProgress.php";
+  static String get_home_page_data = "getHomePageData.php";
 }

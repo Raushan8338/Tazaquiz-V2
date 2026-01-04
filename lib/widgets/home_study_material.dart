@@ -1,0 +1,249 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/utils/richText.dart';
+
+class HomeStudyMaterials extends StatefulWidget {
+  const HomeStudyMaterials({super.key});
+
+  @override
+  State<HomeStudyMaterials> createState() => _HomeStudyMaterialsState();
+}
+
+class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
+  String title = '';
+  String subtitle = '';
+  List<Map<String, dynamic>> items = [];
+  bool isLoading = true;
+  bool hasData = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 15, 10, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    '📚 Study Materials',
+                    14,
+                    AppColors.darkNavy,
+                    FontWeight.w800,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
+                  const SizedBox(height: 4),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Explore curated learning resources',
+                    12,
+                    AppColors.greyS600,
+                    FontWeight.w500,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: AppColors.tealGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppRichText.setTextPoppinsStyle(
+                        context,
+                        'View All',
+                        11,
+                        AppColors.tealGreen,
+                        FontWeight.w700,
+                        1,
+                        TextAlign.right,
+                        0.0,
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded, size: 13, color: AppColors.tealGreen),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          height: 225,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            shrinkWrap: true,
+            itemCount: 5,
+            padding: const EdgeInsets.symmetric(horizontal: 0),
+            itemBuilder: (context, index) {
+              return _buildMaterialCard(index);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Color> _getCardColors(int index) {
+    final gradients = [
+      [AppColors.darkNavy, AppColors.tealGreen],
+      [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
+      [const Color(0xFFEC4899), const Color(0xFFF59E0B)],
+      [const Color(0xFF10B981), const Color(0xFF06B6D4)],
+      [const Color(0xFFEF4444), const Color(0xFFF97316)],
+    ];
+    return gradients[index % gradients.length];
+  }
+
+  IconData _getIconForIndex(int index) {
+    final icons = [
+      Icons.menu_book_rounded,
+      Icons.science_rounded,
+      Icons.calculate_rounded,
+      Icons.language_rounded,
+      Icons.history_edu_rounded,
+    ];
+    return icons[index % icons.length];
+  }
+
+  Widget _buildMaterialCard(int index) {
+    final colors = _getCardColors(index);
+    final icon = _getIconForIndex(index);
+
+    return InkWell(
+      onTap: () {
+        print('Tapped on: Study Material ${index + 1}');
+      },
+      child: Container(
+        width: 280,
+        margin: const EdgeInsets.only(left: 6, right: 6, top: 16, bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Icon(icon, size: 24, color: colors[0]),
+                      ),
+                      const SizedBox(height: 10),
+                      AppRichText.setTextPoppinsStyle(
+                        context,
+                        'Study Material ${index + 1}',
+                        14,
+                        AppColors.white,
+                        FontWeight.w900,
+                        2,
+                        TextAlign.left,
+                        1.2,
+                      ),
+                      const SizedBox(height: 4),
+                      AppRichText.setTextPoppinsStyle(
+                        context,
+                        'Comprehensive notes and resources',
+                        11,
+                        AppColors.white.withOpacity(0.85),
+                        FontWeight.w600,
+                        2,
+                        TextAlign.left,
+                        1.1,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+
+                  ElevatedButton(
+                    onPressed: () {
+                      print('View material: Study Material ${index + 1}');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.lightGold,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      minimumSize: const Size(0, 36),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.visibility_rounded, size: 16, color: AppColors.darkNavy),
+                        const SizedBox(width: 6),
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'View Material',
+                          12,
+                          AppColors.darkNavy,
+                          FontWeight.w800,
+                          1,
+                          TextAlign.center,
+                          0.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(Icons.menu_book_rounded, size: 25, color: AppColors.lightGold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

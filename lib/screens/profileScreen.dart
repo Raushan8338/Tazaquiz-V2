@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
+import 'package:tazaquiznew/screens/splash.dart';
 import 'package:tazaquiznew/testpage.dart' hide ContactUsPage;
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
@@ -64,6 +65,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     },
     {'title': 'Subject Expert', 'description': 'Master one subject', 'icon': Icons.star, 'earned': false},
   ];
+
+  Future<void> handleLogout(BuildContext context) async {
+    await SessionManager.logout(); // only once
+
+    if (!context.mounted) return;
+
+    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => SplashScreen()), (route) => false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -758,7 +767,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             child: _buildSettingItem(Icons.help_outline, 'Help & Support', () {}),
           ),
           Divider(height: 24),
-          _buildSettingItem(Icons.logout, 'Logout', () {}, isLogout: true),
+          _buildSettingItem(Icons.logout, 'Logout', () async {
+            await handleLogout(context);
+          }, isLogout: true),
         ],
       ),
     );

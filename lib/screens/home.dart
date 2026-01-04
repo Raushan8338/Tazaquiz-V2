@@ -12,7 +12,12 @@ import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/screens/testSeries.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:tazaquiznew/widgets/WeeklyProgressWidget.dart';
 import 'package:tazaquiznew/widgets/home_banner.dart';
+import 'package:tazaquiznew/widgets/home_coaching_profile.dart';
+import 'package:tazaquiznew/widgets/home_courses.dart';
+import 'package:tazaquiznew/widgets/home_live_test.dart';
+import 'package:tazaquiznew/widgets/home_study_material.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -117,14 +122,23 @@ class _HomePageState extends State<HomePage> {
             SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   HomeBanner(imgLists: _banners),
-                  _buildStatsSection(),
-                  _buildCategoriesSection(),
-                  _buildPopularCoursesSection(),
-                  _buildLiveTestsSection(),
-                  _buildAchievementsSection(),
-                  SizedBox(height: 100),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 14, right: 14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildStatsSection(),
+                        Home_live_test(),
+                        Home_courses(),
+                        CoachingProfileWidget(),
+                        HomeStudyMaterials(),
+                        _buildAchievementsSection(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -139,25 +153,27 @@ class _HomePageState extends State<HomePage> {
       floating: true,
       backgroundColor: AppColors.white,
       elevation: 0,
-      leading: Drawer(),
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 7, top: 2, bottom: 2),
+        child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+      ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppRichText.setTextPoppinsStyle(
             context,
             '${_user?.username ?? '👋'}',
-            18,
+            15,
             AppColors.darkNavy,
             FontWeight.w700,
             1,
             TextAlign.left,
             0.0,
           ),
-          SizedBox(height: 2),
           AppRichText.setTextPoppinsStyle(
             context,
             'Ready to learn today?',
-            13,
+            11,
             AppColors.greyS600,
             FontWeight.w500,
             1,
@@ -207,37 +223,13 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildStatsSection() {
     return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
-            'Your Progress',
-            18,
-            AppColors.darkNavy,
-            FontWeight.w800,
-            1,
-            TextAlign.left,
-            0.0,
-          ),
-          SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatCard('12', 'Courses', Icons.school, AppColors.tealGreen),
-              _buildStatCard('45', 'Tests', Icons.quiz, AppColors.darkNavy),
-              _buildStatCard('2,450', 'XP', Icons.stars, AppColors.oxfordBlue),
-            ],
-          ),
-        ],
-      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [WeeklyProgressWidget()]),
     );
   }
 
@@ -383,283 +375,10 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildPopularCoursesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, 24, 16, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    '🔥 Popular Courses',
-                    20,
-                    AppColors.darkNavy,
-                    FontWeight.w800,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                  SizedBox(height: 4),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Most loved by students',
-                    13,
-                    AppColors.greyS600,
-                    FontWeight.w500,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () {},
-                child: AppRichText.setTextPoppinsStyle(
-                  context,
-                  'View All →',
-                  13,
-                  AppColors.tealGreen,
-                  FontWeight.w700,
-                  1,
-                  TextAlign.right,
-                  0.0,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 12),
-        Container(
-          height: 240,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _popularCourses.length,
-            itemBuilder: (context, index) {
-              final course = _popularCourses[index];
-              return InkWell(
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => BuyCoursePage()));
-                },
-                child: _buildCourseCard(course),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCourseCard(Map<String, dynamic> course) {
-    return Container(
-      width: 210,
-      margin: EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 100,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Center(child: Icon(Icons.school, size: 48, color: AppColors.lightGold)),
-          ),
-          Padding(
-            padding: EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  course['title'],
-                  13,
-                  AppColors.darkNavy,
-                  FontWeight.w700,
-                  2,
-                  TextAlign.left,
-                  1.2,
-                ),
-                SizedBox(height: 6),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  course['instructor'],
-                  11,
-                  AppColors.greyS600,
-                  FontWeight.w500,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
-                SizedBox(height: 10),
-                Row(
-                  children: [
-                    Icon(Icons.star, size: 14, color: AppColors.lightGold),
-                    SizedBox(width: 4),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      '${course['rating']}',
-                      12,
-                      AppColors.darkNavy,
-                      FontWeight.w700,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                    SizedBox(width: 8),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      '(${course['students']})',
-                      11,
-                      AppColors.greyS600,
-                      FontWeight.w500,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  '₹${course['price']}',
-                  16,
-                  AppColors.tealGreen,
-                  FontWeight.w900,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLiveTestsSection() {
-    return InkWell(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => LiveTestSeriesPage()));
-      },
-      child: Container(
-        margin: EdgeInsets.all(16),
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.darkNavy, AppColors.tealGreen],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 10))],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(20)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
-                        ),
-                        SizedBox(width: 6),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'LIVE',
-                          11,
-                          AppColors.white,
-                          FontWeight.w900,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Test Starting Soon',
-                    20,
-                    AppColors.white,
-                    FontWeight.w900,
-                    1,
-                    TextAlign.left,
-                    1.2,
-                  ),
-                  SizedBox(height: 8),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Mathematics • 234 joined',
-                    13,
-                    AppColors.lightGold,
-                    FontWeight.w600,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                  SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.lightGold,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    ),
-                    child: AppRichText.setTextPoppinsStyle(
-                      context,
-                      'Join Now',
-                      14,
-                      AppColors.darkNavy,
-                      FontWeight.w700,
-                      1,
-                      TextAlign.center,
-                      0.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 16),
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(Icons.bolt, size: 48, color: AppColors.lightGold),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildAchievementsSection() {
     return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(20),
+      margin: EdgeInsets.only(top: 16, bottom: 16, left: 8, right: 8),
+      padding: EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
@@ -676,13 +395,13 @@ class _HomePageState extends State<HomePage> {
                   gradient: LinearGradient(colors: [AppColors.lightGold, Color(0xFFFDD835)]),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 20),
+                child: Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 17),
               ),
               SizedBox(width: 12),
               AppRichText.setTextPoppinsStyle(
                 context,
                 'Recent Achievements',
-                18,
+                15,
                 AppColors.darkNavy,
                 FontWeight.w800,
                 1,
@@ -704,7 +423,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildAchievementItem(String title, String time, IconData icon, Color color) {
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: EdgeInsets.only(top: 12, bottom: 12, left: 8, right: 8),
       decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
@@ -721,7 +440,7 @@ class _HomePageState extends State<HomePage> {
                 AppRichText.setTextPoppinsStyle(
                   context,
                   title,
-                  14,
+                  13,
                   AppColors.darkNavy,
                   FontWeight.w700,
                   1,

@@ -143,7 +143,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         final userJson = responseFuture.data['series'];
         final user = UserModel.fromJson(userJson);
         await SessionManager.saveUser(user);
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomePage()), (route) => false);
+        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
       } else {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

@@ -28,4 +28,13 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.noification_history, data: formData);
   }
+
+  Future<Response> fetchHomeWeeklyProgress(Map<String, dynamic> params) async {
+    return await _dio.get(BaseUrl.home_weekly_progress, queryParameters: params);
+  }
+
+  Future<Response> fetchHomePageData(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.get_home_page_data, data: formData);
+  }
 }
