@@ -140,7 +140,7 @@ class _ContactUsPageState extends State<ContactUsPage>
              AppRichText.setTextPoppinsStyle(
                         context,
                         'Help & Support',
-                        20,
+                        16,
                         AppColors.white,
                         FontWeight.w900,
                         1,
@@ -151,9 +151,9 @@ class _ContactUsPageState extends State<ContactUsPage>
                   AppRichText.setTextPoppinsStyle(
                     context,
                     'We\'re here to help you 24/7',
-                    13,
+                    12,
                     AppColors.lightGold,
-                    FontWeight.w600,
+                    FontWeight.w500,
                     1,
                     TextAlign.left,
                     0.0,
@@ -178,7 +178,6 @@ class _ContactUsPageState extends State<ContactUsPage>
      
       body: CustomScrollView(
         slivers: [
-          // _buildAppBar(),
           SliverToBoxAdapter(
             child: Column(
               children: [
@@ -243,7 +242,7 @@ class _ContactUsPageState extends State<ContactUsPage>
                 AppRichText.setTextPoppinsStyle(
                   context,
                   'Need Assistance?',
-                  18,
+                  16,
                   AppColors.white,
                   FontWeight.w900,
                   1,
@@ -758,7 +757,7 @@ class _ContactUsPageState extends State<ContactUsPage>
                     faq['question'],
                     14,
                     AppColors.darkNavy,
-                    FontWeight.w700,
+                    FontWeight.w600,
                     5,
                     TextAlign.left,
                     1.3,
@@ -801,12 +800,12 @@ class _ContactUsPageState extends State<ContactUsPage>
             ),
             child: Column(
               children: [
-                Icon(Icons.contact_support, color: AppColors.lightGold, size: 48),
+                Icon(Icons.contact_support, color: AppColors.lightGold, size: 40),
                 SizedBox(height: 16),
                 AppRichText.setTextPoppinsStyle(
                   context,
                   'Still Need Help?',
-                  18,
+                  16,
                   AppColors.white,
                   FontWeight.w900,
                   1,

@@ -176,7 +176,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 _buildOrderSummary(),
               
                 _buildPaymentMethods(),
-                SizedBox(height: 100),
+                SizedBox(height: 10),
               ],
             ),
           ),
@@ -188,7 +188,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: 140,
       pinned: true,
       backgroundColor: AppColors.darkNavy,
       leading: IconButton(
@@ -202,19 +202,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: [
-        IconButton(
-          icon: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.help_outline, color: AppColors.white, size: 20),
-          ),
-          onPressed: () {},
-        ),
-      ],
+
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -225,24 +213,47 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           ),
           child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.only(left: 60, right: 60, top: 40),
-              child: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGold,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.shopping_bag, color: AppColors.darkNavy, size: 28),
-                  ),
-                  SizedBox(width: 16),
-                  AppRichText.setTextPoppinsStyle(context, 'Checkout', 20, AppColors.white, FontWeight.w900, 1, TextAlign.left, 0.0),
-
-                
-                ],
+            child: Stack(
+              children: [
+                 Positioned(
+                right: -50,
+                top: 20,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
+                ),
               ),
+              Positioned(
+                left: -30,
+                bottom: -30,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
+                ),
+              ),
+             
+                Padding(
+                  padding: EdgeInsets.only(left: 60, right: 60, top: 40),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGold,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.shopping_bag, color: AppColors.darkNavy, size: 20),
+                      ),
+                      SizedBox(width: 16),
+                      AppRichText.setTextPoppinsStyle(context, 'Checkout', 18, AppColors.white, FontWeight.w900, 1, TextAlign.left, 0.0),
+                
+                    
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -271,17 +282,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.tealGreen, AppColors.darkNavy],
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.receipt_long, color: AppColors.lightGold, size: 20),
+                child: Icon(Icons.receipt_long, color: AppColors.lightGold, size: 18),
               ),
               SizedBox(width: 12),
-              AppRichText.setTextPoppinsStyle(context, 'Order Summary', 18, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.left, 0.0),
+              AppRichText.setTextPoppinsStyle(context, 'Order Summary', 16, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.left, 0.0),
 
          
             ],
@@ -317,13 +328,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AppRichText.setTextPoppinsStyle(context, _orderData['itemName'], 16, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
+                      AppRichText.setTextPoppinsStyle(context, _orderData['itemName'], 14, AppColors.darkNavy, FontWeight.w700, 5, TextAlign.left, 0.0),
 
                       SizedBox(height: 4),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.lightGold.withOpacity(0.3),
+                          color: AppColors.lightGold.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: AppRichText.setTextPoppinsStyle(context, _orderData['itemType'], 11, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
@@ -400,7 +411,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       children: [
         AppRichText.setTextPoppinsStyle(context, label, isBold ? 16 : 14,  color ?? (isBold ? AppColors.darkNavy : AppColors.greyS700), isBold ? FontWeight.w800 : FontWeight.w600, 1, TextAlign.left, 0.0),
 
-         AppRichText.setTextPoppinsStyle(context, value, isBold ? 20 : 15, color ?? (isBold ? AppColors.darkNavy : AppColors.greyS800), isBold ? FontWeight.w900 : FontWeight.w700, 1, TextAlign.left, 0.0),
+        AppRichText.setTextPoppinsStyle(context, value, isBold ? 20 : 15, color ?? (isBold ? AppColors.darkNavy : AppColors.greyS800), isBold ? FontWeight.w900 : FontWeight.w700, 1, TextAlign.left, 0.0),
 
    
       ],
@@ -493,7 +504,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 child: Icon(Icons.payment, color: AppColors.darkNavy, size: 20),
               ),
               SizedBox(width: 12),
-              AppRichText.setTextPoppinsStyle(context, 'Payment Method', 18, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.left, 0.0),
+              AppRichText.setTextPoppinsStyle(context, 'Payment Method', 16, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.left, 0.0),
 
              
             ],
@@ -531,8 +542,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   child: Row(
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
                           color: isSelected
                               ? AppColors.tealGreen.withOpacity(0.2)
@@ -542,7 +553,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         child: Icon(
                           method['icon'],
                           color: isSelected ? AppColors.tealGreen : AppColors.greyS600,
-                          size: 24,
+                          size: 22,
                         ),
                       ),
                       SizedBox(width: 16),
@@ -550,7 +561,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            AppRichText.setTextPoppinsStyle(context, method['name'], 15, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
+                            AppRichText.setTextPoppinsStyle(context, method['name'], 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
 
                          
                             SizedBox(height: 2),
@@ -640,7 +651,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     AppRichText.setTextPoppinsStyle(context, 'Total Amount', 13, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
                
                     SizedBox(height: 4),
-                    AppRichText.setTextPoppinsStyle(context, '₹${_orderData['totalAmount']}', 28, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
+                    AppRichText.setTextPoppinsStyle(context, '₹${_orderData['totalAmount']}', 25, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
 
                 
                   ],
@@ -655,7 +666,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     children: [
                       Icon(Icons.local_offer, size: 16, color: AppColors.tealGreen),
                       SizedBox(width: 6),
-                      AppRichText.setTextPoppinsStyle(context, 'Saved ₹${_orderData['originalPrice'] - _orderData['discountedPrice']}', 13, AppColors.tealGreen, FontWeight.w700, 1, TextAlign.left, 0.0),
+                      AppRichText.setTextPoppinsStyle(context, 'Saved ₹${_orderData['originalPrice'] - _orderData['discountedPrice']}', 12, AppColors.tealGreen, FontWeight.w700, 1, TextAlign.left, 0.0),
 
                      
                     ],
@@ -663,7 +674,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 5),
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -704,7 +715,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               children: [
                                 Icon(Icons.lock, color: AppColors.white, size: 20),
                                 SizedBox(width: 12),
-                                AppRichText.setTextPoppinsStyle(context, 'Proceed to Pay', 18, AppColors.white, FontWeight.w700, 1, TextAlign.left, 0.0),
+                                AppRichText.setTextPoppinsStyle(context, 'Proceed to Pay', 16, AppColors.white, FontWeight.w700, 1, TextAlign.left, 0.0),
                           
                           
                               ],

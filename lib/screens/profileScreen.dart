@@ -82,7 +82,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         title: AppRichText.setTextPoppinsStyle(
           context,
           'My Profile',
-          20,
+          17,
           AppColors.white,
           FontWeight.w900,
           1,
@@ -112,7 +112,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 _buildRecentActivity(),
                 _buildAchievements(),
                 _buildAccountSettings(),
-                SizedBox(height: 100),
+                SizedBox(height: 10),
               ],
             ),
           ),
@@ -200,8 +200,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           Row(
             children: [
               Container(
-                width: 80,
-                height: 80,
+                width: 70,
+                height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
@@ -211,7 +211,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   child: AppRichText.setTextPoppinsStyle(
                     context,
                     '${_user?.username}'.substring(0, 1),
-                    32,
+                    28,
                     AppColors.white,
                     FontWeight.w900,
                     1,
@@ -230,30 +230,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       '${_user?.username}',
                       20,
                       AppColors.darkNavy,
-                      FontWeight.w900,
+                      FontWeight.w800,
                       2,
                       TextAlign.left,
                       1.2,
                     ),
-                    // SizedBox(height: 4),
-                    // Container(
-                    //   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    //   decoration: BoxDecoration(
-                    //     color: AppColors.lightGold.withOpacity(0.3),
-                    //     borderRadius: BorderRadius.circular(6),
-                    //   ),
-                    //   child: AppRichText.setTextPoppinsStyle(
-                    //     context,
-                    //     _studentData['class'],
-                    //     11,
-                    //     AppColors.darkNavy,
-                    //     FontWeight.w700,
-                    //     1,
-                    //     TextAlign.left,
-                    //     0.0,
-                    //   ),
-                    //),
-                    SizedBox(height: 8),
+                   
+                    SizedBox(height: 5),
                     Row(
                       children: [
                         Icon(Icons.badge, size: 16, color: AppColors.greyS600),
@@ -261,7 +244,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         AppRichText.setTextPoppinsStyle(
                           context,
                           'STD + ${_user?.referalId}',
-                          12,
+                          14,
                           AppColors.greyS600,
                           FontWeight.w600,
                           1,
@@ -340,14 +323,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           AppRichText.setTextPoppinsStyle(
             context,
             'Performance Overview',
-            18,
+            16,
             AppColors.white,
             FontWeight.w900,
             1,
             TextAlign.left,
             0.0,
           ),
-          SizedBox(height: 20),
+          SizedBox(height: 10),
           GridView.count(
             crossAxisCount: 3,
             shrinkWrap: true,
@@ -415,7 +398,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             child: AppRichText.setTextPoppinsStyle(
               context,
               'Quick Actions',
-              18,
+              16,
               AppColors.darkNavy,
               FontWeight.w900,
               1,
@@ -463,7 +446,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 gradient: LinearGradient(colors: [color, color.withOpacity(0.7)]),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppColors.white, size: 28),
+              child: Icon(icon, color: AppColors.white, size: 24),
             ),
             SizedBox(height: 12),
             AppRichText.setTextPoppinsStyle(
@@ -508,7 +491,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               AppRichText.setTextPoppinsStyle(
                 context,
                 'Recent Activity',
-                18,
+                16,
                 AppColors.darkNavy,
                 FontWeight.w900,
                 1,
@@ -623,7 +606,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   AppRichText.setTextPoppinsStyle(
                     context,
                     'Achievements',
-                    18,
+                    16,
                     AppColors.darkNavy,
                     FontWeight.w900,
                     1,
@@ -701,7 +684,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                     AppRichText.setTextPoppinsStyle(
                       context,
                       achievement['description'],
-                      10,
+                      11,
                       AppColors.greyS600,
                       FontWeight.w500,
                       3,
@@ -744,7 +727,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               AppRichText.setTextPoppinsStyle(
                 context,
                 'Account Settings',
-                18,
+                16,
                 AppColors.darkNavy,
                 FontWeight.w900,
                 1,

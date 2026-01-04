@@ -71,7 +71,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 _buildPaymentMethods(),
                 _buildFAQSection(),
                 _buildTestimonials(),
-                SizedBox(height: 100),
+                SizedBox(height: 10),
               ],
             ),
           ),
@@ -83,7 +83,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: 150,
       pinned: true,
       backgroundColor: AppColors.darkNavy,
       leading: IconButton(
@@ -130,15 +130,15 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                   children: [
                     SizedBox(height: 60),
                     Container(
-                      padding: EdgeInsets.all(20),
+                      padding: EdgeInsets.all(15),
                       decoration: BoxDecoration(
-                        color: AppColors.lightGold,
-                        borderRadius: BorderRadius.circular(20),
+                        color: AppColors.lightGold.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(17),
                         boxShadow: [
                           BoxShadow(color: AppColors.lightGold.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 10)),
                         ],
                       ),
-                      child: Icon(Icons.school, size: 48, color: AppColors.darkNavy),
+                      child: Icon(Icons.school, size: 35, color: AppColors.darkNavy),
                     ),
                   ],
                 ),
@@ -153,7 +153,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
   Widget _buildCoursePreview() {
     return Container(
       margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(24),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(24),
@@ -173,7 +173,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.star, color: AppColors.lightGold, size: 16),
+                    Icon(Icons.star, color: AppColors.lightGoldS2, size: 16),
                     SizedBox(width: 4),
                     AppRichText.setTextPoppinsStyle(
                       context,
@@ -227,7 +227,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
           AppRichText.setTextPoppinsStyle(
             context,
             widget.courseTitle,
-            20,
+            16,
             AppColors.darkNavy,
             FontWeight.w800,
             2,
@@ -353,7 +353,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
 
   Widget _buildInstructorCard() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -464,7 +464,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
               AppRichText.setTextPoppinsStyle(
                             context,
                             'What You\'ll Learn',
-                            18,
+                            16,
                             AppColors.darkNavy,
                             FontWeight.w700,
                             2,
@@ -501,12 +501,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
             child:  AppRichText.setTextPoppinsStyle(
                             context,
                             text,
-                            14,
+                            13,
                             AppColors.darkNavy,
                             FontWeight.normal,
                             5,
                             TextAlign.left,
-                            1.5),
+                            1.2),
           ),
         ],
       ),
@@ -515,8 +515,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
 
   Widget _buildCourseContent() {
     return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(24),
+      margin: EdgeInsets.only(right: 16, left: 16),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
@@ -539,7 +539,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
               AppRichText.setTextPoppinsStyle(
                             context,
                             'Course Content',
-                            18,
+                            16,
                             AppColors.darkNavy,
                             FontWeight.w700,
                             5,
@@ -582,8 +582,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 37,
+            height: 37,
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
               borderRadius: BorderRadius.circular(10),
@@ -669,7 +669,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                  AppRichText.setTextPoppinsStyle(
                             context,
                             'Choose Your Plan',
-                            20,
+                            16,
                             AppColors.darkNavy,
                             FontWeight.w800,
                             1,
@@ -741,7 +741,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                      AppRichText.setTextPoppinsStyle(
                             context,
                             plan['title'],
-                            18,
+                            16,
                             isSelected ? AppColors.white : AppColors.darkNavy,
                             FontWeight.w700,
                             1,
@@ -782,7 +782,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                   ),
               ],
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 5),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -799,7 +799,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                  AppRichText.setTextPoppinsStyle(
                             context,
                             plan['price'].toString(),
-                            30,
+                            25,
                             isSelected ? AppColors.white : AppColors.darkNavy,
                             FontWeight.w900,
                             1,
@@ -808,7 +808,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 
               ],
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 5),
             ...List.generate(
               (plan['features'] as List).length,
               (i) => Padding(
@@ -870,8 +870,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
 
   Widget _buildPaymentMethods() {
     return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(24),
+      margin: EdgeInsets.only(right: 16, left: 16),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
@@ -894,7 +894,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
               AppRichText.setTextPoppinsStyle(
                             context,
                             'Payment Methods',
-                            18,
+                            16,
                             AppColors.darkNavy,
                             FontWeight.w700,
                             1,
@@ -977,7 +977,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
   Widget _buildFAQSection() {
     return Container(
       margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(24),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1000,7 +1000,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
               AppRichText.setTextPoppinsStyle(
                           context,
                           'Frequently Asked Questions',
-                          18,
+                          16,
                           AppColors.darkNavy,
                           FontWeight.w700,
                           1,
@@ -1062,7 +1062,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
             child: AppRichText.setTextPoppinsStyle(
                           context,
                           '⭐ Student Reviews',
-                          18,
+                          16,
                           AppColors.darkNavy,
                           FontWeight.w700,
                           1,
@@ -1095,7 +1095,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.lightGold.withOpacity(0.3), AppColors.lightGoldS2.withOpacity(0.2)],
+          colors: [AppColors.lightGold.withOpacity(0.1), AppColors.lightGoldS2.withOpacity(0.2)],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.lightGold),
@@ -1103,14 +1103,14 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: List.generate(rating, (index) => Icon(Icons.star, color: AppColors.lightGold, size: 18))),
+          Row(children: List.generate(rating, (index) => Icon(Icons.star, color: AppColors.gold, size: 18))),
           SizedBox(height: 12),
           AppRichText.setTextPoppinsStyle(
                           context,
                           review,
                           14,
                           AppColors.darkNavy,
-                          FontWeight.w700,
+                          FontWeight.w600,
                           3,
                           TextAlign.left,
                           1.5),
@@ -1178,7 +1178,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                   AppRichText.setTextPoppinsStyle(
                           context,
                           '₹${selectedPlan['price']}',
-                          28,
+                          25,
                           AppColors.darkNavy,
                           FontWeight.w900,
                           2,

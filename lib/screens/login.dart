@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +12,7 @@ import 'package:tazaquiznew/screens/singup.dart';
 import 'package:tazaquiznew/testpage.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class OtpLoginPage extends StatefulWidget {
   @override
@@ -216,7 +216,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                 AppRichText.setTextPoppinsStyle(
                   context,
                   'QuizMaster',
-                  32,
+                  25,
                   AppColors.white,
                   FontWeight.w900,
                   1,
@@ -260,7 +260,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                 child: AppRichText.setTextPoppinsStyle(
                   context,
                   'Welcome Back!',
-                  26,
+                  23,
                   AppColors.darkNavy,
                   FontWeight.w900,
                   1,
@@ -273,7 +273,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                 child: AppRichText.setTextPoppinsStyle(
                   context,
                   'Sign in to continue learning',
-                  14,
+                  13,
                   AppColors.greyS600,
                   FontWeight.normal,
                   1,
@@ -493,8 +493,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   }
 }
 
-class GoogleSignInApi {
-  static final _googlesignin = GoogleSignIn();
-  static Future<GoogleSignInAccount?> login() => _googlesignin.signIn();
-  static Future<GoogleSignInAccount?> logout() => _googlesignin.disconnect();
-}
+// class GoogleSignInApi {
+//   static final _googlesignin = GoogleSignIn();
+//   static Future<GoogleSignInAccount?> login() => _googlesignin.signIn();
+//   static Future<GoogleSignInAccount?> logout() => _googlesignin.disconnect();
+// }

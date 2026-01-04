@@ -467,7 +467,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   Widget _buildTopIllustration() {
     return Container(
-      height: 220,
+      height: 200,
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -528,7 +528,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 AppRichText.setTextPoppinsStyle(
                   context,
                   'Create Account',
-                  26,
+                  24,
                   AppColors.white,
                   FontWeight.w900,
                   1,
@@ -539,7 +539,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 AppRichText.setTextPoppinsStyle(
                   context,
                   'Sign up to get started',
-                  16,
+                  14,
                   AppColors.white.withOpacity(0.9),
                   FontWeight.w500,
                   1,

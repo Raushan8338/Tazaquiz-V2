@@ -10,6 +10,7 @@ class AppColors {
   static const Color oxfordBlue = Color(0xFF000B58);
   static const Color lightGold = Color(0xFFFDEB9E);
   static const Color lightGoldS2 = Color(0xFFFDD835);
+  static const Color gold =Color(0xFFF1D86B);
   static const Color red = Colors.red;
   static Color redS1 = Colors.red[700]!;
   static const Color orange = Colors.orange;
