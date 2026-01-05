@@ -13,7 +13,6 @@ import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/screens/buyCourse.dart';
 import 'package:tazaquiznew/screens/notificationPage.dart';
-import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/screens/testSeries.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
@@ -140,7 +139,7 @@ class _HomePageState extends State<HomePage> {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Row(
-            mainAxisSize: MainAxisSize.min, // ⭐ IMPORTANT
+            mainAxisSize: MainAxisSize.min,
             children: const [
               SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
               SizedBox(width: 10),

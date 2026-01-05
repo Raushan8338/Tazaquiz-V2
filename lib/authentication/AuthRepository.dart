@@ -51,4 +51,8 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.final_submit_quiz, data: formData);
   }
+
+  Future<Response> fetchStudyLevels() async {
+    return await _dio.get(BaseUrl.get_study_levels);
+  }
 }

@@ -12,4 +12,5 @@ class BaseUrl {
   static String get_Quiz_Question = "quizApiRsponse.php";
   static String submit_quiz_answers = "submit_question_response.php";
   static String final_submit_quiz = "finalQuizUpdate.php";
+  static String get_study_levels = "studyLevelSlider.php";
 }

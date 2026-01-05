@@ -3,6 +3,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/livetest.dart';
+import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
 import 'package:tazaquiznew/screens/testSeries.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
@@ -52,7 +53,9 @@ class Home_live_test extends StatelessWidget {
                 ],
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => QuizListScreen()));
+                },
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(

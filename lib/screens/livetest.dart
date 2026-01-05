@@ -151,8 +151,6 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       'time_spent': (10 - _timeLeft).toString(),
     };
 
-    print('Manual submit data: $data');
-
     try {
       final responseData = await authRepository.submitQuizAnswers(data);
       print('Submit response: ${responseData.statusCode}');

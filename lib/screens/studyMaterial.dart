@@ -1,7 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class StudyMaterialScreen extends StatefulWidget {
@@ -11,10 +15,9 @@ class StudyMaterialScreen extends StatefulWidget {
 
 class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  List<String> _categories = ['All'];
   String _selectedCategory = 'All';
- //hyggtt
-  final List<String> _categories = ['All', 'Mathematics', 'Science', 'English', 'Physics', 'Chemistry'];
-
+  bool _isLoading = true;
   final List<Map<String, dynamic>> _studyMaterials = [
     {
       'title': 'Advanced Calculus Guide',
@@ -100,6 +103,28 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    fetchStudyLevels();
+  }
+
+  Future<void> fetchStudyLevels() async {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    Response response = await authRepository.fetchStudyLevels();
+
+    if (response.statusCode == 200) {
+      final data = response.data;
+
+      if (data['success'] == true && data['data'] != null) {
+        List list = data['data'];
+
+        setState(() {
+          _categories = ['All']; // reset
+          _categories.addAll(list.map<String>((e) => e['name'].toString()).toList());
+          _isLoading = false;
+        });
+
+        print('Study Levels: $_categories');
+      }
+    }
   }
 
   @override
@@ -120,9 +145,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
-          SliverToBoxAdapter(
-            child: Column(children: [_buildSearchBar(), _buildStatsSection(), _buildCategoriesSection()]),
-          ),
+          SliverToBoxAdapter(child: _buildCategoriesSection()),
           _buildMaterialsList(),
           SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
@@ -132,35 +155,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 180,
+      expandedHeight: 160,
       pinned: true,
       backgroundColor: AppColors.darkNavy,
-      leading: IconButton(
-        icon: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
-        ),
-        onPressed: () => Navigator.pop(context),
-      ),
-      actions: [
-        IconButton(
-          icon: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.bookmark_outline, color: AppColors.white, size: 20),
-          ),
-          onPressed: () {},
-        ),
-        IconButton(
-          icon: Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.download, color: AppColors.white, size: 20),
-          ),
-          onPressed: () {},
-        ),
-      ],
+      automaticallyImplyLeading: false,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
@@ -181,43 +179,72 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                   decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
-              Positioned(
-                left: -40,
-                bottom: -40,
-                child: Container(
-                  width: 180,
-                  height: 180,
-                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
-                ),
-              ),
               SafeArea(
                 child: Padding(
-                  padding: EdgeInsets.only(left: 60, right: 60, top: 60),
+                  padding: EdgeInsets.fromLTRB(20, 16, 20, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Title in single line
                       Row(
                         children: [
                           Container(
                             padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.lightGold,
-                              borderRadius: BorderRadius.circular(16),
+                              color: AppColors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Icon(Icons.library_books, color: AppColors.darkNavy, size: 32),
+                            child: Icon(Icons.library_books, color: AppColors.white, size: 28),
                           ),
-                          SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              AppRichText.setTextPoppinsStyle(context, 'Study Materials', 24, AppColors.white, FontWeight.w900, 1, TextAlign.left, 0.0),
-                            
-                              AppRichText.setTextPoppinsStyle(context, 'Learn from the best resources', 13, AppColors.lightGold, FontWeight.normal, 1, TextAlign.left, 0.0),
-                           
-                            ],
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              'Study Materials',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.white,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
                           ),
                         ],
+                      ),
+                      SizedBox(height: 20),
+                      // Search bar in header
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(color: AppColors.black.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 3)),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, color: AppColors.tealGreen, size: 22),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                decoration: InputDecoration(
+                                  hintText: 'Search materials...',
+                                  hintStyle: TextStyle(color: AppColors.greyS400, fontSize: 14, fontFamily: "Poppins"),
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.tune, color: AppColors.white, size: 18),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -233,22 +260,22 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   Widget _buildSearchBar() {
     return Container(
       margin: EdgeInsets.all(16),
-      padding: EdgeInsets.symmetric(horizontal: 20),
-      height: 56,
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      height: 50,
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 10, offset: Offset(0, 3))],
       ),
       child: Row(
         children: [
-          Icon(Icons.search, color: AppColors.tealGreen, size: 24),
+          Icon(Icons.search, color: AppColors.tealGreen, size: 22),
           SizedBox(width: 12),
           Expanded(
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search materials...',
-                hintStyle: TextStyle(color: AppColors.greyS400, fontSize: 15, fontFamily: "Poppins"),
+                hintStyle: TextStyle(color: AppColors.greyS400, fontSize: 14, fontFamily: "Poppins"),
                 border: InputBorder.none,
               ),
             ),
@@ -259,56 +286,17 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
               gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.tune, color: AppColors.white, size: 20),
+            child: Icon(Icons.tune, color: AppColors.white, size: 18),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsSection() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.lightGold, AppColors.lightGoldS2],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 10))],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatItem(Icons.description, '1,234', 'Materials'),
-          Container(width: 1, height: 40, color: AppColors.darkNavy.withOpacity(0.2)),
-          _buildStatItem(Icons.download, '45,678', 'Downloads'),
-          Container(width: 1, height: 40, color: AppColors.darkNavy.withOpacity(0.2)),
-          _buildStatItem(Icons.people, '8,920', 'Learners'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(IconData icon, String value, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: AppColors.darkNavy, size: 24),
-        SizedBox(height: 8),
-        AppRichText.setTextPoppinsStyle(context, value, 18, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
-
-      
-        AppRichText.setTextPoppinsStyle(context, label, 11, AppColors.tealGreen, FontWeight.w900, 1, TextAlign.left, 0.0),
-      ],
-    );
-  }
-
   Widget _buildCategoriesSection() {
     return Container(
-      margin: EdgeInsets.only(top: 20, bottom: 16),
-      height: 45,
+      margin: EdgeInsets.only(top: 16, bottom: 16),
+      height: 42,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16),
@@ -322,17 +310,17 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
               });
             },
             child: Container(
-              margin: EdgeInsets.only(right: 12),
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              margin: EdgeInsets.only(right: 10),
+              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               decoration: BoxDecoration(
                 gradient: isSelected ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
                 color: isSelected ? null : AppColors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: isSelected ? AppColors.tealGreen.withOpacity(0.3) : AppColors.black.withOpacity(0.05),
-                    blurRadius: isSelected ? 15 : 8,
-                    offset: Offset(0, isSelected ? 5 : 2),
+                    color: isSelected ? AppColors.tealGreen.withOpacity(0.3) : AppColors.black.withOpacity(0.04),
+                    blurRadius: isSelected ? 12 : 6,
+                    offset: Offset(0, isSelected ? 4 : 2),
                   ),
                 ],
               ),
@@ -340,8 +328,8 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                 child: Text(
                   _categories[index],
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                     color: isSelected ? AppColors.white : AppColors.greyS700,
                   ),
                 ),
@@ -363,204 +351,239 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   }
 
   Widget _buildMaterialCard(Map<String, dynamic> material) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
-      ),
-      child: Column(
-        children: [
-          Container(
-            height: 140,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: _getGradientColors(material['subject']),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage()));
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
+        ),
+        child: Column(
+          children: [
+            // Header Image Section
+            Container(
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: _getGradientColors(material['subject']),
+                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -30,
-                  top: -30,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -30,
+                    top: -30,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
+                    ),
                   ),
-                ),
-                Center(
-                  child: Icon(
-                    material['type'] == 'PDF' ? Icons.picture_as_pdf : Icons.play_circle_filled,
-                    size: 60,
-                    color: AppColors.white.withOpacity(0.9),
+                  Center(
+                    child: Icon(
+                      material['type'] == 'PDF' ? Icons.picture_as_pdf : Icons.play_circle_filled,
+                      size: 50,
+                      color: AppColors.white.withOpacity(0.9),
+                    ),
                   ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Row(
-                    children: [
-                      if (material['isPremium'])
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Row(
+                      children: [
+                        if (material['isPremium'])
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppColors.white.withOpacity(0.95),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.workspace_premium, size: 12, color: AppColors.tealGreen),
+                                SizedBox(width: 4),
+                                Text(
+                                  'PRO',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.tealGreen,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        SizedBox(width: 8),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.workspace_premium, size: 12, color: AppColors.darkNavy),
-                              SizedBox(width: 4),
-                              AppRichText.setTextPoppinsStyle(context, 'PRO', 10, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
-
-                          
-                            ],
-                          ),
+                          padding: EdgeInsets.all(6),
+                          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.25), shape: BoxShape.circle),
+                          child: Icon(Icons.bookmark_outline, color: AppColors.white, size: 16),
                         ),
-                      SizedBox(width: 8),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 10,
+                    left: 10,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        material['type'],
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _getSubjectColor(material['subject']),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content Section
+            Padding(
+              padding: EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    material['title'],
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
                       Container(
-                        padding: EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), shape: BoxShape.circle),
-                        child: Icon(Icons.bookmark_outline, color: AppColors.white, size: 18),
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.tealGreen.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          material['subject'],
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.tealGreen),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(Icons.person_outline, size: 13, color: AppColors.greyS500),
+                      SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          material['author'],
+                          style: TextStyle(fontSize: 11, color: AppColors.greyS600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                Positioned(
-                  bottom: 12,
-                  left: 12,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: AppRichText.setTextPoppinsStyle(context,  material['type'], 11, _getSubjectColor(material['subject']), FontWeight.w900, 1, TextAlign.left, 0.0),
-
-                    
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Content Section
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppRichText.setTextPoppinsStyle(context, material['title'], 18, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.left, 0.0),
-
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.tealGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _buildInfoChip(
+                        Icons.insert_drive_file,
+                        material['type'] == 'PDF' ? '${material['pages']} pages' : material['duration'],
                       ),
-                      child: AppRichText.setTextPoppinsStyle(context, material['subject'], 11, AppColors.tealGreen, FontWeight.w700, 1, TextAlign.left, 0.0),
-
-                   
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.person_outline, size: 14, color: AppColors.greyS600),
-                    SizedBox(width: 4),
-                    AppRichText.setTextPoppinsStyle(context, material['author'], 12, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
-
-                  ],
-                ),
-                SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildInfoChip(
-                      Icons.insert_drive_file,
-                      material['type'] == 'PDF' ? '${material['pages']} pages' : material['duration'],
-                    ),
-                    SizedBox(width: 12),
-                    _buildInfoChip(Icons.file_download, material['size']),
-                    Spacer(),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGold.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.star, size: 14, color: AppColors.lightGoldS2),
-                          SizedBox(width: 4),
-                           AppRichText.setTextPoppinsStyle(context, '${material['rating']}', 12, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
-
-                     
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showPreviewDialog(material),
-                        icon: Icon(Icons.visibility_outlined, size: 18, color: AppColors.darkNavy),
-                        label:  AppRichText.setTextPoppinsStyle(context, 'Preview', 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: AppColors.darkNavy, width: 2),
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      SizedBox(width: 10),
+                      _buildInfoChip(Icons.file_download, material['size']),
+                      Spacer(),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.star, size: 12, color: Colors.amber[700]),
+                            SizedBox(width: 3),
+                            Text(
+                              '${material['rating']}',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.darkNavy),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _downloadMaterial(material),
-                        icon: Icon(Icons.download, size: 18, color: AppColors.white),
-                        label: AppRichText.setTextPoppinsStyle(context, 'Download', 13, AppColors.white, FontWeight.w700, 1, TextAlign.left, 0.0),
-                   
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  // Single Preview button
+                  SizedBox(
+                    width: double.infinity,
+                    child: WidgetExtension(
+                      ElevatedButton.icon(
+                        onPressed: () => _previewMaterial(material),
+                        icon: Icon(
+                          material['isPremium'] ? Icons.lock_outline : Icons.visibility_outlined,
+                          size: 16,
+                          color: AppColors.white,
+                        ),
+                        label: Text(
+                          material['isPremium'] ? 'Unlock to Preview' : 'Preview',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.white),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.transparent,
                           padding: EdgeInsets.zero,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
-
+                    ).decorated(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors:
+                              material['isPremium']
+                                  ? [AppColors.darkNavy, AppColors.tealGreen]
+                                  : [AppColors.tealGreen, AppColors.darkNavy],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    AppRichText.setTextPoppinsStyle(context, '${material['downloads']} downloads', 11, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
-                    AppRichText.setTextPoppinsStyle(context, 'Updated ${material['lastUpdated']}', 11, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${material['downloads']} downloads',
+                        style: TextStyle(fontSize: 10, color: AppColors.greyS500),
+                      ),
+                      Text(
+                        'Updated ${material['lastUpdated']}',
+                        style: TextStyle(fontSize: 10, color: AppColors.greyS500),
+                      ),
+                    ],
+                  ),
                 ],
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildInfoChip(IconData icon, String text) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppColors.tealGreen),
+        Icon(icon, size: 13, color: AppColors.tealGreen),
         SizedBox(width: 4),
-        AppRichText.setTextPoppinsStyle(context, text, 12, AppColors.greyS700, FontWeight.w500, 1, TextAlign.left, 0.0),
-
+        Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.greyS700)),
       ],
     );
   }
@@ -599,170 +622,168 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
     }
   }
 
-  void _showPreviewDialog(Map<String, dynamic> material) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: _getGradientColors(material['subject'])),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  material['type'] == 'PDF' ? Icons.picture_as_pdf : Icons.play_circle_filled,
-                  size: 48,
-                  color: AppColors.white,
-                ),
-              ),
-              SizedBox(height: 20),
-              AppRichText.setTextPoppinsStyle(context, material['title'], 20, AppColors.darkNavy, FontWeight.w800, 1, TextAlign.left, 0.0),
-
-              SizedBox(height: 12),
-              AppRichText.setTextPoppinsStyle(context, 'Preview feature coming soon!', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.center, 0.0),
-
-            
-              SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.transparent,
-                  padding: EdgeInsets.zero,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    alignment: Alignment.center,
-                    child: AppRichText.setTextPoppinsStyle(context, 'Close', 15, AppColors.white, FontWeight.w700, 1, TextAlign.center, 0.0),
- 
-                   
-                
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _downloadMaterial(Map<String, dynamic> material) {
+  void _previewMaterial(Map<String, dynamic> material) {
     if (material['isPremium']) {
       _showPremiumDialog();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.download, color: AppColors.white),
-              SizedBox(width: 12),
-              AppRichText.setTextPoppinsStyle(context, 'Downloading ${material['title']}...', 13, AppColors.black, FontWeight.normal, 1, TextAlign.center, 0.0),
-            ],
-          ),
-          backgroundColor: AppColors.tealGreen,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      _showPreviewDialog(material);
     }
   }
 
-  void _showPremiumDialog() {
+  void _showPreviewDialog(Map<String, dynamic> material) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          padding: EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.white, AppColors.greyS1],
-            ),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.workspace_premium, size: 48, color: AppColors.darkNavy),
-              ),
-              SizedBox(height: 20),
-              AppRichText.setTextPoppinsStyle(context, 'Premium Content', 22, AppColors.darkNavy, FontWeight.w900, 1, TextAlign.left, 0.0),
-
-             
-              SizedBox(height: 12),
-              AppRichText.setTextPoppinsStyle(context, 'Upgrade to Pro to access this material', 14, AppColors.greyS600, FontWeight.normal, 1, TextAlign.left, 0.0),
-
-            
-              SizedBox(height: 24),
-              Row(
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.greyS300),
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child:  AppRichText.setTextPoppinsStyle(context, 'Cancel', 15, AppColors.greyS700, FontWeight.w600, 1, TextAlign.left, 0.0),
-
-                    
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: _getGradientColors(material['subject'])),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      material['type'] == 'PDF' ? Icons.picture_as_pdf : Icons.play_circle_filled,
+                      size: 40,
+                      color: AppColors.white,
                     ),
                   ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.transparent,
-                        padding: EdgeInsets.zero,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  SizedBox(height: 16),
+                  Text(
+                    material['title'],
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Preview feature coming soon!',
+                    style: TextStyle(fontSize: 13, color: AppColors.greyS600),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.transparent,
+                      padding: EdgeInsets.zero,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Ink(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          alignment: Alignment.center,
-                          child: AppRichText.setTextPoppinsStyle(context, 'Upgrade', 15, AppColors.white, FontWeight.w700, 1, TextAlign.left, 0.0),
-                       
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Close',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.white),
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
+  }
+
+  void _showPremiumDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.workspace_premium, size: 40, color: AppColors.white),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Premium Content',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Upgrade to Pro to access this material',
+                    style: TextStyle(fontSize: 13, color: AppColors.greyS600),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: AppColors.greyS300),
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.greyS700),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.transparent,
+                            padding: EdgeInsets.zero,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Upgrade',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+}
+
+extension WidgetExtension on Widget {
+  Widget decorated({required BoxDecoration decoration}) {
+    return DecoratedBox(decoration: decoration, child: this);
   }
 }

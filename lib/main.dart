@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Taza Quiz',
+      title: 'TazaQuiz',
       debugShowCheckedModeBanner: false,
 
       home: SplashScreen(), //OtpLoginPage(), //LoginPage(),
