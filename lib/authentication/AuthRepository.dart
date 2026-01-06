@@ -55,4 +55,19 @@ class Authrepository {
   Future<Response> fetchStudyLevels() async {
     return await _dio.get(BaseUrl.get_study_levels);
   }
+
+  Future<Response> fetchStudyCategory(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.get_study_category, data: formData);
+  }
+
+  Future<Response> fetchStudySubjectCategory(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.get_study_subject_category, data: formData);
+  }
+
+  Future<Response> fetchStudyMaterialsDetails(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.get_study_materials_details, data: formData);
+  }
 }

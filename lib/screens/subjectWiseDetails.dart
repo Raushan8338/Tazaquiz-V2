@@ -5,125 +5,78 @@ import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/studyMaterial_modal.dart';
+import 'package:tazaquiznew/models/study_category_item.dart';
+import 'package:tazaquiznew/models/study_material_details_item.dart';
 import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class SubjectContentPage extends StatefulWidget {
+  final String id;
+  SubjectContentPage(this.id);
+
   @override
   _SubjectContentPageState createState() => _SubjectContentPageState();
 }
 
 class _SubjectContentPageState extends State<SubjectContentPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<String> _categories = ['All'];
-  String _selectedCategory = 'All';
   bool _isLoading = true;
-  final List<Map<String, dynamic>> _studyMaterials = [
-    {
-      'title': 'Advanced Calculus Guide',
-      'subject': 'Mathematics',
-      'type': 'PDF',
-      'size': '12.5 MB',
-      'pages': 245,
-      'downloads': 5420,
-      'rating': 4.8,
-      'isPremium': false,
-      'thumbnail': 'calculus',
-      'author': 'Dr. Sarah Johnson',
-      'lastUpdated': '2 days ago',
-    },
-    {
-      'title': 'Organic Chemistry Basics',
-      'subject': 'Chemistry',
-      'type': 'PDF',
-      'size': '8.3 MB',
-      'pages': 180,
-      'downloads': 3890,
-      'rating': 4.6,
-      'isPremium': true,
-      'thumbnail': 'chemistry',
-      'author': 'Prof. Mike Chen',
-      'lastUpdated': '1 week ago',
-    },
-    {
-      'title': 'Physics Formulas Cheat Sheet',
-      'subject': 'Physics',
-      'type': 'PDF',
-      'size': '2.1 MB',
-      'pages': 45,
-      'downloads': 8920,
-      'rating': 4.9,
-      'isPremium': false,
-      'thumbnail': 'physics',
-      'author': 'Dr. Alex Kumar',
-      'lastUpdated': '3 days ago',
-    },
-    {
-      'title': 'English Grammar Complete',
-      'subject': 'English',
-      'type': 'PDF',
-      'size': '15.7 MB',
-      'pages': 320,
-      'downloads': 6750,
-      'rating': 4.7,
-      'isPremium': false,
-      'thumbnail': 'english',
-      'author': 'Lisa Williams',
-      'lastUpdated': '5 days ago',
-    },
-    {
-      'title': 'Quantum Mechanics Introduction',
-      'subject': 'Physics',
-      'type': 'VIDEO',
-      'size': '450 MB',
-      'duration': '3h 45m',
-      'downloads': 2340,
-      'rating': 4.8,
-      'isPremium': true,
-      'thumbnail': 'quantum',
-      'author': 'Dr. James Wilson',
-      'lastUpdated': '1 day ago',
-    },
-    {
-      'title': 'Biology Notes - Class 12',
-      'subject': 'Science',
-      'type': 'PDF',
-      'size': '9.8 MB',
-      'pages': 210,
-      'downloads': 4560,
-      'rating': 4.5,
-      'isPremium': false,
-      'thumbnail': 'biology',
-      'author': 'Dr. Priya Sharma',
-      'lastUpdated': '4 days ago',
-    },
-  ];
+  String subjectName = '';
+
+  List<CategoryItem> _categoryItems = [];
+  int _selectedCategoryId = 0;
+
+  List<StudyMaterialDetailsItem> _studyMaterials_new = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     fetchStudyLevels();
+    fetchStudyCategory(0);
   }
 
   Future<void> fetchStudyLevels() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    Response response = await authRepository.fetchStudyLevels();
+    final data = {'categoryId': widget.id};
+    print(data);
+    Response response = await authRepository.fetchStudySubjectCategory(data);
+    print(response.data);
 
     if (response.statusCode == 200) {
-      final data = response.data;
+      final data = response.data; // 👈 JSON yahan hota hai
 
-      if (data['success'] == true && data['data'] != null) {
-        List list = data['data'];
+      final List list = data['data'] ?? [];
 
-        setState(() {
-          _categories = ['All']; // reset
-          _categories.addAll(list.map<String>((e) => e['name'].toString()).toList());
-          _isLoading = false;
-        });
+      setState(() {
+        _categoryItems = [
+          CategoryItem(category_id: 0, name: 'All'),
+          ...list.map((e) => CategoryItem.fromJson(e)).toList(),
+        ];
+        _isLoading = false;
+      });
+    }
+  }
 
-        print('Study Levels: $_categories');
-      }
+  Future<List<StudyMaterialDetailsItem>> fetchStudyCategory(int categoryId) async {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    final data = {
+      'subject_id': categoryId.toString(), // Example level ID
+    };
+
+    final responseFuture = await authRepository.fetchStudyMaterialsDetails(data);
+    print(responseFuture.statusCode);
+    if (responseFuture.statusCode == 200) {
+      final responseData = responseFuture.data;
+
+      final List list = responseData['data'] ?? [];
+
+      _studyMaterials_new = list.map((e) => StudyMaterialDetailsItem.fromJson(e)).toList();
+
+      return _studyMaterials_new;
+    } else {
+      return []; // return empty list if failed
     }
   }
 
@@ -131,11 +84,6 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  List<Map<String, dynamic>> get _filteredMaterials {
-    if (_selectedCategory == 'All') return _studyMaterials;
-    return _studyMaterials.where((material) => material['subject'] == _selectedCategory).toList();
   }
 
   @override
@@ -211,42 +159,6 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      height: 50,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 10, offset: Offset(0, 3))],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, color: AppColors.tealGreen, size: 22),
-          SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search materials...',
-                hintStyle: TextStyle(color: AppColors.greyS400, fontSize: 14, fontFamily: "Poppins"),
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(Icons.tune, color: AppColors.white, size: 18),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCategoriesSection() {
     return Container(
       margin: EdgeInsets.only(top: 16, bottom: 16),
@@ -254,13 +166,26 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categories.length,
+        itemCount: _categoryItems.length,
         itemBuilder: (context, index) {
-          bool isSelected = _selectedCategory == _categories[index];
+          final category = _categoryItems[index];
+          print(category.name);
+
+          bool isSelected = _selectedCategoryId == category.category_id;
           return GestureDetector(
-            onTap: () {
+            onTap: () async {
               setState(() {
-                _selectedCategory = _categories[index];
+                _selectedCategoryId = category.category_id;
+                _isLoading = true;
+              });
+
+              final data = await fetchStudyCategory(category.category_id);
+              if (!mounted) return;
+
+              setState(() {
+                _studyMaterials_new = data;
+                subjectName = category.name;
+                _isLoading = false;
               });
             },
             child: Container(
@@ -280,7 +205,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
               ),
               child: Center(
                 child: Text(
-                  _categories[index],
+                  category.name,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -296,18 +221,26 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
   }
 
   Widget _buildMaterialsList() {
+    if (_isLoading) {
+      return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_studyMaterials_new.isEmpty) {
+      return const SliverToBoxAdapter(child: Center(child: Text('No study material found')));
+    }
+
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        final material = _filteredMaterials[index];
+        final material = _studyMaterials_new[index];
         return _buildMaterialCard(material);
-      }, childCount: _filteredMaterials.length),
+      }, childCount: _studyMaterials_new.length),
     );
   }
 
-  Widget _buildMaterialCard(Map<String, dynamic> material) {
+  Widget _buildMaterialCard(StudyMaterialDetailsItem material) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage()));
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage()));
       },
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -325,7 +258,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: _getGradientColors(material['subject']),
+                  colors: _getGradientColors(subjectName),
                 ),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
@@ -342,7 +275,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   ),
                   Center(
                     child: Icon(
-                      material['type'] == 'PDF' ? Icons.picture_as_pdf : Icons.play_circle_filled,
+                      material.contentType == 'PDF' ? Icons.picture_as_pdf : Icons.play_circle_filled,
                       size: 50,
                       color: AppColors.white.withOpacity(0.9),
                     ),
@@ -352,7 +285,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                     right: 10,
                     child: Row(
                       children: [
-                        if (material['isPremium'])
+                        if (material.isPaid)
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
@@ -393,11 +326,11 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        material['type'],
+                        material.contentType,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: _getSubjectColor(material['subject']),
+                          color: _getSubjectColor(subjectName),
                         ),
                       ),
                     ),
@@ -413,7 +346,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    material['title'],
+                    material.title,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -428,7 +361,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          material['subject'],
+                          subjectName,
                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.tealGreen),
                         ),
                       ),
@@ -437,7 +370,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                       SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          material['author'],
+                          material.author,
                           style: TextStyle(fontSize: 11, color: AppColors.greyS600),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -447,12 +380,9 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   SizedBox(height: 10),
                   Row(
                     children: [
-                      _buildInfoChip(
-                        Icons.insert_drive_file,
-                        material['type'] == 'PDF' ? '${material['pages']} pages' : material['duration'],
-                      ),
+                      _buildInfoChip(Icons.insert_drive_file, material.contentType == 'PDF' ? '2 pages' : '30'),
                       SizedBox(width: 10),
-                      _buildInfoChip(Icons.file_download, material['size']),
+                      _buildInfoChip(Icons.file_download, material.size),
                       Spacer(),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -465,7 +395,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                             Icon(Icons.star, size: 12, color: Colors.amber[700]),
                             SizedBox(width: 3),
                             Text(
-                              '${material['rating']}',
+                              '${material.rating}',
                               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.darkNavy),
                             ),
                           ],
@@ -478,14 +408,14 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => _previewMaterial(material),
+                      onPressed: () {},
                       icon: Icon(
-                        material['isPremium'] ? Icons.lock_outline : Icons.visibility_outlined,
+                        material.isPaid ? Icons.lock_outline : Icons.visibility_outlined,
                         size: 16,
                         color: AppColors.white,
                       ),
                       label: Text(
-                        material['isPremium'] ? 'Unlock to Preview' : 'Preview',
+                        material.isPaid ? 'Unlock to Preview' : 'Preview',
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.white),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -498,7 +428,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors:
-                              material['isPremium']
+                              material.isPaid
                                   ? [AppColors.darkNavy, AppColors.tealGreen]
                                   : [AppColors.tealGreen, AppColors.darkNavy],
                         ),
@@ -510,14 +440,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${material['downloads']} downloads',
-                        style: TextStyle(fontSize: 10, color: AppColors.greyS500),
-                      ),
-                      Text(
-                        'Updated ${material['lastUpdated']}',
-                        style: TextStyle(fontSize: 10, color: AppColors.greyS500),
-                      ),
+                      Text('Updated ${material.createdAt}', style: TextStyle(fontSize: 10, color: AppColors.greyS500)),
                     ],
                   ),
                 ],
