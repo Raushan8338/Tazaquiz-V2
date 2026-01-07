@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
+import 'package:tazaquiznew/screens/paymentHistory.dart';
 import 'package:tazaquiznew/screens/splash.dart';
+import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 import 'package:tazaquiznew/testpage.dart' hide ContactUsPage;
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
@@ -346,17 +349,32 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildActionButton('My Courses', Icons.play_circle_outline, AppColors.tealGreen, () {})),
+              Expanded(child: _buildActionButton('My Courses', Icons.play_circle_outline, AppColors.oxfordBlue, () {})),
               SizedBox(width: 12),
-              Expanded(child: _buildActionButton('Test History', Icons.history, AppColors.oxfordBlue, () {})),
+              Expanded(
+                child: _buildActionButton('Quiz History', Icons.history, AppColors.tealGreen, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => QuizHistoryPage()));
+                }),
+              ),
             ],
           ),
           SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _buildActionButton('Study Materials', Icons.book, AppColors.orange, () {})),
+              Expanded(
+                child: _buildActionButton('Study Materials', Icons.book, AppColors.orange, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()),
+                  );
+                }),
+              ),
               SizedBox(width: 12),
-              Expanded(child: _buildActionButton('Downloads', Icons.download_outlined, AppColors.darkNavy, () {})),
+              Expanded(
+                child: _buildActionButton('All Payments', Icons.payment, AppColors.darkNavy, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentHistoryPage()));
+                }),
+              ),
             ],
           ),
         ],

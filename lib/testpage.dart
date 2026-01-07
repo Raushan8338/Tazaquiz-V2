@@ -7,8 +7,7 @@ class ContactUsPage extends StatefulWidget {
   _ContactUsPageState createState() => _ContactUsPageState();
 }
 
-class _ContactUsPageState extends State<ContactUsPage>
-    with SingleTickerProviderStateMixin {
+class _ContactUsPageState extends State<ContactUsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   //hyggtt
 
@@ -69,26 +68,10 @@ class _ContactUsPageState extends State<ContactUsPage>
   ];
 
   final List<Map<String, dynamic>> _socialLinks = [
-    {
-      'icon': Icons.facebook,
-      'name': 'Facebook',
-      'color': Color(0xFF1877F2),
-    },
-    {
-      'icon': Icons.discord,
-      'name': 'Twitter',
-      'color': Color(0xFF1DA1F2),
-    },
-    {
-      'icon': Icons.camera_alt,
-      'name': 'Instagram',
-      'color': Color(0xFFE4405F),
-    },
-    {
-      'icon': Icons.play_arrow,
-      'name': 'YouTube',
-      'color': Color(0xFFFF0000),
-    },
+    {'icon': Icons.facebook, 'name': 'Facebook', 'color': Color(0xFF1877F2)},
+    {'icon': Icons.discord, 'name': 'Twitter', 'color': Color(0xFF1DA1F2)},
+    {'icon': Icons.camera_alt, 'name': 'Instagram', 'color': Color(0xFFE4405F)},
+    {'icon': Icons.play_arrow, 'name': 'YouTube', 'color': Color(0xFFFF0000)},
   ];
 
   final List<Map<String, dynamic>> _faqs = [
@@ -134,23 +117,9 @@ class _ContactUsPageState extends State<ContactUsPage>
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                _buildHeaderSection(),
-                _buildTabBar(),
-              ],
-            ),
-          ),
+          SliverToBoxAdapter(child: Column(children: [_buildHeaderSection(), _buildTabBar()])),
           SliverFillRemaining(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildRaiseConcernTab(),
-              
-                _buildFAQTab(),
-              ],
-            ),
+            child: TabBarView(controller: _tabController, children: [_buildRaiseConcernTab(), _buildFAQTab()]),
           ),
         ],
       ),
@@ -208,10 +177,7 @@ class _ContactUsPageState extends State<ContactUsPage>
       leading: IconButton(
         icon: Container(
           padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(10),
-          ),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
           child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
@@ -230,27 +196,14 @@ class _ContactUsPageState extends State<ContactUsPage>
           colors: [AppColors.tealGreen, AppColors.darkNavy],
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.tealGreen.withOpacity(0.3),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 10))],
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              Icons.support_agent,
-              color: AppColors.lightGold,
-              size: 40,
-            ),
+            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
+            child: Icon(Icons.support_agent, color: AppColors.lightGold, size: 40),
           ),
           SizedBox(width: 20),
           Expanded(
@@ -293,39 +246,19 @@ class _ContactUsPageState extends State<ContactUsPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
       ),
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.tealGreen, AppColors.darkNavy],
-          ),
+          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
           borderRadius: BorderRadius.circular(10),
         ),
         labelColor: AppColors.white,
         unselectedLabelColor: AppColors.darkNavy,
-        labelStyle: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-        tabs: [
-          Tab(text: 'Raise Concern'),
-     
-          Tab(text: 'FAQs'),
-        ],
+        labelStyle: TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: TextStyle(fontFamily: 'Poppins', fontSize: 12, fontWeight: FontWeight.w600),
+        tabs: [Tab(text: 'Raise Concern'), Tab(text: 'FAQs')],
       ),
     );
   }
@@ -367,12 +300,7 @@ class _ContactUsPageState extends State<ContactUsPage>
 
             SizedBox(height: 24),
 
-            _buildInputField(
-              'Full Name',
-              _nameController,
-              Icons.person,
-              'Enter your full name',
-            ),
+            _buildInputField('Full Name', _nameController, Icons.person, 'Enter your full name'),
             SizedBox(height: 16),
 
             _buildInputField(
@@ -411,34 +339,29 @@ class _ContactUsPageState extends State<ContactUsPage>
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedConcernType,
                   isExpanded: true,
                   icon: Icon(Icons.arrow_drop_down, color: AppColors.tealGreen),
-                  items: _concernTypes.map((String type) {
-                    return DropdownMenuItem<String>(
-                      value: type,
-                      child: AppRichText.setTextPoppinsStyle(
-                        context,
-                        type,
-                        14,
-                        AppColors.darkNavy,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                    );
-                  }).toList(),
+                  items:
+                      _concernTypes.map((String type) {
+                        return DropdownMenuItem<String>(
+                          value: type,
+                          child: AppRichText.setTextPoppinsStyle(
+                            context,
+                            type,
+                            14,
+                            AppColors.darkNavy,
+                            FontWeight.w600,
+                            1,
+                            TextAlign.left,
+                            0.0,
+                          ),
+                        );
+                      }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
                       _selectedConcernType = newValue!;
@@ -468,53 +391,49 @@ class _ContactUsPageState extends State<ContactUsPage>
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedPriority,
                   isExpanded: true,
                   icon: Icon(Icons.arrow_drop_down, color: AppColors.tealGreen),
-                  items: _priorities.map((String priority) {
-                    return DropdownMenuItem<String>(
-                      value: priority,
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: priority == 'Urgent'
-                                  ? Colors.red
-                                  : priority == 'High'
-                                      ? Colors.orange
-                                      : priority == 'Medium'
+                  items:
+                      _priorities.map((String priority) {
+                        return DropdownMenuItem<String>(
+                          value: priority,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color:
+                                      priority == 'Urgent'
+                                          ? Colors.red
+                                          : priority == 'High'
+                                          ? Colors.orange
+                                          : priority == 'Medium'
                                           ? Colors.blue
                                           : Colors.green,
-                            ),
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              AppRichText.setTextPoppinsStyle(
+                                context,
+                                priority,
+                                14,
+                                AppColors.darkNavy,
+                                FontWeight.w600,
+                                1,
+                                TextAlign.left,
+                                0.0,
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 8),
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            priority,
-                            14,
-                            AppColors.darkNavy,
-                            FontWeight.w600,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                        );
+                      }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
                       _selectedPriority = newValue!;
@@ -526,12 +445,7 @@ class _ContactUsPageState extends State<ContactUsPage>
 
             SizedBox(height: 16),
 
-            _buildInputField(
-              'Subject',
-              _subjectController,
-              Icons.subject,
-              'Brief description of your concern',
-            ),
+            _buildInputField('Subject', _subjectController, Icons.subject, 'Brief description of your concern'),
             SizedBox(height: 16),
 
             // Message Field
@@ -551,29 +465,15 @@ class _ContactUsPageState extends State<ContactUsPage>
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
               ),
               child: TextFormField(
                 controller: _messageController,
                 maxLines: 6,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 14,
-                  color: AppColors.darkNavy,
-                ),
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 14, color: AppColors.darkNavy),
                 decoration: InputDecoration(
                   hintText: 'Describe your concern in detail...',
-                  hintStyle: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 13,
-                    color: Colors.grey[400],
-                  ),
+                  hintStyle: TextStyle(fontFamily: 'Poppins', fontSize: 13, color: Colors.grey[400]),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16),
                 ),
@@ -595,16 +495,12 @@ class _ContactUsPageState extends State<ContactUsPage>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: EdgeInsets.zero,
                 ),
                 child: Ink(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.tealGreen, AppColors.darkNavy],
-                    ),
+                    gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Container(
@@ -664,29 +560,15 @@ class _ContactUsPageState extends State<ContactUsPage>
             color: AppColors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: Offset(0, 2),
-              ),
-            ],
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
           ),
           child: TextFormField(
             controller: controller,
             keyboardType: keyboardType,
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 14,
-              color: AppColors.darkNavy,
-            ),
+            style: TextStyle(fontFamily: 'Poppins', fontSize: 14, color: AppColors.darkNavy),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 13,
-                color: Colors.grey[400],
-              ),
+              hintStyle: TextStyle(fontFamily: 'Poppins', fontSize: 13, color: Colors.grey[400]),
               prefixIcon: Icon(icon, color: AppColors.tealGreen, size: 20),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -958,13 +840,7 @@ class _ContactUsPageState extends State<ContactUsPage>
               decoration: BoxDecoration(
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))],
               ),
               child: Theme(
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1018,11 +894,7 @@ class _ContactUsPageState extends State<ContactUsPage>
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
-                BoxShadow(
-                  color: AppColors.tealGreen.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: Offset(0, 10),
-                ),
+                BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 10)),
               ],
             ),
             child: Column(
@@ -1060,9 +932,7 @@ class _ContactUsPageState extends State<ContactUsPage>
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1096,94 +966,89 @@ class _ContactUsPageState extends State<ContactUsPage>
   void _showSuccessDialog() {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.green, Colors.green.shade700],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.check, color: AppColors.white, size: 48),
-              ),
-              SizedBox(height: 20),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                'Concern Submitted!',
-                20,
-                AppColors.darkNavy,
-                FontWeight.w900,
-                1,
-                TextAlign.center,
-                1.2,
-              ),
-              SizedBox(height: 12),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                'Your concern has been successfully submitted. We\'ll get back to you within 2-4 hours.',
-                13,
-                Colors.grey[700]!,
-                FontWeight.w500,
-                5,
-                TextAlign.center,
-                1.5,
-              ),
-              SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _raiseFormKey.currentState!.reset();
-                    _nameController.clear();
-                    _emailController.clear();
-                    _phoneController.clear();
-                    _subjectController.clear();
-                    _messageController.clear();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                  child: Ink(
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              padding: EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.tealGreen, AppColors.darkNavy],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(colors: [Colors.green, Colors.green.shade700]),
+                      shape: BoxShape.circle,
                     ),
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Got It!',
-                        14,
-                        AppColors.white,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.center,
-                        0.0,
+                    child: Icon(Icons.check, color: AppColors.white, size: 48),
+                  ),
+                  SizedBox(height: 20),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Concern Submitted!',
+                    20,
+                    AppColors.darkNavy,
+                    FontWeight.w900,
+                    1,
+                    TextAlign.center,
+                    1.2,
+                  ),
+                  SizedBox(height: 12),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Your concern has been successfully submitted. We\'ll get back to you within 2-4 hours.',
+                    13,
+                    Colors.grey[700]!,
+                    FontWeight.w500,
+                    5,
+                    TextAlign.center,
+                    1.5,
+                  ),
+                  SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _raiseFormKey.currentState!.reset();
+                        _nameController.clear();
+                        _emailController.clear();
+                        _phoneController.clear();
+                        _subjectController.clear();
+                        _messageController.clear();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: AppRichText.setTextPoppinsStyle(
+                            context,
+                            'Got It!',
+                            14,
+                            AppColors.white,
+                            FontWeight.w700,
+                            1,
+                            TextAlign.center,
+                            0.0,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 }

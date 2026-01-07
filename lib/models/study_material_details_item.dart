@@ -13,7 +13,7 @@ class StudyMaterialDetailsItem {
   final DateTime createdAt;
   final bool isPublished;
   final String rating;
-  final String size;
+  final String thumbnail;
   final String author;
 
   StudyMaterialDetailsItem({
@@ -31,7 +31,7 @@ class StudyMaterialDetailsItem {
     required this.createdAt,
     required this.isPublished,
     this.rating = '4.5',
-    this.size = '2 MB',
+    required this.thumbnail,
     this.author = 'Raushan Kumar',
   });
 
@@ -51,7 +51,7 @@ class StudyMaterialDetailsItem {
       createdAt: DateTime.tryParse(json['created_at'].toString()) ?? DateTime.fromMillisecondsSinceEpoch(0),
       isPublished: json['is_published'] == 1 || json['is_published'] == true,
       rating: json['rating'] ?? '4.5',
-      size: json['size'] ?? '2 MB',
+      thumbnail: json['thumbnail'] ?? '',
       author: json['author'] ?? 'Raushan Kumar',
     );
   }
@@ -72,7 +72,7 @@ class StudyMaterialDetailsItem {
       'created_at': createdAt.toIso8601String(),
       'is_published': isPublished ? 1 : 0,
       'rating': rating,
-      'size': size,
+      'thumbnail': thumbnail,
       'author': author,
     };
   }

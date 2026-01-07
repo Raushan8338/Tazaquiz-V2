@@ -5,6 +5,7 @@ class StudyMaterialItem {
   final String? boardIcon;
   final String description;
   final int category_id;
+  final String DateTime;
 
   StudyMaterialItem({
     required this.id,
@@ -12,6 +13,7 @@ class StudyMaterialItem {
     this.boardIcon,
     required this.description,
     required this.category_id,
+    required this.DateTime,
   });
 
   factory StudyMaterialItem.fromJson(Map<String, dynamic> json) {
@@ -21,6 +23,7 @@ class StudyMaterialItem {
       boardIcon: json['boardIcon']?.isEmpty ?? true ? null : json['boardIcon'],
       description: json['description'] ?? '',
       category_id: json['category_id'] ?? 0,
+      DateTime: json['DateTime'] ?? '',
     );
   }
 

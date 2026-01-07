@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/seriesWiseQuizList.dart';
+import 'package:tazaquiznew/utils/richText.dart';
 
 class QuizListScreen extends StatefulWidget {
   @override
@@ -10,7 +11,7 @@ class QuizListScreen extends StatefulWidget {
 class _QuizListScreenState extends State<QuizListScreen> {
   String _selectedCategory = 'All';
   bool _isGridView = true;
-
+  String _selectedFilter = 'live';
   final List<String> _categories = ['All', 'Mathematics', 'Science', 'English', 'Physics', 'History'];
 
   final List<Map<String, dynamic>> _quizzes = [
@@ -93,6 +94,21 @@ class _QuizListScreenState extends State<QuizListScreen> {
     return _quizzes.where((quiz) => quiz['category'] == _selectedCategory).toList();
   }
 
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildFilterBottomSheet(),
+    );
+  }
+
+  void _applyFilter(String filter) {
+    setState(() {
+      _selectedFilter = filter;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,7 +126,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
 
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 160,
+      expandedHeight: 100,
       pinned: true,
       backgroundColor: AppColors.darkNavy,
       automaticallyImplyLeading: false,
@@ -148,67 +164,32 @@ class _QuizListScreenState extends State<QuizListScreen> {
                               color: AppColors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Icon(Icons.quiz, color: AppColors.white, size: 28),
+                            child: Icon(Icons.quiz, color: AppColors.white, size: 22),
                           ),
                           SizedBox(width: 14),
                           Expanded(
                             child: Text(
                               'Available Quizzes',
                               style: TextStyle(
-                                fontSize: 22,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.white,
                                 fontFamily: 'Poppins',
                               ),
                             ),
                           ),
+                          IconButton(
+                            icon: Container(
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.filter_list, color: AppColors.white, size: 22),
+                            ),
+                            onPressed: _showFilterBottomSheet,
+                          ),
                         ],
-                      ),
-                      SizedBox(height: 20),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(color: AppColors.black.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 3)),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: AppColors.tealGreen, size: 22),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                decoration: InputDecoration(
-                                  hintText: 'Search quizzes...',
-                                  hintStyle: TextStyle(color: AppColors.greyS400, fontSize: 14, fontFamily: "Poppins"),
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isGridView = !_isGridView;
-                                });
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  _isGridView ? Icons.list : Icons.grid_view,
-                                  color: AppColors.white,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),
@@ -512,6 +493,267 @@ class _QuizListScreenState extends State<QuizListScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterBottomSheet() {
+    String tempSelectedFilter = _selectedFilter;
+
+    return StatefulBuilder(
+      builder: (context, setModalState) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: EdgeInsets.only(top: 12),
+                width: 50,
+                height: 5,
+                decoration: BoxDecoration(color: AppColors.greyS300, borderRadius: BorderRadius.circular(10)),
+              ),
+
+              // Header
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.filter_list, color: AppColors.white, size: 24),
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: AppRichText.setTextPoppinsStyle(
+                        context,
+                        'Filter Quizzes',
+                        20,
+                        AppColors.darkNavy,
+                        FontWeight.w900,
+                        1,
+                        TextAlign.left,
+                        0.0,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: AppColors.greyS600),
+                    ),
+                  ],
+                ),
+              ),
+
+              Container(height: 1, color: AppColors.greyS200),
+
+              // Filter options
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppRichText.setTextPoppinsStyle(
+                      context,
+                      'Select Quiz Type',
+                      16,
+                      AppColors.darkNavy,
+                      FontWeight.w800,
+                      1,
+                      TextAlign.left,
+                      0.0,
+                    ),
+                    SizedBox(height: 8),
+                    AppRichText.setTextPoppinsStyle(
+                      context,
+                      'Choose one option to filter quizzes',
+                      13,
+                      AppColors.greyS600,
+                      FontWeight.w500,
+                      1,
+                      TextAlign.left,
+                      0.0,
+                    ),
+                    SizedBox(height: 20),
+
+                    // Live Quiz Option
+                    _buildFilterOption(
+                      context: context,
+                      icon: Icons.radio_button_checked,
+                      title: 'Live Quiz',
+                      subtitle: 'Show quizzes that are currently live',
+                      isSelected: tempSelectedFilter == 'live',
+                      activeColor: AppColors.red,
+                      onTap: () {
+                        setModalState(() {
+                          tempSelectedFilter = 'live';
+                        });
+                      },
+                    ),
+
+                    SizedBox(height: 12),
+
+                    // Upcoming Quiz Option
+                    _buildFilterOption(
+                      context: context,
+                      icon: Icons.schedule,
+                      title: 'Upcoming Quiz',
+                      subtitle: 'Show quizzes scheduled for later',
+                      isSelected: tempSelectedFilter == 'upcoming',
+                      activeColor: AppColors.tealGreen,
+                      onTap: () {
+                        setModalState(() {
+                          tempSelectedFilter = 'upcoming';
+                        });
+                      },
+                    ),
+
+                    SizedBox(height: 24),
+
+                    // Apply button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _applyFilter(tempSelectedFilter);
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.transparent,
+                          shadowColor: AppColors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            alignment: Alignment.center,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle, color: AppColors.white, size: 22),
+                                SizedBox(width: 10),
+                                AppRichText.setTextPoppinsStyle(
+                                  context,
+                                  'Apply Filter',
+                                  16,
+                                  AppColors.white,
+                                  FontWeight.w700,
+                                  1,
+                                  TextAlign.center,
+                                  0.0,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: MediaQuery.of(context).padding.bottom),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterOption({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient:
+              isSelected
+                  ? LinearGradient(colors: [activeColor.withOpacity(0.15), activeColor.withOpacity(0.08)])
+                  : null,
+          color: isSelected ? null : AppColors.greyS1,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isSelected ? activeColor : AppColors.greyS300!, width: isSelected ? 2.5 : 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor.withOpacity(0.2) : AppColors.greyS200,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: isSelected ? activeColor : AppColors.greyS600, size: 26),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    title,
+                    15,
+                    AppColors.darkNavy,
+                    FontWeight.w700,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
+                  SizedBox(height: 4),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    subtitle,
+                    12,
+                    AppColors.greyS600,
+                    FontWeight.w500,
+                    2,
+                    TextAlign.left,
+                    0.0,
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: isSelected ? activeColor : AppColors.greyS400, width: 2.5),
+              ),
+              child:
+                  isSelected
+                      ? Center(
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: activeColor),
+                        ),
+                      )
+                      : null,
+            ),
+          ],
+        ),
       ),
     );
   }

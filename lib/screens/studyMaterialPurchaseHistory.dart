@@ -15,15 +15,15 @@ import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class SubjectContentPage extends StatefulWidget {
-  final String id;
-  SubjectContentPage(this.id);
+class StudyMaterialPurchaseHistoryScreen extends StatefulWidget {
+  StudyMaterialPurchaseHistoryScreen();
 
   @override
-  _SubjectContentPageState createState() => _SubjectContentPageState();
+  _StudyMaterialPurchaseHistoryScreenState createState() => _StudyMaterialPurchaseHistoryScreenState();
 }
 
-class _SubjectContentPageState extends State<SubjectContentPage> with SingleTickerProviderStateMixin {
+class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurchaseHistoryScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
   String subjectName = '';
@@ -43,7 +43,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
 
   Future<void> fetchStudyLevels() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    final data = {'categoryId': widget.id};
+    final data = {'categoryId': "1"};
     print(data);
     Response response = await authRepository.fetchStudySubjectCategory(data);
     print(response.data);
@@ -95,7 +95,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
-          SliverToBoxAdapter(child: _buildCategoriesSection()),
+          // SliverToBoxAdapter(child: _buildCategoriesSection()),
           _buildMaterialsList(),
           SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
@@ -134,15 +134,15 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                             color: AppColors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Icon(Icons.arrow_back, color: AppColors.white, size: 18),
+                          child: Icon(Icons.arrow_back, color: AppColors.white, size: 16),
                         ),
                       ),
                       SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          'Study Materials',
+                          'Purchased Study Materials',
                           style: TextStyle(
-                            fontSize: 17,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.white,
                             fontFamily: 'Poppins',
@@ -160,66 +160,66 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
     );
   }
 
-  Widget _buildCategoriesSection() {
-    return Container(
-      margin: EdgeInsets.only(top: 16, bottom: 16),
-      height: 42,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categoryItems.length,
-        itemBuilder: (context, index) {
-          final category = _categoryItems[index];
-          print(category.name);
+  // Widget _buildCategoriesSection() {
+  //   return Container(
+  //     margin: EdgeInsets.only(top: 16, bottom: 16),
+  //     height: 42,
+  //     child: ListView.builder(
+  //       scrollDirection: Axis.horizontal,
+  //       padding: EdgeInsets.symmetric(horizontal: 16),
+  //       itemCount: _categoryItems.length,
+  //       itemBuilder: (context, index) {
+  //         final category = _categoryItems[index];
+  //         print(category.name);
 
-          bool isSelected = _selectedCategoryId == category.category_id;
-          return GestureDetector(
-            onTap: () async {
-              setState(() {
-                _selectedCategoryId = category.category_id;
-                _isLoading = true;
-              });
+  //         bool isSelected = _selectedCategoryId == category.category_id;
+  //         return GestureDetector(
+  //           onTap: () async {
+  //             setState(() {
+  //               _selectedCategoryId = category.category_id;
+  //               _isLoading = true;
+  //             });
 
-              final data = await fetchStudyCategory(category.category_id);
-              if (!mounted) return;
+  //             final data = await fetchStudyCategory(category.category_id);
+  //             if (!mounted) return;
 
-              setState(() {
-                _studyMaterials_new = data;
-                subjectName = category.name;
-                _isLoading = false;
-              });
-            },
-            child: Container(
-              margin: EdgeInsets.only(right: 10),
-              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: isSelected ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
-                color: isSelected ? null : AppColors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: isSelected ? AppColors.tealGreen.withOpacity(0.3) : AppColors.black.withOpacity(0.04),
-                    blurRadius: isSelected ? 12 : 6,
-                    offset: Offset(0, isSelected ? 4 : 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  category.name,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? AppColors.white : AppColors.greyS700,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  //             setState(() {
+  //               _studyMaterials_new = data;
+  //               subjectName = category.name;
+  //               _isLoading = false;
+  //             });
+  //           },
+  //           child: Container(
+  //             margin: EdgeInsets.only(right: 10),
+  //             padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+  //             decoration: BoxDecoration(
+  //               gradient: isSelected ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
+  //               color: isSelected ? null : AppColors.white,
+  //               borderRadius: BorderRadius.circular(12),
+  //               boxShadow: [
+  //                 BoxShadow(
+  //                   color: isSelected ? AppColors.tealGreen.withOpacity(0.3) : AppColors.black.withOpacity(0.04),
+  //                   blurRadius: isSelected ? 12 : 6,
+  //                   offset: Offset(0, isSelected ? 4 : 2),
+  //                 ),
+  //               ],
+  //             ),
+  //             child: Center(
+  //               child: Text(
+  //                 category.name,
+  //                 style: TextStyle(
+  //                   fontSize: 13,
+  //                   fontWeight: FontWeight.w600,
+  //                   color: isSelected ? AppColors.white : AppColors.greyS700,
+  //                 ),
+  //               ),
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
 
   Widget _buildMaterialsList() {
     if (_isLoading) {
@@ -244,7 +244,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
 
     return GestureDetector(
       onTap: () {
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage()));
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()));
       },
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -508,159 +508,58 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   //   ],
                   // ),
                   SizedBox(height: 14),
-
-                  // Action Buttons - Enhanced for Paid Content
-                  if (material.isPaid)
-                    Row(
-                      children: [
-                        // Price Display
-                        Expanded(
-                          flex: 2,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.tealGreen.withOpacity(0.15), AppColors.tealGreen.withOpacity(0.08)],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1.5),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (material.contentType != 'Video') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '₹',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.tealGreen,
-                                        height: 1.2,
-                                      ),
-                                    ),
-                                    SizedBox(width: 2),
-                                    Text(
-                                      '${material.price ?? '0.0'}',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.darkNavy,
-                                        height: 1.1,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                          );
+                        } else {
+                          print(material.contentType);
+                          launchUrl(Uri.parse(material.filePath));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.transparent,
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
+                          SizedBox(width: 8),
+                          Text(
+                            'Start Learning',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
+                        ],
+                      ),
+                    ).decorated(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppColors.darkNavy, AppColors.tealGreen],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        SizedBox(width: 10),
-                        // Enroll Now Button
-                        Expanded(
-                          flex: 3,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => CheckoutPage()));
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.transparent,
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.shopping_bag_rounded, size: 18, color: AppColors.white),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Enroll Now',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.white,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ).decorated(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.tealGreen, AppColors.darkNavy],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.tealGreen.withOpacity(0.4),
-                                  blurRadius: 12,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    // Free Preview Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (material.contentType != 'Video') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title),
-                              ),
-                            );
-                          } else {
-                            print(material.contentType);
-                            launchUrl(Uri.parse(material.filePath));
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.transparent,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
-                            SizedBox(width: 8),
-                            Text(
-                              'Start Learning',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ).decorated(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.darkNavy, AppColors.tealGreen],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(color: AppColors.darkNavy.withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4)),
-                          ],
-                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(color: AppColors.darkNavy.withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4)),
+                        ],
                       ),
                     ),
+                  ),
                   SizedBox(height: 10),
 
                   // Updated date
