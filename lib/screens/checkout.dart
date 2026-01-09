@@ -1,11 +1,32 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfupi.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfupipayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/checkout_model.dart';
+import 'package:tazaquiznew/models/coupon_apply_model.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/screens/payment_response.dart';
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 
 class CheckoutPage extends StatefulWidget {
+  final String contentType;
+  final String contentId;
+
+  const CheckoutPage({Key? key, required this.contentType, required this.contentId}) : super(key: key);
+
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
 }
@@ -13,22 +34,131 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   bool _isProcessing = false;
   bool _showCouponField = false;
+  bool _isLoadingCheckout = true;
+  bool _isApplyingCoupon = false;
 
-  final _formKey = GlobalKey<FormState>();
+  CheckoutModel? checkoutData;
+  CheckoutModel? originalCheckoutData;
+  CFEnvironment environment = CFEnvironment.PRODUCTION;
+
+  // Store coupon details separately
+  String? appliedCouponCode;
+  double? couponDiscount;
+
   final TextEditingController _couponController = TextEditingController();
 
-  // Product/Course Data
-  final Map<String, dynamic> _orderData = {
-    'itemName': 'Complete Mathematics Course',
-    'itemType': 'Premium Course',
-    'originalPrice': 4999,
-    'discount': 50,
-    'discountedPrice': 2499,
-    'couponDiscount': 0,
-    'tax': 449,
-    'totalAmount': 2948,
-    'features': ['45 Video Lessons', 'Lifetime Access', 'Certificate', 'Expert Support'],
-  };
+  UserModel? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
+  }
+
+  void _initialize() async {
+    await _getUserData();
+    await fetchCheckoutDetails();
+  }
+
+  Future<void> _getUserData() async {
+    _user = await SessionManager.getUser();
+    setState(() {});
+  }
+
+  Future<void> fetchCheckoutDetails() async {
+    try {
+      setState(() => _isLoadingCheckout = true);
+
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {'user_id': _user?.id, 'content_type': widget.contentType, 'content_id': widget.contentId};
+
+      final response = await authRepository.fetchCheckoutDetails(data);
+
+      if (response.statusCode == 200) {
+        final jsonResponse = response.data is String ? jsonDecode(response.data) : response.data;
+
+        if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
+          checkoutData = CheckoutModel.fromJson(jsonResponse['data']);
+          originalCheckoutData = checkoutData;
+        } else {
+          throw Exception('Invalid response format');
+        }
+      } else {
+        throw Exception('Failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showErrorSnackbar('Failed to load checkout details');
+    } finally {
+      setState(() => _isLoadingCheckout = false);
+    }
+  }
+
+  Future<void> _applyCoupon() async {
+    if (_couponController.text.trim().isEmpty) {
+      _showErrorSnackbar('Please enter a coupon code');
+      return;
+    }
+
+    try {
+      setState(() => _isApplyingCoupon = true);
+
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {
+        'user_id': _user?.id,
+        'coupon_code': _couponController.text.trim().toUpperCase(),
+        'order_id': widget.contentId,
+        'final_price': originalCheckoutData?.finalPrice.toString(),
+      };
+
+      final response = await authRepository.applyCoupon(data);
+
+      if (response.statusCode == 200) {
+        final jsonResponse = response.data is String ? jsonDecode(response.data) : response.data;
+
+        if (jsonResponse['success'] == true) {
+          // Extract coupon code
+          appliedCouponCode = jsonResponse['coupon_code']?.toString() ?? '';
+
+          // Parse discount safely
+          final discountValue = jsonResponse['discount'];
+          if (discountValue != null) {
+            couponDiscount = double.parse(discountValue.toString());
+          }
+
+          _showSuccessSnackbar('Coupon applied successfully!');
+          setState(() {});
+        } else {
+          throw Exception('Coupon not valid');
+        }
+      }
+    } catch (e) {
+      _showErrorSnackbar('Invalid coupon code');
+    } finally {
+      setState(() => _isApplyingCoupon = false);
+    }
+  }
+
+  void _removeCoupon() {
+    setState(() {
+      appliedCouponCode = null;
+      couponDiscount = null;
+      _couponController.clear();
+      _showCouponField = false;
+    });
+    _showSuccessSnackbar('Coupon removed');
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating));
+  }
+
+  void _showSuccessSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.tealGreen, behavior: SnackBarBehavior.floating),
+    );
+  }
 
   @override
   void dispose() {
@@ -36,122 +166,150 @@ class _CheckoutPageState extends State<CheckoutPage> {
     super.dispose();
   }
 
-  void _applyCoupon() {
-    if (_couponController.text.isNotEmpty) {
-      // Sample coupon validation
-      if (_couponController.text.toUpperCase() == 'SAVE100') {
-        setState(() {
-          _orderData['couponDiscount'] = 100;
-          _orderData['totalAmount'] = _orderData['discountedPrice'] + _orderData['tax'] - 100;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Coupon applied successfully! ₹100 off'),
-            backgroundColor: AppColors.tealGreen,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+  void _processPayment() async {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    final data = {
+      'user_id': _user?.id,
+      'product_id': widget.contentId,
+      'product_type': widget.contentType,
+      'amount': _getFinalPrice().toStringAsFixed(2),
+      'name': _user?.username,
+      'email': _user?.email,
+      'phone': _user?.phone,
+    };
+
+    final responseCreate = await authRepository.createPaymentOrder(data);
+
+    if (responseCreate.statusCode == 200) {
+      final jsonResponse = responseCreate.data is String ? jsonDecode(responseCreate.data) : responseCreate.data;
+
+      if (jsonResponse['success'] == true) {
+        String orderId = jsonResponse['order_id'];
+        String paymentLink = jsonResponse['payment_link'];
+        String cfToken = jsonResponse['payment_session_id'];
+
+        // Proceed with Cashfree payment using orderId
+        _startCashfreePayment(orderId, paymentLink, cfToken);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Invalid coupon code'),
-            backgroundColor: AppColors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _showErrorSnackbar('Failed to create payment order');
       }
+
+      setState(() => _isProcessing = true);
+
+      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => PaymentFailedPage()));
     }
   }
 
-  void _processPayment() {
-    setState(() => _isProcessing = true);
+  void _startCashfreePayment(String orderId, String paymentlink, String cfToken) {
+    // Implement Cashfree payment integration here
+    // On successful payment, call _showPaymentSuccessDialog()
+    try {
+      final service = CFPaymentGatewayService();
+      service.setCallback(_verifyPayment, onError);
+      var session = createSession(orderId, cfToken);
 
-    Future.delayed(Duration(seconds: 3), () {
-      setState(() => _isProcessing = false);
-      _showPaymentSuccessDialog();
-    });
+      if (session == null) {
+        return;
+      }
+      // final cfPaymentService = CFPaymentGatewayService();
+
+      // final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
+
+      // cfPaymentService.doPayment(payment);
+
+      var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
+      var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
+
+      service.doPayment(upiPayment);
+    } catch (e) {}
   }
 
-  void _showPaymentSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            child: Container(
-              padding: EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.check, color: AppColors.white, size: 48),
-                  ),
-                  SizedBox(height: 24),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Payment Successful!',
-                    22,
-                    AppColors.darkNavy,
-                    FontWeight.w800,
-                    2,
-                    TextAlign.center,
-                    0.0,
-                  ),
-                  SizedBox(height: 12),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'You now have access to the course',
-                    14,
-                    AppColors.greyS600,
-                    FontWeight.w500,
-                    2,
-                    TextAlign.center,
-                    0.0,
-                  ),
-                  SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.transparent,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        child: AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Start Learning',
-                          16,
-                          AppColors.white,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.center,
-                          0.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  CFSession? createSession(String orderId, String cfToken) {
+    try {
+      String oid = orderId;
+      var session = CFSessionBuilder().setEnvironment(environment).setOrderId(oid).setPaymentSessionId(cfToken).build();
+      return session;
+    } catch (e) {}
+    return null;
+  }
+
+  void onError(CFErrorResponse errorResponse, String orderId) {}
+
+  void _verifyPayment(String orderId) async {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    final data = {'order_id': orderId};
+
+    final responseCreate = await authRepository.savePaymentStatus(data);
+
+    if (responseCreate.statusCode == 200) {
+      // ✅ Parse response
+      final resp = responseCreate.data;
+
+      if (resp['success'] == true && resp['order_status'] == 'PAID') {
+        // Payment Success
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => PaymentStatusScreen(
+                  amount: resp['cf_response']?['order_amount'].toString() ?? '',
+                  status: PaymentStatus.success,
+                  orderId: resp['payment_id'].toString() ?? '',
+                  paymentMethod: resp['payment_method'].toString() ?? '',
+                ),
           ),
-    );
+        );
+      } else {
+        // Payment Failed
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => PaymentStatusScreen(
+                  amount: resp['cf_response']?['order_amount'].toString() ?? '',
+                  status: PaymentStatus.failed,
+                  orderId: resp['payment_id'].toString() ?? '',
+                  paymentMethod: resp['payment_method'].toString() ?? '',
+                ),
+          ),
+        );
+      }
+    } else {
+      //  Optional: show failed page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:
+              (_) => PaymentStatusScreen(
+                orderId: 'null',
+                amount: 'null',
+                paymentMethod: 'null',
+                status: PaymentStatus.failed,
+              ),
+        ),
+      );
+    }
+  }
+
+  // Calculate price after discount (base price - discount)
+  double _getPriceAfterDiscount() {
+    if (originalCheckoutData == null) return 0;
+    if (couponDiscount == null) return originalCheckoutData!.basePrice;
+    return originalCheckoutData!.basePrice - couponDiscount!;
+  }
+
+  // Calculate GST on discounted price
+  double _getGstAmount() {
+    if (originalCheckoutData == null) return 0;
+    final priceAfterDiscount = _getPriceAfterDiscount();
+    return (priceAfterDiscount * originalCheckoutData!.gstRate) / 100;
+  }
+
+  // Calculate final total
+  double _getFinalPrice() {
+    final priceAfterDiscount = _getPriceAfterDiscount();
+    final gstAmount = _getGstAmount();
+    return priceAfterDiscount + gstAmount;
   }
 
   @override
@@ -159,18 +317,43 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       appBar: _buildAppBar(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            SizedBox(height: 16),
-            _buildOrderSummary(),
-            SizedBox(height: 16),
-            _buildCouponSection(),
-            SizedBox(height: 100),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomBar(),
+      body:
+          _isLoadingCheckout
+              ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.tealGreen)))
+              : checkoutData == null
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: AppColors.greyS500),
+                    SizedBox(height: 16),
+                    AppRichText.setTextPoppinsStyle(
+                      context,
+                      'Failed to load checkout details',
+                      16,
+                      AppColors.greyS600,
+                      FontWeight.w600,
+                      1,
+                      TextAlign.center,
+                      0.0,
+                    ),
+                    SizedBox(height: 16),
+                    ElevatedButton(onPressed: fetchCheckoutDetails, child: Text('Retry')),
+                  ],
+                ),
+              )
+              : SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SizedBox(height: 16),
+                    _buildOrderSummary(),
+                    SizedBox(height: 16),
+                    _buildCouponSection(),
+                    SizedBox(height: 100),
+                  ],
+                ),
+              ),
+      bottomNavigationBar: checkoutData != null ? _buildBottomBar() : null,
     );
   }
 
@@ -197,12 +380,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
       title: Row(
         children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(12)),
-            child: Icon(Icons.shopping_bag, color: AppColors.darkNavy, size: 20),
-          ),
-          SizedBox(width: 12),
           AppRichText.setTextPoppinsStyle(
             context,
             'Checkout',
@@ -219,6 +396,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _buildOrderSummary() {
+    if (checkoutData == null) return SizedBox.shrink();
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
       padding: EdgeInsets.all(20),
@@ -281,7 +460,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     children: [
                       AppRichText.setTextPoppinsStyle(
                         context,
-                        _orderData['itemName'],
+                        checkoutData!.title,
                         14,
                         AppColors.darkNavy,
                         FontWeight.w700,
@@ -298,7 +477,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         ),
                         child: AppRichText.setTextPoppinsStyle(
                           context,
-                          _orderData['itemType'],
+                          checkoutData!.contentType,
                           11,
                           AppColors.darkNavy,
                           FontWeight.w700,
@@ -313,68 +492,42 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ],
             ),
           ),
-          SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                _orderData['features'].map<Widget>((feature) {
-                  return Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.greyS1,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.greyS300!),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle, size: 14, color: AppColors.tealGreen),
-                        SizedBox(width: 6),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          feature,
-                          12,
-                          AppColors.darkNavy,
-                          FontWeight.w600,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-          ),
           SizedBox(height: 20),
           Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
             child: Column(
               children: [
-                _buildPriceRow('Original Price', '₹${_orderData['originalPrice']}', false),
-                SizedBox(height: 12),
-                _buildPriceRow(
-                  'Discount (${_orderData['discount']}%)',
-                  '- ₹${_orderData['originalPrice'] - _orderData['discountedPrice']}',
-                  false,
-                  color: AppColors.tealGreen,
-                ),
-                if (_orderData['couponDiscount'] > 0) ...[
+                _buildPriceRow('Base Price', '₹${originalCheckoutData!.basePrice.toStringAsFixed(2)}', false),
+
+                // Show discount right after base price
+                if (appliedCouponCode != null && couponDiscount != null) ...[
                   SizedBox(height: 12),
                   _buildPriceRow(
-                    'Coupon Discount',
-                    '- ₹${_orderData['couponDiscount']}',
+                    'Discount ($appliedCouponCode)',
+                    '- ₹${couponDiscount!.toStringAsFixed(2)}',
                     false,
                     color: AppColors.tealGreen,
                   ),
+                  SizedBox(height: 12),
+                  _buildPriceRow(
+                    'Price after Discount',
+                    '₹${_getPriceAfterDiscount().toStringAsFixed(2)}',
+                    false,
+                    color: AppColors.darkNavy,
+                  ),
                 ],
+
                 SizedBox(height: 12),
-                _buildPriceRow('Tax & Fees', '₹${_orderData['tax']}', false),
+                _buildPriceRow(
+                  'GST (${originalCheckoutData!.gstRate}%)',
+                  '₹${_getGstAmount().toStringAsFixed(2)}',
+                  false,
+                ),
                 SizedBox(height: 16),
                 Container(height: 1, color: AppColors.greyS300),
                 SizedBox(height: 16),
-                _buildPriceRow('Total Amount', '₹${_orderData['totalAmount']}', true),
+                _buildPriceRow('Total Amount', '₹${_getFinalPrice().toStringAsFixed(2)}', true),
               ],
             ),
           ),
@@ -447,7 +600,57 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ],
           ),
           SizedBox(height: 16),
-          if (_showCouponField) ...[
+          if (appliedCouponCode != null) ...[
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.tealGreen.withOpacity(0.15), AppColors.darkNavy.withOpacity(0.1)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.tealGreen, width: 2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.tealGreen, borderRadius: BorderRadius.circular(8)),
+                    child: Icon(Icons.check_circle, color: AppColors.white, size: 20),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Coupon Applied: $appliedCouponCode',
+                          14,
+                          AppColors.darkNavy,
+                          FontWeight.w700,
+                          1,
+                          TextAlign.left,
+                          0.0,
+                        ),
+                        SizedBox(height: 4),
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'You saved ₹${couponDiscount!.toStringAsFixed(2)}',
+                          12,
+                          AppColors.tealGreen,
+                          FontWeight.w600,
+                          1,
+                          TextAlign.left,
+                          0.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(icon: Icon(Icons.close, color: Colors.red), onPressed: _removeCoupon),
+                ],
+              ),
+            ),
+          ] else if (_showCouponField) ...[
             Row(
               children: [
                 Expanded(
@@ -479,7 +682,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
                 SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: _applyCoupon,
+                  onPressed: _isApplyingCoupon ? null : _applyCoupon,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.transparent,
                     shadowColor: AppColors.transparent,
@@ -493,16 +696,26 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ),
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      child: AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Apply',
-                        14,
-                        AppColors.white,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
+                      child:
+                          _isApplyingCoupon
+                              ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation(AppColors.white),
+                                ),
+                              )
+                              : AppRichText.setTextPoppinsStyle(
+                                context,
+                                'Apply',
+                                14,
+                                AppColors.white,
+                                FontWeight.w700,
+                                1,
+                                TextAlign.center,
+                                0.0,
+                              ),
                     ),
                   ),
                 ),
@@ -546,39 +759,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
             ),
           ],
-          SizedBox(height: 12),
-          Container(
-            padding: EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.lightGold.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.lightGold.withOpacity(0.5)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: AppColors.tealGreen, size: 18),
-                SizedBox(width: 10),
-                Expanded(
-                  child: AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Use code SAVE100 for ₹100 off',
-                    12,
-                    AppColors.darkNavy,
-                    FontWeight.w600,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildBottomBar() {
+    if (checkoutData == null) return SizedBox.shrink();
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -608,7 +796,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     SizedBox(height: 4),
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      '₹${_orderData['totalAmount']}',
+                      '₹${_getFinalPrice().toStringAsFixed(2)}',
                       25,
                       AppColors.darkNavy,
                       FontWeight.w900,
@@ -618,29 +806,30 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ),
                   ],
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.tealGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                if (appliedCouponCode != null)
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.tealGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.local_offer, size: 16, color: AppColors.tealGreen),
+                        SizedBox(width: 6),
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Saved ₹${couponDiscount!.toStringAsFixed(2)}',
+                          12,
+                          AppColors.tealGreen,
+                          FontWeight.w700,
+                          1,
+                          TextAlign.left,
+                          0.0,
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.local_offer, size: 16, color: AppColors.tealGreen),
-                      SizedBox(width: 6),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Saved ₹${_orderData['originalPrice'] - _orderData['discountedPrice'] + _orderData['couponDiscount']}',
-                        12,
-                        AppColors.tealGreen,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
             SizedBox(height: 16),

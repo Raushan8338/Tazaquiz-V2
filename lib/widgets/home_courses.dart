@@ -93,7 +93,21 @@ class Home_courses extends StatelessWidget {
               final course = popularCourses[index];
               return InkWell(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => BuyCoursePage()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => BuyCoursePage(
+                            courseTitle: course.courseName,
+                            category: course.courseType,
+                            instructor: 'Just for Test',
+                            price: double.parse(course.finalPrice),
+                            description: course.description,
+                            contentType: 'STUDY',
+                            contentId: course.id,
+                          ),
+                    ),
+                  );
                 },
                 child: Container(
                   width: 220,

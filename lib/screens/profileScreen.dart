@@ -4,11 +4,13 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
 import 'package:tazaquiznew/screens/paymentHistory.dart';
+import 'package:tazaquiznew/screens/refer_earn_page.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 import 'package:tazaquiznew/testpage.dart' hide ContactUsPage;
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StudentProfilePage extends StatefulWidget {
   @override
@@ -439,16 +441,17 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             0.0,
           ),
           SizedBox(height: 16),
-          _buildSettingItem(Icons.share, 'Refer and Earn', () {}),
+          _buildSettingItem(Icons.share, 'Refer and Earn', () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ReferEarnPage()));
+          }),
           Divider(height: 28, color: AppColors.greyS300),
-          _buildSettingItem(Icons.policy, 'Privacy Policy', () {}),
+          _buildSettingItem(Icons.policy, 'Privacy Policy', () {
+            launchUrl(Uri.parse('https://tazaquiz.com/privacy_policy.html'), mode: LaunchMode.externalApplication);
+          }),
           Divider(height: 28, color: AppColors.greyS300),
-          InkWell(
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
-            },
-            child: _buildSettingItem(Icons.help_outline, 'Help & Support', () {}),
-          ),
+          _buildSettingItem(Icons.help_outline, 'Help & Support', () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
+          }),
           Divider(height: 28, color: AppColors.greyS300),
           _buildSettingItem(Icons.logout, 'Logout', () async {
             await handleLogout(context);

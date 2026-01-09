@@ -70,4 +70,39 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.get_study_materials_details, data: formData);
   }
+
+  Future<Response> generateServiceRequest(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.gsubmit_service_requestet, data: formData);
+  }
+
+  Future<Response> fetchTicketStatus(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_ticket_status, data: formData);
+  }
+
+  Future<Response> fetchReferralList(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_referral_list, data: formData);
+  }
+
+  Future<Response> createPaymentOrder(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.create_payment_order, data: formData);
+  }
+
+  Future<Response> savePaymentStatus(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.save_payment_status, data: formData);
+  }
+
+  Future<Response> fetchCheckoutDetails(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_checkout_details, data: formData);
+  }
+
+  Future<Response> applyCoupon(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.apply_coupon_code, data: formData);
+  }
 }

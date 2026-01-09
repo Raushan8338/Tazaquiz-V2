@@ -16,4 +16,11 @@ class BaseUrl {
   static String get_study_category = "studyCategory.php";
   static String get_study_subject_category = "subjectLevelSlider.php";
   static String get_study_materials_details = "study_materials_details.php";
+  static String gsubmit_service_requestet = "serviceRequestGen.php";
+  static String fetch_ticket_status = "serviceRequestView.php";
+  static String fetch_referral_list = "referalUserList.php";
+  static String create_payment_order = "create_payment_order.php";
+  static String save_payment_status = "save_payment_status.php";
+  static String fetch_checkout_details = "checkout_details.php";
+  static String apply_coupon_code = "apply_coupon.php";
 }

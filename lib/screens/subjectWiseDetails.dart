@@ -563,7 +563,15 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                           flex: 3,
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => CheckoutPage()));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          CheckoutPage(contentType: 'STUDY', contentId: material.materialId.toString()),
+                                ),
+                              );
+                              // Navigator.push(context, MaterialPageRoute(builder: (context) => CheckoutPage()));
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.transparent,

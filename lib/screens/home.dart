@@ -17,6 +17,7 @@ import 'package:tazaquiznew/screens/testSeries.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:tazaquiznew/widgets/WeeklyProgressWidget.dart';
+import 'package:tazaquiznew/widgets/homePage_shimmer_progress.dart';
 import 'package:tazaquiznew/widgets/home_banner.dart';
 import 'package:tazaquiznew/widgets/home_coaching_profile.dart';
 import 'package:tazaquiznew/widgets/home_courses.dart';
@@ -135,19 +136,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     if (quizSection == null || quizSection!.items.isEmpty || liveTests.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-              SizedBox(width: 10),
-              Text("Loading Please wait...", style: TextStyle(fontSize: 15)),
-            ],
-          ),
-        ),
-      );
+      return Center(child: Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: QuizShimmerUI()));
     }
 
     return Scaffold(

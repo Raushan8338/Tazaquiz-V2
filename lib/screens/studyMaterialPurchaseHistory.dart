@@ -44,9 +44,8 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
   Future<void> fetchStudyLevels() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
     final data = {'categoryId': "1"};
-    print(data);
+
     Response response = await authRepository.fetchStudySubjectCategory(data);
-    print(response.data);
 
     if (response.statusCode == 200) {
       final data = response.data;
@@ -68,7 +67,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     final data = {'subject_id': categoryId.toString()};
 
     final responseFuture = await authRepository.fetchStudyMaterialsDetails(data);
-    print(responseFuture.statusCode);
+
     if (responseFuture.statusCode == 200) {
       final responseData = responseFuture.data;
 
@@ -170,7 +169,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
   //       itemCount: _categoryItems.length,
   //       itemBuilder: (context, index) {
   //         final category = _categoryItems[index];
-  //         print(category.name);
 
   //         bool isSelected = _selectedCategoryId == category.category_id;
   //         return GestureDetector(
@@ -520,7 +518,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                             ),
                           );
                         } else {
-                          print(material.contentType);
                           launchUrl(Uri.parse(material.filePath));
                         }
                       },
