@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
+import 'package:tazaquiznew/screens/buyQuizes.dart';
 import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
 import 'package:tazaquiznew/screens/testSeries.dart';
@@ -99,11 +100,12 @@ class Home_live_test extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder:
-                          (context) => LiveTestScreen(
-                            testTitle: liveTests[index].title,
-                            subject: liveTests[index].difficultyLevel,
-                            Quiz_id: liveTests[index].quizId,
-                          ),
+                           (context) => QuizDetailPage(quizId: liveTests[index].quizId)
+                           // LiveTestScreen(
+                          //   testTitle: liveTests[index].title,
+                          //   subject: liveTests[index].difficultyLevel,
+                          //   Quiz_id: liveTests[index].quizId,
+                          // ),
                     ),
                   );
                 },

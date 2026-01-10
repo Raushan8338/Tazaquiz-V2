@@ -16,6 +16,10 @@ class StudyMaterialDetailsItem {
   final String thumbnail;
   final String author;
 
+  // 🔥 NEW OPTIONAL FLAGS (SAFE)
+  final bool isPurchased;
+  final bool isAccessible;
+
   StudyMaterialDetailsItem({
     required this.materialId,
     required this.title,
@@ -32,27 +36,42 @@ class StudyMaterialDetailsItem {
     required this.isPublished,
     this.rating = '4.5',
     required this.thumbnail,
-    this.author = 'Raushan Kumar',
+    this.author = '***********',
+
+    // 🔥 DEFAULT SAFE VALUES
+    this.isPurchased = false,
+    this.isAccessible = false,
   });
 
   factory StudyMaterialDetailsItem.fromJson(Map<String, dynamic> json) {
+    int _toInt(dynamic v) => int.tryParse(v?.toString() ?? '') ?? 0;
+    double _toDouble(dynamic v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
+    bool _toBool(dynamic v) => v == true || v == 1 || v == '1';
+
     return StudyMaterialDetailsItem(
-      materialId: int.parse(json['material_id'].toString()),
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      contentType: json['content_type'] ?? '',
-      filePath: json['file_path'] ?? '',
-      creatorId: int.parse(json['creator_id'].toString()),
-      categoryId: int.parse(json['category_id'].toString()),
-      subjectId: int.parse(json['subject_id'].toString()),
-      price: double.tryParse(json['price'].toString()) ?? 0.0,
-      isPaid: json['is_paid'] == true || json['is_paid'] == 1,
-      levelId: int.parse(json['level_id'].toString()),
-      createdAt: DateTime.tryParse(json['created_at'].toString()) ?? DateTime.fromMillisecondsSinceEpoch(0),
-      isPublished: json['is_published'] == 1 || json['is_published'] == true,
-      rating: json['rating'] ?? '4.5',
-      thumbnail: json['thumbnail'] ?? '',
-      author: json['author'] ?? 'Raushan Kumar',
+      materialId: _toInt(json['material_id']),
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      contentType: json['content_type']?.toString() ?? '',
+      filePath: json['file_path']?.toString() ?? '',
+      creatorId: _toInt(json['creator_id']),
+      categoryId: _toInt(json['category_id']),
+      subjectId: _toInt(json['subject_id']),
+      price: _toDouble(json['price']),
+      isPaid: _toBool(json['is_paid']),
+      levelId: _toInt(json['level_id']),
+      createdAt: DateTime.tryParse(
+            json['created_at']?.toString() ?? '',
+          ) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      isPublished: _toBool(json['is_published']),
+      rating: json['rating']?.toString() ?? '4.5',
+      thumbnail: json['thumbnail']?.toString() ?? '',
+      author: json['author']?.toString() ?? '**********',
+
+      // 🔥 SAFE PARSING (agar na aaye to false)
+      isPurchased: _toBool(json['is_purchased']),
+      isAccessible: _toBool(json['is_accessible']),
     );
   }
 
@@ -74,6 +93,10 @@ class StudyMaterialDetailsItem {
       'rating': rating,
       'thumbnail': thumbnail,
       'author': author,
+
+      // 🔥 OPTIONAL
+      'is_purchased': isPurchased,
+      'is_accessible': isAccessible,
     };
   }
 }

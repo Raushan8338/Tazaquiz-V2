@@ -11,7 +11,7 @@ import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
-import 'package:tazaquiznew/screens/buyCourse.dart';
+import 'package:tazaquiznew/screens/buyStudyM.dart';
 import 'package:tazaquiznew/screens/notificationPage.dart';
 import 'package:tazaquiznew/screens/testSeries.dart';
 import 'package:tazaquiznew/utils/richText.dart';

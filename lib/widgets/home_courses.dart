@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/course_item_modal.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
-import 'package:tazaquiznew/screens/buyCourse.dart';
+import 'package:tazaquiznew/screens/buyStudyM.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class Home_courses extends StatelessWidget {
@@ -98,12 +98,6 @@ class Home_courses extends StatelessWidget {
                     MaterialPageRoute(
                       builder:
                           (context) => BuyCoursePage(
-                            courseTitle: course.courseName,
-                            category: course.courseType,
-                            instructor: 'Just for Test',
-                            price: double.parse(course.finalPrice),
-                            description: course.description,
-                            contentType: 'STUDY',
                             contentId: course.id,
                           ),
                     ),

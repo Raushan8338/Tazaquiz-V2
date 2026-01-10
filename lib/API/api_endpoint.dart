@@ -23,4 +23,8 @@ class BaseUrl {
   static String save_payment_status = "save_payment_status.php";
   static String fetch_checkout_details = "checkout_details.php";
   static String apply_coupon_code = "apply_coupon.php";
+  static String get_id_wise_quiz = "get_id_wise_quiz.php";
+  static String get_id_wise_studyM_Details ="get_id_wise_study.php";
+  static String fetch_all_quiz ="quizes_api.php";
+
 }

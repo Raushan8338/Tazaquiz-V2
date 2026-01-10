@@ -1,32 +1,70 @@
-// Quiz Item Model
+// Updated Quiz Item Model
 class QuizItem {
   final String quizId;
   final String title;
+  final String description;
   final String? banner;
   final String startDateTime;
+  final String endDateTime;
   final String timeLimit;
   final String difficultyLevel;
+  final String instruction;
   final String quizStatus;
+  
+  // Payment & Access
+  final bool isPaid;
+  final double price;
+  final bool isPurchased;
+  final bool isAccessible;
+  
+  // Live Status
+  final bool isLive;
+  final int startsInSeconds;
+  final String startsInText;
 
   QuizItem({
     required this.quizId,
     required this.title,
+    this.description = '',
     this.banner,
     required this.startDateTime,
-    required this.timeLimit,
-    required this.difficultyLevel,
+    this.endDateTime = '',
+    this.timeLimit = '',
+    this.difficultyLevel = '',
+      this.instruction = '',
     required this.quizStatus,
+    this.isPaid = false,
+    this.price = 0.0,
+    this.isPurchased = false,
+    this.isAccessible = false,
+    this.isLive = false,
+    this.startsInSeconds = 0,
+    this.startsInText = '',
   });
 
   factory QuizItem.fromJson(Map<String, dynamic> json) {
+    int _toInt(dynamic v) => int.tryParse(v?.toString() ?? '') ?? 0;
+    double _toDouble(dynamic v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
+    bool _toBool(dynamic v) => v == true || v == 1 || v == '1';
+
     return QuizItem(
       quizId: json['quiz_id']?.toString() ?? '',
-      title: json['title'] ?? '',
-      banner: json['banner'],
-      startDateTime: json['startDateTime'] ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      banner: json['banner']?.toString(),
+      startDateTime: json['startDateTime']?.toString() ?? '',
+      endDateTime: json['endDateTime']?.toString() ?? '',
       timeLimit: json['time_limit']?.toString() ?? '',
-      difficultyLevel: json['difficulty_level'] ?? '',
-      quizStatus: json['quiz_status'] ?? '',
+      difficultyLevel: json['difficulty_level']?.toString() ?? '',
+       instruction: json['instruction']?.toString() ?? '',
+      quizStatus: json['quiz_status']?.toString() ?? 'upcoming',
+      isPaid: _toBool(json['isPaid']),
+      price: _toDouble(json['price']),
+      isPurchased: _toBool(json['is_purchased']),
+      isAccessible: _toBool(json['is_accessible']),
+      isLive: _toBool(json['is_live']),
+      startsInSeconds: _toInt(json['starts_in_seconds']),
+      startsInText: json['starts_in_text']?.toString() ?? '',
     );
   }
 
@@ -34,11 +72,21 @@ class QuizItem {
     return {
       'quiz_id': quizId,
       'title': title,
+      'description': description,
       'banner': banner,
       'startDateTime': startDateTime,
+      'endDateTime': endDateTime,
       'time_limit': timeLimit,
       'difficulty_level': difficultyLevel,
+       'instruction': instruction,
       'quiz_status': quizStatus,
+      'isPaid': isPaid,
+      'price': price,
+      'is_purchased': isPurchased,
+      'is_accessible': isAccessible,
+      'is_live': isLive,
+      'starts_in_seconds': startsInSeconds,
+      'starts_in_text': startsInText,
     };
   }
 }
