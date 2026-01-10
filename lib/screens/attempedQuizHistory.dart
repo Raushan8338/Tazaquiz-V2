@@ -1,6 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/models/quiz_history_modal.dart';
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 
 class QuizHistoryPage extends StatefulWidget {
   @override
@@ -10,126 +16,75 @@ class QuizHistoryPage extends StatefulWidget {
 class _QuizHistoryPageState extends State<QuizHistoryPage> {
   String _selectedFilter = 'all'; // 'all', 'completed', 'won', 'lost'
 
-  // Sample quiz history data
-  final List<Map<String, dynamic>> _allQuizzes = [
-    {
-      'id': 'QZ1234567890',
-      'title': 'Mathematics Challenge',
-      'category': 'Mathematics',
-      'date': '07 Jan 2026',
-      'time': '10:30 AM',
-      'duration': '30 min',
-      'status': 'won',
-      'score': 85,
-      'totalQuestions': 50,
-      'correctAnswers': 42,
-      'wrongAnswers': 6,
-      'skipped': 2,
-      'rank': 12,
-      'totalParticipants': 234,
-      'prize': '₹500',
-      'accuracy': 84.0,
-      'timeTaken': '28 min',
-    },
-    {
-      'id': 'QZ1234567889',
-      'title': 'Science Quiz Battle',
-      'category': 'Science',
-      'date': '05 Jan 2026',
-      'time': '02:15 PM',
-      'duration': '45 min',
-      'status': 'completed',
-      'score': 72,
-      'totalQuestions': 60,
-      'correctAnswers': 43,
-      'wrongAnswers': 12,
-      'skipped': 5,
-      'rank': 45,
-      'totalParticipants': 189,
-      'prize': '₹0',
-      'accuracy': 71.6,
-      'timeTaken': '42 min',
-    },
-    {
-      'id': 'QZ1234567888',
-      'title': 'General Knowledge Quiz',
-      'category': 'GK',
-      'date': '04 Jan 2026',
-      'time': '09:45 AM',
-      'duration': '60 min',
-      'status': 'won',
-      'score': 92,
-      'totalQuestions': 100,
-      'correctAnswers': 92,
-      'wrongAnswers': 5,
-      'skipped': 3,
-      'rank': 5,
-      'totalParticipants': 456,
-      'prize': '₹2000',
-      'accuracy': 92.0,
-      'timeTaken': '55 min',
-    },
-    {
-      'id': 'QZ1234567887',
-      'title': 'History Masters',
-      'category': 'History',
-      'date': '03 Jan 2026',
-      'time': '05:30 PM',
-      'duration': '40 min',
-      'status': 'lost',
-      'score': 45,
-      'totalQuestions': 50,
-      'correctAnswers': 22,
-      'wrongAnswers': 18,
-      'skipped': 10,
-      'rank': 156,
-      'totalParticipants': 178,
-      'prize': '₹0',
-      'accuracy': 44.0,
-      'timeTaken': '38 min',
-    },
-    {
-      'id': 'QZ1234567886',
-      'title': 'Weekly Physics Challenge',
-      'category': 'Physics',
-      'date': '02 Jan 2026',
-      'time': '11:20 AM',
-      'duration': '35 min',
-      'status': 'completed',
-      'score': 68,
-      'totalQuestions': 40,
-      'correctAnswers': 27,
-      'wrongAnswers': 9,
-      'skipped': 4,
-      'rank': 67,
-      'totalParticipants': 203,
-      'prize': '₹0',
-      'accuracy': 67.5,
-      'timeTaken': '33 min',
-    },
-  ];
+  bool _isLoading = true;
+  List<QuizAttemptItem> _allQuizzes = [];
+  QuizHistoryStats? _stats;
+  UserModel? _user;
 
-  List<Map<String, dynamic>> get _filteredQuizzes {
+  @override
+  void initState() {
+    super.initState();
+    _getUserData();
+  }
+
+  Future<void> _getUserData() async {
+    _user = await SessionManager.getUser();
+    setState(() {});
+    await fetchQuizHistory(_user!.id);
+  }
+
+  Future<void> fetchQuizHistory(String userId) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {'user_id': userId};
+
+      print('Fetching quiz history for user: $userId');
+
+      final response = await authRepository.fetch_Quiz_performanceApi(data);
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        print('Quiz history response: $responseData');
+
+        final quizHistoryResponse = QuizHistoryResponse.fromJson(responseData);
+
+        setState(() {
+          _allQuizzes = quizHistoryResponse.data;
+          _stats = quizHistoryResponse.stats;
+          _isLoading = false;
+        });
+
+        print('Total quizzes: ${_allQuizzes.length}');
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching quiz history: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<QuizAttemptItem> get _filteredQuizzes {
     if (_selectedFilter == 'all') {
       return _allQuizzes;
     }
-    return _allQuizzes.where((quiz) => quiz['status'] == _selectedFilter).toList();
+    return _allQuizzes.where((quiz) => quiz.status == _selectedFilter).toList();
   }
 
-  int get _totalQuizzes => _allQuizzes.length;
-  int get _totalWins => _allQuizzes.where((q) => q['status'] == 'won').length;
-  double get _averageScore {
-    if (_allQuizzes.isEmpty) return 0;
-    return _allQuizzes.fold(0.0, (sum, q) => sum + q['score']) / _allQuizzes.length;
-  }
+  int get _totalQuizzes => _stats?.totalQuizzes ?? 0;
+  int get _totalWins => _stats?.totalWins ?? 0;
+  double get _averageScore => _stats?.averageScore ?? 0.0;
+  int get _totalPrizeWon => _stats?.totalPrizeWon ?? 0;
 
-  int get _totalPrizeWon {
-    return _allQuizzes
-        .where((q) => q['status'] == 'won')
-        .fold(0, (sum, q) => sum + int.parse(q['prize'].replaceAll('₹', '').replaceAll(',', '')));
-  }
-
-  void _showQuizDetails(Map<String, dynamic> quiz) {
+  void _showQuizDetails(QuizAttemptItem quiz) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -143,14 +98,17 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildStatsCard(),
-          _buildFilterChips(),
-          SizedBox(height: 8),
-          Expanded(child: _filteredQuizzes.isEmpty ? _buildEmptyState() : _buildQuizList()),
-        ],
-      ),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)))
+              : Column(
+                children: [
+                  _buildStatsCard(),
+                  _buildFilterChips(),
+                  SizedBox(height: 8),
+                  Expanded(child: _filteredQuizzes.isEmpty ? _buildEmptyState() : _buildQuizList()),
+                ],
+              ),
     );
   }
 
@@ -313,7 +271,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
           SizedBox(width: 8),
           _buildFilterChip('Won', 'won', Icons.emoji_events),
           SizedBox(width: 8),
-          _buildFilterChip('Lost', 'lost', Icons.sentiment_dissatisfied),
+          _buildFilterChip('Fail', 'Fail', Icons.sentiment_dissatisfied),
         ],
       ),
     );
@@ -385,13 +343,13 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     );
   }
 
-  Widget _buildQuizCard(Map<String, dynamic> quiz) {
+  Widget _buildQuizCard(QuizAttemptItem quiz) {
     Color statusColor;
     IconData statusIcon;
     String statusText;
     Color badgeColor;
 
-    switch (quiz['status']) {
+    switch (quiz.status) {
       case 'won':
         statusColor = AppColors.tealGreen;
         statusIcon = Icons.emoji_events;
@@ -411,10 +369,10 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
         badgeColor = Colors.blue.withOpacity(0.30);
         break;
       default:
-        statusColor = AppColors.greyS600;
-        statusIcon = Icons.help;
-        statusText = 'Unknown';
-        badgeColor = AppColors.greyS600;
+        statusColor = AppColors.red;
+        statusIcon = Icons.sentiment_dissatisfied;
+        statusText = 'Lost';
+        badgeColor = AppColors.red.withOpacity(0.30);
     }
 
     return InkWell(
@@ -444,7 +402,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                       children: [
                         AppRichText.setTextPoppinsStyle(
                           context,
-                          quiz['title'],
+                          quiz.quizTitle,
                           14,
                           AppColors.darkNavy,
                           FontWeight.w800,
@@ -463,7 +421,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                               ),
                               child: AppRichText.setTextPoppinsStyle(
                                 context,
-                                quiz['category'],
+                                quiz.categoryName,
                                 10,
                                 AppColors.darkNavy,
                                 FontWeight.w700,
@@ -477,7 +435,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                             SizedBox(width: 4),
                             AppRichText.setTextPoppinsStyle(
                               context,
-                              quiz['date'],
+                              quiz.date,
                               10,
                               AppColors.greyS600,
                               FontWeight.w600,
@@ -534,7 +492,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                       children: [
                         AppRichText.setTextPoppinsStyle(
                           context,
-                          '${quiz['score']}%',
+                          '${quiz.score.toStringAsFixed(0)}%',
                           22,
                           AppColors.white,
                           FontWeight.w900,
@@ -566,7 +524,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                             Expanded(
                               child: _buildSmallStat(
                                 icon: Icons.check_circle,
-                                value: '${quiz['correctAnswers']}',
+                                value: '${quiz.correctAnswers}',
                                 label: 'Correct',
                                 color: AppColors.tealGreen,
                               ),
@@ -575,7 +533,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                             Expanded(
                               child: _buildSmallStat(
                                 icon: Icons.cancel,
-                                value: '${quiz['wrongAnswers']}',
+                                value: '${quiz.wrongAnswers}',
                                 label: 'Wrong',
                                 color: AppColors.red,
                               ),
@@ -588,7 +546,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                             Expanded(
                               child: _buildSmallStat(
                                 icon: Icons.skip_next,
-                                value: '${quiz['skipped']}',
+                                value: '${quiz.skipped}',
                                 label: 'Skipped',
                                 color: Colors.orange,
                               ),
@@ -597,7 +555,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                             Expanded(
                               child: _buildSmallStat(
                                 icon: Icons.military_tech,
-                                value: '#${quiz['rank']}',
+                                value: quiz.rank > 0 ? '#${quiz.rank}' : 'N/A',
                                 label: 'Rank',
                                 color: AppColors.lightGold,
                               ),
@@ -627,7 +585,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                       SizedBox(width: 6),
                       AppRichText.setTextPoppinsStyle(
                         context,
-                        '${quiz['totalParticipants']} players',
+                        '${quiz.totalParticipants} players',
                         12,
                         AppColors.greyS700,
                         FontWeight.w600,
@@ -635,13 +593,13 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                         TextAlign.left,
                         0.0,
                       ),
-                      if (quiz['status'] == 'won') ...[
+                      if (quiz.status == 'won' && quiz.prize > 0) ...[
                         SizedBox(width: 16),
                         Icon(Icons.emoji_events, size: 16, color: AppColors.lightGold),
                         SizedBox(width: 4),
                         AppRichText.setTextPoppinsStyle(
                           context,
-                          quiz['prize'],
+                          quiz.prizeText,
                           12,
                           AppColors.lightGold,
                           FontWeight.w800,
@@ -756,12 +714,12 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     );
   }
 
-  Widget _buildQuizDetailsSheet(Map<String, dynamic> quiz) {
+  Widget _buildQuizDetailsSheet(QuizAttemptItem quiz) {
     Color statusColor;
     IconData statusIcon;
     String statusText;
 
-    switch (quiz['status']) {
+    switch (quiz.status) {
       case 'won':
         statusColor = AppColors.tealGreen;
         statusIcon = Icons.emoji_events;
@@ -827,7 +785,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                   SizedBox(height: 8),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    quiz['title'],
+                    quiz.quizTitle,
                     16,
                     AppColors.greyS600,
                     FontWeight.w600,
@@ -855,7 +813,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                     children: [
                       AppRichText.setTextPoppinsStyle(
                         context,
-                        '${quiz['score']}%',
+                        '${quiz.score.toStringAsFixed(0)}%',
                         36,
                         statusColor,
                         FontWeight.w900,
@@ -880,7 +838,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                     children: [
                       AppRichText.setTextPoppinsStyle(
                         context,
-                        '#${quiz['rank']}',
+                        quiz.rank > 0 ? '#${quiz.rank}' : 'N/A',
                         36,
                         AppColors.lightGold,
                         FontWeight.w900,
@@ -928,7 +886,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                       Expanded(
                         child: _buildDetailStatCard(
                           icon: Icons.check_circle,
-                          value: '${quiz['correctAnswers']}',
+                          value: '${quiz.correctAnswers}',
                           label: 'Correct',
                           color: AppColors.tealGreen,
                         ),
@@ -937,7 +895,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                       Expanded(
                         child: _buildDetailStatCard(
                           icon: Icons.cancel,
-                          value: '${quiz['wrongAnswers']}',
+                          value: '${quiz.wrongAnswers}',
                           label: 'Wrong',
                           color: AppColors.red,
                         ),
@@ -950,7 +908,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                       Expanded(
                         child: _buildDetailStatCard(
                           icon: Icons.skip_next,
-                          value: '${quiz['skipped']}',
+                          value: '${quiz.skipped}',
                           label: 'Skipped',
                           color: Colors.orange,
                         ),
@@ -959,7 +917,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                       Expanded(
                         child: _buildDetailStatCard(
                           icon: Icons.quiz,
-                          value: '${quiz['totalQuestions']}',
+                          value: '${quiz.totalQuestions}',
                           label: 'Total',
                           color: AppColors.darkNavy,
                         ),
@@ -978,83 +936,48 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                     0.0,
                   ),
                   SizedBox(height: 16),
-                  _buildInfoRow('Quiz ID', quiz['id']),
-                  _buildInfoRow('Category', quiz['category']),
-                  _buildInfoRow('Date', quiz['date']),
-                  _buildInfoRow('Time', quiz['time']),
-                  _buildInfoRow('Duration', quiz['duration']),
-                  _buildInfoRow('Time Taken', quiz['timeTaken']),
-                  _buildInfoRow('Accuracy', '${quiz['accuracy']}%'),
-                  _buildInfoRow('Total Participants', '${quiz['totalParticipants']}'),
-                  if (quiz['status'] == 'won') _buildInfoRow('Prize Won', quiz['prize'], isHighlight: true),
+                  _buildInfoRow('Quiz ID', quiz.id),
+                  _buildInfoRow('Category', quiz.categoryName),
+                  _buildInfoRow('Date', quiz.date),
+                  _buildInfoRow('Time', quiz.time),
+                  _buildInfoRow('Duration', quiz.duration),
+                  _buildInfoRow('Time Taken', quiz.timeTaken),
+                  _buildInfoRow('Accuracy', '${quiz.accuracy.toStringAsFixed(1)}%'),
+                  _buildInfoRow('Total Participants', '${quiz.totalParticipants}'),
+                  if (quiz.status == 'won' && quiz.prize > 0)
+                    _buildInfoRow('Prize Won', quiz.prizeText, isHighlight: true),
                   SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.tealGreen, width: 2),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Close',
-                            14,
-                            AppColors.tealGreen,
-                            FontWeight.w700,
-                            1,
-                            TextAlign.center,
-                            0.0,
-                          ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.transparent,
+                      shadowColor: AppColors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: Ink(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        alignment: Alignment.center,
+                        child: AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Close',
+                          14,
+                          AppColors.white,
+                          FontWeight.w700,
+                          1,
+                          TextAlign.center,
+                          0.0,
                         ),
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Review answers
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Answer review feature coming soon!'),
-                                backgroundColor: AppColors.tealGreen,
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.transparent,
-                            shadowColor: AppColors.transparent,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: Ink(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              alignment: Alignment.center,
-                              child: AppRichText.setTextPoppinsStyle(
-                                context,
-                                'Review Answers',
-                                14,
-                                AppColors.white,
-                                FontWeight.w700,
-                                1,
-                                TextAlign.center,
-                                0.0,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -1126,15 +1049,17 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
             TextAlign.left,
             0.0,
           ),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            value,
-            13,
-            isHighlight ? AppColors.lightGold : AppColors.darkNavy,
-            FontWeight.w700,
-            1,
-            TextAlign.right,
-            0.0,
+          Flexible(
+            child: AppRichText.setTextPoppinsStyle(
+              context,
+              value,
+              13,
+              isHighlight ? AppColors.lightGold : AppColors.darkNavy,
+              FontWeight.w700,
+              1,
+              TextAlign.right,
+              0.0,
+            ),
           ),
         ],
       ),

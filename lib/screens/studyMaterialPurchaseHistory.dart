@@ -5,14 +5,11 @@ import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/studyMaterial_modal.dart';
-import 'package:tazaquiznew/models/study_category_item.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/study_material_details_item.dart';
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
-import 'package:tazaquiznew/screens/checkout.dart';
-import 'package:tazaquiznew/screens/studyMaterial.dart';
-import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StudyMaterialPurchaseHistoryScreen extends StatefulWidget {
@@ -26,58 +23,75 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
-  String subjectName = '';
 
-  List<CategoryItem> _categoryItems = [];
-  int _selectedCategoryId = 0;
-
-  List<StudyMaterialDetailsItem> _studyMaterials_new = [];
+  List<StudyMaterialDetailsItem> _allStudyMaterials = [];
+  UserModel? _user;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    fetchStudyLevels();
-    fetchStudyCategory(0);
+    _getUserData();
   }
 
-  Future<void> fetchStudyLevels() async {
-    Authrepository authRepository = Authrepository(Api_Client.dio);
-    final data = {'categoryId': "1"};
+  Future<void> _getUserData() async {
+    _user = await SessionManager.getUser();
+    setState(() {});
+    await fetchStudyMaterials(_user!.id);
+  }
 
-    Response response = await authRepository.fetchStudySubjectCategory(data);
+  Future<void> fetchStudyMaterials(String user_id) async {
+    setState(() {
+      _isLoading = true;
+    });
 
-    if (response.statusCode == 200) {
-      final data = response.data;
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {'user_id': user_id.toString()};
 
-      final List list = data['data'] ?? [];
+      final responseFuture = await authRepository.fetchStudyMaterialsDetails(data);
 
+      if (responseFuture.statusCode == 200) {
+        final responseData = responseFuture.data;
+
+        final List list = responseData['data'] ?? [];
+
+        setState(() {
+          _allStudyMaterials = list.map((e) => StudyMaterialDetailsItem.fromJson(e)).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _categoryItems = [
-          CategoryItem(category_id: 0, name: 'All'),
-          ...list.map((e) => CategoryItem.fromJson(e)).toList(),
-        ];
         _isLoading = false;
       });
     }
   }
 
-  Future<List<StudyMaterialDetailsItem>> fetchStudyCategory(int categoryId) async {
-    Authrepository authRepository = Authrepository(Api_Client.dio);
-    final data = {'subject_id': categoryId.toString()};
+  // 🔥 FILTER: Only show purchased materials
+  List<StudyMaterialDetailsItem> get _purchasedMaterials {
+    return _allStudyMaterials.where((material) => material.isPurchased).toList();
+  }
 
-    final responseFuture = await authRepository.fetchStudyMaterialsDetails(data);
-
-    if (responseFuture.statusCode == 200) {
-      final responseData = responseFuture.data;
-
-      final List list = responseData['data'] ?? [];
-
-      _studyMaterials_new = list.map((e) => StudyMaterialDetailsItem.fromJson(e)).toList();
-
-      return _studyMaterials_new;
-    } else {
-      return [];
+  // 🔥 Get subject name from subject_id
+  String _getSubjectName(int subjectId) {
+    switch (subjectId) {
+      case 1:
+        return 'Mathematics';
+      case 2:
+        return 'Science';
+      case 3:
+        return 'Physics';
+      case 4:
+        return 'Chemistry';
+      case 5:
+        return 'English';
+      default:
+        return 'General';
     }
   }
 
@@ -92,12 +106,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          // SliverToBoxAdapter(child: _buildCategoriesSection()),
-          _buildMaterialsList(),
-          SliverToBoxAdapter(child: SizedBox(height: 20)),
-        ],
+        slivers: [_buildAppBar(), _buildMaterialsList(), SliverToBoxAdapter(child: SizedBox(height: 20))],
       ),
     );
   }
@@ -138,14 +147,28 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                       ),
                       SizedBox(width: 14),
                       Expanded(
-                        child: Text(
-                          'Purchased Study Materials',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.white,
-                            fontFamily: 'Poppins',
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Purchased Materials',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.white,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                            if (!_isLoading)
+                              Text(
+                                '${_purchasedMaterials.length} item${_purchasedMaterials.length != 1 ? 's' : ''}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.white.withOpacity(0.8),
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
@@ -159,90 +182,76 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     );
   }
 
-  // Widget _buildCategoriesSection() {
-  //   return Container(
-  //     margin: EdgeInsets.only(top: 16, bottom: 16),
-  //     height: 42,
-  //     child: ListView.builder(
-  //       scrollDirection: Axis.horizontal,
-  //       padding: EdgeInsets.symmetric(horizontal: 16),
-  //       itemCount: _categoryItems.length,
-  //       itemBuilder: (context, index) {
-  //         final category = _categoryItems[index];
-
-  //         bool isSelected = _selectedCategoryId == category.category_id;
-  //         return GestureDetector(
-  //           onTap: () async {
-  //             setState(() {
-  //               _selectedCategoryId = category.category_id;
-  //               _isLoading = true;
-  //             });
-
-  //             final data = await fetchStudyCategory(category.category_id);
-  //             if (!mounted) return;
-
-  //             setState(() {
-  //               _studyMaterials_new = data;
-  //               subjectName = category.name;
-  //               _isLoading = false;
-  //             });
-  //           },
-  //           child: Container(
-  //             margin: EdgeInsets.only(right: 10),
-  //             padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-  //             decoration: BoxDecoration(
-  //               gradient: isSelected ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
-  //               color: isSelected ? null : AppColors.white,
-  //               borderRadius: BorderRadius.circular(12),
-  //               boxShadow: [
-  //                 BoxShadow(
-  //                   color: isSelected ? AppColors.tealGreen.withOpacity(0.3) : AppColors.black.withOpacity(0.04),
-  //                   blurRadius: isSelected ? 12 : 6,
-  //                   offset: Offset(0, isSelected ? 4 : 2),
-  //                 ),
-  //               ],
-  //             ),
-  //             child: Center(
-  //               child: Text(
-  //                 category.name,
-  //                 style: TextStyle(
-  //                   fontSize: 13,
-  //                   fontWeight: FontWeight.w600,
-  //                   color: isSelected ? AppColors.white : AppColors.greyS700,
-  //                 ),
-  //               ),
-  //             ),
-  //           ),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
-
   Widget _buildMaterialsList() {
     if (_isLoading) {
-      return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(40),
+            child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)),
+          ),
+        ),
+      );
     }
 
-    if (_studyMaterials_new.isEmpty) {
-      return const SliverToBoxAdapter(child: Center(child: Text('No study material found')));
+    if (_purchasedMaterials.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(40),
+            child: Column(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(30),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.tealGreen.withOpacity(0.1), AppColors.darkNavy.withOpacity(0.05)],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.shopping_bag_outlined, size: 80, color: AppColors.greyS400),
+                ),
+                SizedBox(height: 24),
+                Text(
+                  'No Purchased Materials',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'You haven\'t purchased any study materials yet',
+                  style: TextStyle(fontSize: 14, color: AppColors.greyS600),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        final material = _studyMaterials_new[index];
+        final material = _purchasedMaterials[index];
         return _buildMaterialCard(material);
-      }, childCount: _studyMaterials_new.length),
+      }, childCount: _purchasedMaterials.length),
     );
   }
 
   Widget _buildMaterialCard(StudyMaterialDetailsItem material) {
-    // Check if material has an image URL (add this property to your model if needed)
-    final bool hasImage = material.filePath != null && material.filePath!.isNotEmpty;
+    // Get subject name from subject_id
+    final String subjectName = _getSubjectName(material.subjectId);
+    final bool hasImage = material.thumbnail.isNotEmpty;
 
     return GestureDetector(
       onTap: () {
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()));
+        if (material.contentType != 'Video') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title)),
+          );
+        } else {
+          launchUrl(Uri.parse(material.filePath));
+        }
       },
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -331,43 +340,34 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                     ),
                   ),
 
-                  // Top badges
+                  // Top badges - Show "PURCHASED" instead of "PREMIUM"
                   Positioned(
                     top: 12,
                     right: 12,
-                    child: Row(
-                      children: [
-                        if (material.isPaid)
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.black.withOpacity(0.15),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.workspace_premium_rounded, size: 14, color: Colors.amber[700]),
-                                SizedBox(width: 4),
-                                Text(
-                                  'PREMIUM',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.amber[800],
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: AppColors.black.withOpacity(0.15), blurRadius: 8, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 14, color: AppColors.tealGreen),
+                          SizedBox(width: 4),
+                          Text(
+                            'PURCHASED',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.tealGreen,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
 
@@ -465,7 +465,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                   SizedBox(height: 12),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    material.description ?? '',
+                    material.description,
                     13,
                     AppColors.darkNavy,
                     FontWeight.normal,
@@ -474,37 +474,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                     0.0,
                   ),
 
-                  // Info chips row
-                  // Row(
-                  //   children: [
-                  //     _buildEnhancedInfoChip(
-                  //       Icons.insert_drive_file_rounded,
-                  //       material.contentType.toString().toUpperCase() == 'PDF' ? '2 pages' : '30 min',
-                  //     ),
-                  //     SizedBox(width: 10),
-                  //     _buildEnhancedInfoChip(Icons.file_download_rounded, material.size),
-                  //     Spacer(),
-                  //     Container(
-                  //       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  //       decoration: BoxDecoration(
-                  //         gradient: LinearGradient(
-                  //           colors: [Colors.amber.withOpacity(0.2), Colors.amber.withOpacity(0.1)],
-                  //         ),
-                  //         borderRadius: BorderRadius.circular(8),
-                  //       ),
-                  //       child: Row(
-                  //         children: [
-                  //           Icon(Icons.star_rounded, size: 14, color: Colors.amber[700]),
-                  //           SizedBox(width: 3),
-                  //           Text(
-                  //             '${material.rating}',
-                  //             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
                   SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
@@ -522,38 +491,40 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.transparent,
+                        backgroundColor: Colors.transparent,
                         padding: EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            'Start Learning',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.white,
-                              letterSpacing: 0.5,
-                            ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppColors.darkNavy, AppColors.tealGreen],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                        ],
-                      ),
-                    ).decorated(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.darkNavy, AppColors.tealGreen],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(color: AppColors.darkNavy.withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4)),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(color: AppColors.darkNavy.withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4)),
-                        ],
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Start Learning',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -568,7 +539,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                           Icon(Icons.access_time_rounded, size: 12, color: AppColors.greyS500),
                           SizedBox(width: 4),
                           Text(
-                            'Updated ${material.createdAt}',
+                            'Purchased on ${material.createdAt}',
                             style: TextStyle(fontSize: 10, color: AppColors.greyS500, fontWeight: FontWeight.w500),
                           ),
                         ],
@@ -593,21 +564,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
           colors: _getGradientColors(subject),
         ),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-    );
-  }
-
-  Widget _buildEnhancedInfoChip(IconData icon, String text) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppColors.tealGreen),
-          SizedBox(width: 5),
-          Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.greyS700)),
-        ],
       ),
     );
   }

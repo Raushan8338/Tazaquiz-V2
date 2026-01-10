@@ -68,7 +68,7 @@ class Authrepository {
 
   Future<Response> fetchStudyMaterialsDetails(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
-    return await _dio.post(BaseUrl.get_study_materials_details, data: formData);
+    return await _dio.post(BaseUrl.get_paid_study_materials_details, data: formData);
   }
 
   Future<Response> generateServiceRequest(Map<String, dynamic> data) async {
@@ -105,13 +105,33 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.apply_coupon_code, data: formData);
   }
-   Future<Response> get_quizId_wise_details(Map<String, dynamic> data) async {
+
+  Future<Response> get_quizId_wise_details(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.get_id_wise_quiz, data: formData);
   }
-   Future<Response> get_study_wise_details(Map<String, dynamic> data) async {
+
+  Future<Response> get_study_wise_details(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.get_id_wise_studyM_Details, data: formData);
   }
 
+  Future<Response> fetch_Quiz_category() async {
+    return await _dio.get(BaseUrl.quizCategory);
+  }
+
+  Future<Response> fetch_Quiz_List(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_all_quiz, data: formData);
+  }
+
+  Future<Response> fetch_paymentHistory(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_payment_history, data: formData);
+  }
+
+  Future<Response> fetch_Quiz_performanceApi(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.Quiz_performanceApi, data: formData);
+  }
 }

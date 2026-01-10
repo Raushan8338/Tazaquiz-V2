@@ -60,10 +60,7 @@ class StudyMaterialDetailsItem {
       price: _toDouble(json['price']),
       isPaid: _toBool(json['is_paid']),
       levelId: _toInt(json['level_id']),
-      createdAt: DateTime.tryParse(
-            json['created_at']?.toString() ?? '',
-          ) ??
-          DateTime.fromMillisecondsSinceEpoch(0),
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
       isPublished: _toBool(json['is_published']),
       rating: json['rating']?.toString() ?? '4.5',
       thumbnail: json['thumbnail']?.toString() ?? '',

@@ -59,7 +59,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             child: Column(
               children: [
                 _buildRegisteredInfo(),
-                _buildStatsCards(),
+                // _buildStatsCards(),
                 _buildQuickActions(),
                 _buildAccountSettings(),
                 SizedBox(height: 20),
@@ -351,18 +351,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildActionButton('My Courses', Icons.play_circle_outline, AppColors.oxfordBlue, () {})),
-              SizedBox(width: 12),
               Expanded(
                 child: _buildActionButton('Quiz History', Icons.history, AppColors.tealGreen, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => QuizHistoryPage()));
                 }),
               ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Row(
-            children: [
+              SizedBox(width: 12),
               Expanded(
                 child: _buildActionButton('Study Materials', Icons.book, AppColors.orange, () {
                   Navigator.push(
@@ -371,10 +365,21 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   );
                 }),
               ),
-              SizedBox(width: 12),
+            ],
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
               Expanded(
                 child: _buildActionButton('All Payments', Icons.payment, AppColors.darkNavy, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentHistoryPage()));
+                }),
+              ),
+
+              SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton('Need Help', Icons.help, AppColors.oxfordBlue, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
                 }),
               ),
             ],

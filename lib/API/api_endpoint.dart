@@ -15,7 +15,7 @@ class BaseUrl {
   static String get_study_levels = "studyLevelSlider.php";
   static String get_study_category = "studyCategory.php";
   static String get_study_subject_category = "subjectLevelSlider.php";
-  static String get_study_materials_details = "study_materials_details.php";
+  static String get_paid_study_materials_details = "study_materials_details.php";
   static String gsubmit_service_requestet = "serviceRequestGen.php";
   static String fetch_ticket_status = "serviceRequestView.php";
   static String fetch_referral_list = "referalUserList.php";
@@ -24,7 +24,9 @@ class BaseUrl {
   static String fetch_checkout_details = "checkout_details.php";
   static String apply_coupon_code = "apply_coupon.php";
   static String get_id_wise_quiz = "get_id_wise_quiz.php";
-  static String get_id_wise_studyM_Details ="get_id_wise_study.php";
-  static String fetch_all_quiz ="quizes_api.php";
-
+  static String get_id_wise_studyM_Details = "get_id_wise_study.php";
+  static String quizCategory = "quizCategory.php";
+  static String fetch_all_quiz = "quizes_api.php";
+  static String fetch_payment_history = "purchaseHistory.php";
+  static String Quiz_performanceApi = "performanceApi.php";
 }

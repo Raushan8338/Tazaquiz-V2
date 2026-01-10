@@ -17,7 +17,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'TazaQuiz',
       debugShowCheckedModeBanner: false,
-
       home: SplashScreen(), //OtpLoginPage(), //LoginPage(),
     );
   }

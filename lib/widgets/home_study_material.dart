@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
+import 'package:tazaquiznew/screens/buyStudyM.dart';
+import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class HomeStudyMaterials extends StatefulWidget {
@@ -140,7 +142,7 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
   Widget _buildMaterialCard(material) {
     return InkWell(
       onTap: () {
-        print('Tapped on: Study Material ${material.id}');
+        Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage(material.id)));
       },
       child: Container(
         width: 280,
@@ -237,7 +239,9 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
                   ),
 
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage(material.id)));
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.lightGold,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

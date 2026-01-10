@@ -1,112 +1,126 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/models/quizItem_modal.dart';
+import 'package:tazaquiznew/models/study_category_item.dart';
+import 'package:tazaquiznew/screens/buyQuizes.dart';
 import 'package:tazaquiznew/screens/seriesWiseQuizList.dart';
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 
 class QuizListScreen extends StatefulWidget {
   @override
   _QuizListScreenState createState() => _QuizListScreenState();
 }
 
-class _QuizListScreenState extends State<QuizListScreen> {
-  String _selectedCategory = 'All';
+class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProviderStateMixin {
   bool _isGridView = true;
-  String _selectedFilter = 'live';
-  final List<String> _categories = ['All', 'Mathematics', 'Science', 'English', 'Physics', 'History'];
+  String _selectedFilter = 'all'; // 'all', 'live', 'upcoming'
 
-  final List<Map<String, dynamic>> _quizzes = [
-    {
-      'title': 'Advanced Calculus',
-      'subtitle': 'Test your skills',
-      'category': 'Mathematics',
-      'difficulty': 'Advanced',
-      'questions': 25,
-      'duration': '30 min',
-      'participants': 5420,
-      'isPremium': false,
-      'color1': Color(0xFF1A4D6D),
-      'color2': Color(0xFF28A194),
-    },
-    {
-      'title': 'Organic Chemistry',
-      'subtitle': 'Master the basics',
-      'category': 'Science',
-      'difficulty': 'Intermediate',
-      'questions': 20,
-      'duration': '25 min',
-      'participants': 3890,
-      'isPremium': true,
-      'color1': Color(0xFF28A194),
-      'color2': Color(0xFF1A4D6D),
-    },
-    {
-      'title': 'Physics Laws',
-      'subtitle': 'Quick revision',
-      'category': 'Physics',
-      'difficulty': 'Beginner',
-      'questions': 15,
-      'duration': '20 min',
-      'participants': 8920,
-      'isPremium': false,
-      'color1': Color(0xFF0C3756),
-      'color2': Color(0xFF1A4D6D),
-    },
-    {
-      'title': 'English Grammar',
-      'subtitle': 'Complete guide',
-      'category': 'English',
-      'difficulty': 'Intermediate',
-      'questions': 30,
-      'duration': '35 min',
-      'participants': 6750,
-      'isPremium': false,
-      'color1': Color(0xFF1A4D6D),
-      'color2': Color(0xFF0C3756),
-    },
-    {
-      'title': 'World History',
-      'subtitle': 'Ancient civilizations',
-      'category': 'History',
-      'difficulty': 'Advanced',
-      'questions': 40,
-      'duration': '45 min',
-      'participants': 4560,
-      'isPremium': true,
-      'color1': Color(0xFF28A194),
-      'color2': Color(0xFF0C3756),
-    },
-    {
-      'title': 'Algebra Basics',
-      'subtitle': 'Foundation course',
-      'category': 'Mathematics',
-      'difficulty': 'Beginner',
-      'questions': 18,
-      'duration': '22 min',
-      'participants': 7200,
-      'isPremium': false,
-      'color1': Color(0xFF1A4D6D),
-      'color2': Color(0xFF28A194),
-    },
+  late TabController _tabController;
+  List<CategoryItem> _categories = [];
+  int _selectedCategoryId = 0;
+
+  bool _isLoading = true;
+  bool _isFetchingQuizzes = false;
+  List<QuizItem> _quizzes = [];
+
+  // Colors for gradient cards
+  final List<List<Color>> _gradientColors = [
+    [Color(0xFF1A4D6D), Color(0xFF28A194)],
+    [Color(0xFF28A194), Color(0xFF1A4D6D)],
+    [Color(0xFF0C3756), Color(0xFF1A4D6D)],
+    [Color(0xFF1A4D6D), Color(0xFF0C3756)],
+    [Color(0xFF28A194), Color(0xFF0C3756)],
   ];
-
-  List<Map<String, dynamic>> get _filteredQuizzes {
-    if (_selectedCategory == 'All') return _quizzes;
-    return _quizzes.where((quiz) => quiz['category'] == _selectedCategory).toList();
+  UserModel? _user;
+  @override
+  void initState() {
+    super.initState();
+    _getUserData();
+    _tabController = TabController(length: 3, vsync: this);
   }
 
-  void _showFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildFilterBottomSheet(),
-    );
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
-  void _applyFilter(String filter) {
+  Future<void> _getUserData() async {
+    _user = await SessionManager.getUser();
+    setState(() {});
+    await fetchStudyLevels();
+  }
+
+  Future<void> fetchStudyLevels() async {
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      Response response = await authRepository.fetchStudyLevels();
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final List list = data['data'] ?? [];
+
+        setState(() {
+          _categories = [
+            CategoryItem(category_id: 0, name: 'All'),
+            ...list.map((e) => CategoryItem.fromJson(e)).toList(),
+          ];
+          _isLoading = false;
+        });
+
+        // Fetch quizzes for "All" category by default
+        await fetchQuizData(0);
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print('Error fetching study levels: $e');
+    }
+  }
+
+  Future<void> fetchQuizData(int category_id) async {
     setState(() {
-      _selectedFilter = filter;
+      _isFetchingQuizzes = true;
     });
+
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {'category_id': category_id.toString(), 'user_id': _user!.id.toString()};
+
+      final responseFuture = await authRepository.fetch_Quiz_List(data);
+
+      if (responseFuture.statusCode == 200) {
+        final responseData = responseFuture.data;
+        final List list = responseData['data'] ?? [];
+
+        setState(() {
+          _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
+          _isFetchingQuizzes = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isFetchingQuizzes = false;
+      });
+      print('Error fetching quizzes: $e');
+    }
+  }
+
+  List<QuizItem> get _filteredQuizzes {
+    if (_selectedFilter == 'all') {
+      return _quizzes;
+    } else if (_selectedFilter == 'live') {
+      return _quizzes.where((quiz) => quiz.isLive).toList();
+    } else if (_selectedFilter == 'upcoming') {
+      return _quizzes.where((quiz) => quiz.quizStatus == 'upcoming' && !quiz.isLive).toList();
+    }
+    return _quizzes;
   }
 
   @override
@@ -117,7 +131,44 @@ class _QuizListScreenState extends State<QuizListScreen> {
         slivers: [
           _buildAppBar(),
           SliverToBoxAdapter(child: _buildCategoriesSection()),
-          _isGridView ? _buildGridView() : _buildListView(),
+          SliverToBoxAdapter(child: SizedBox(height: 10)),
+
+          // Loading or Content
+          if (_isFetchingQuizzes)
+            SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)),
+                ),
+              ),
+            )
+          else if (_filteredQuizzes.isEmpty)
+            SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Column(
+                    children: [
+                      Icon(Icons.quiz_outlined, size: 80, color: AppColors.greyS400),
+                      SizedBox(height: 16),
+                      Text(
+                        'No quizzes found',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.greyS600),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Try selecting a different category',
+                        style: TextStyle(fontSize: 14, color: AppColors.greyS500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            _isGridView ? _buildGridView() : _buildListView(),
+
           SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
       ),
@@ -168,15 +219,47 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           ),
                           SizedBox(width: 14),
                           Expanded(
-                            child: Text(
-                              'Available Quizzes',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Available Quizzes',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.white,
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                                Text(
+                                  '${_filteredQuizzes.length} quiz${_filteredQuizzes.length != 1 ? 'zes' : ''} available',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.white.withOpacity(0.8),
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Container(
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                _isGridView ? Icons.view_list : Icons.grid_view,
                                 color: AppColors.white,
-                                fontFamily: 'Poppins',
+                                size: 22,
                               ),
                             ),
+                            onPressed: () {
+                              setState(() {
+                                _isGridView = !_isGridView;
+                              });
+                            },
                           ),
                           IconButton(
                             icon: Container(
@@ -187,7 +270,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
                               ),
                               child: Icon(Icons.filter_list, color: AppColors.white, size: 22),
                             ),
-                            onPressed: _showFilterBottomSheet,
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => _buildFilterBottomSheet(),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -203,6 +293,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
   }
 
   Widget _buildCategoriesSection() {
+    if (_isLoading) {
+      return Container(
+        margin: EdgeInsets.only(top: 16, bottom: 16),
+        height: 42,
+        child: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen))),
+      );
+    }
+
     return Container(
       margin: EdgeInsets.only(top: 16, bottom: 16),
       height: 42,
@@ -211,12 +309,15 @@ class _QuizListScreenState extends State<QuizListScreen> {
         padding: EdgeInsets.symmetric(horizontal: 16),
         itemCount: _categories.length,
         itemBuilder: (context, index) {
-          bool isSelected = _selectedCategory == _categories[index];
+          final category = _categories[index];
+          bool isSelected = _selectedCategoryId == category.category_id;
+
           return GestureDetector(
-            onTap: () {
+            onTap: () async {
               setState(() {
-                _selectedCategory = _categories[index];
+                _selectedCategoryId = category.category_id;
               });
+              await fetchQuizData(category.category_id);
             },
             child: Container(
               margin: EdgeInsets.only(right: 10),
@@ -235,7 +336,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               ),
               child: Center(
                 child: Text(
-                  _categories[index],
+                  category.name,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -262,7 +363,8 @@ class _QuizListScreenState extends State<QuizListScreen> {
         ),
         delegate: SliverChildBuilderDelegate((context, index) {
           final quiz = _filteredQuizzes[index];
-          return _buildGridCard(quiz);
+          final colors = _gradientColors[index % _gradientColors.length];
+          return _buildGridCard(quiz, colors);
         }, childCount: _filteredQuizzes.length),
       ),
     );
@@ -272,218 +374,119 @@ class _QuizListScreenState extends State<QuizListScreen> {
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final quiz = _filteredQuizzes[index];
-        return _buildListCard(quiz);
+        final colors = _gradientColors[index % _gradientColors.length];
+        return _buildListCard(quiz, colors);
       }, childCount: _filteredQuizzes.length),
     );
   }
 
-  Widget _buildGridCard(Map<String, dynamic> quiz) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [quiz['color1'], quiz['color2']],
+  Widget _buildGridCard(QuizItem quiz, List<Color> colors) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId)));
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 12, offset: Offset(0, 4))],
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: quiz['color1'].withOpacity(0.3), blurRadius: 12, offset: Offset(0, 4))],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20,
-            top: -20,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
+              ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(color: Color(0xFFFFB800), borderRadius: BorderRadius.circular(20)),
+            Padding(
+              padding: EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Status Badge
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: quiz.isLive ? Color(0xFFFF3B30) : Color(0xFFFFB800),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (quiz.isLive)
+                              Container(
+                                width: 6,
+                                height: 6,
+                                margin: EdgeInsets.only(right: 4),
+                                decoration: BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
+                              ),
+                            Text(
+                              quiz.isLive ? 'LIVE' : 'UPCOMING',
+                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (quiz.isPaid && !quiz.isPurchased)
+                        Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.25), shape: BoxShape.circle),
+                          child: Icon(Icons.workspace_premium, color: AppColors.white, size: 14),
+                        ),
+                    ],
+                  ),
+                  Spacer(),
+                  Text(
+                    quiz.title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.white,
+                      fontFamily: 'Poppins',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 4),
+                  if (quiz.difficultyLevel.isNotEmpty)
+                    Text(
+                      quiz.difficultyLevel,
+                      style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.8), fontFamily: 'Poppins'),
+                    ),
+                  if (quiz.startsInText.isNotEmpty && !quiz.isLive)
+                    Padding(
+                      padding: EdgeInsets.only(top: 4),
                       child: Text(
-                        'UPCOMING',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.white),
+                        'Starts in ${quiz.startsInText}',
+                        style: TextStyle(fontSize: 10, color: AppColors.white.withOpacity(0.9), fontFamily: 'Poppins'),
                       ),
                     ),
-                    if (quiz['isPremium'])
-                      Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: AppColors.white.withOpacity(0.25), shape: BoxShape.circle),
-                        child: Icon(Icons.workspace_premium, color: AppColors.white, size: 14),
-                      ),
-                  ],
-                ),
-                Spacer(),
-                Text(
-                  quiz['title'],
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.white,
-                    fontFamily: 'Poppins',
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  quiz['subtitle'],
-                  style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.8), fontFamily: 'Poppins'),
-                ),
-                SizedBox(height: 12),
-
-                InkWell(
-                  onTap: () {
-                    // quiz['isPremium'] ?
-
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => TestSeriesDetailPage()));
-                  },
-                  child: Container(
+                  SizedBox(height: 12),
+                  Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10)),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.play_arrow, color: quiz['color1'], size: 16),
+                        Icon(
+                          quiz.isAccessible ? (quiz.isLive ? Icons.play_arrow : Icons.schedule) : Icons.lock,
+                          color: colors[0],
+                          size: 16,
+                        ),
                         SizedBox(width: 4),
-                        Text(
-                          quiz['isPremium'] ? 'Unlock' : 'Join Now',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: quiz['color1']),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildListCard(Map<String, dynamic> quiz) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 120,
-            height: 140,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [quiz['color1'], quiz['color2']],
-              ),
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -20,
-                  bottom: -20,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
-                  ),
-                ),
-                Center(child: Icon(Icons.quiz, size: 50, color: AppColors.white.withOpacity(0.9))),
-                if (quiz['isPremium'])
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: AppColors.white.withOpacity(0.25), shape: BoxShape.circle),
-                      child: Icon(Icons.workspace_premium, color: AppColors.white, size: 14),
-                    ),
-                  ),
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: Color(0xFFFFB800), borderRadius: BorderRadius.circular(8)),
-                    child: Text(
-                      'UPCOMING',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    quiz['title'],
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 4),
-                  Text(quiz['subtitle'], style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
-                  SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.tealGreen.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          quiz['difficulty'],
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.tealGreen),
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Icon(Icons.question_answer, size: 12, color: AppColors.greyS500),
-                      SizedBox(width: 3),
-                      Text('${quiz['questions']}', style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
-                      SizedBox(width: 8),
-                      Icon(Icons.timer, size: 12, color: AppColors.greyS500),
-                      SizedBox(width: 3),
-                      Text(quiz['duration'], style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
-                    ],
-                  ),
-                  SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [quiz['color1'], quiz['color2']]),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.play_arrow, color: AppColors.white, size: 16),
-                        SizedBox(width: 4),
-                        Text(
-                          quiz['isPremium'] ? 'Unlock Quiz' : 'Join Now',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.white),
+                        Flexible(
+                          child: Text(
+                            _getButtonText(quiz),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: colors[0]),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -491,10 +494,189 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildListCard(QuizItem quiz, List<Color> colors) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId)));
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 120,
+              height: 140,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -20,
+                    bottom: -20,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
+                    ),
+                  ),
+                  Center(child: Icon(Icons.quiz, size: 50, color: AppColors.white.withOpacity(0.9))),
+                  if (quiz.isPaid && !quiz.isPurchased)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: EdgeInsets.all(6),
+                        decoration: BoxDecoration(color: AppColors.white.withOpacity(0.25), shape: BoxShape.circle),
+                        child: Icon(Icons.workspace_premium, color: AppColors.white, size: 14),
+                      ),
+                    ),
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: quiz.isLive ? Color(0xFFFF3B30) : Color(0xFFFFB800),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (quiz.isLive)
+                            Container(
+                              width: 5,
+                              height: 5,
+                              margin: EdgeInsets.only(right: 3),
+                              decoration: BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
+                            ),
+                          Text(
+                            quiz.isLive ? 'LIVE' : 'UPCOMING',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      quiz.title,
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4),
+                    if (quiz.description.isNotEmpty)
+                      Text(
+                        quiz.description,
+                        style: TextStyle(fontSize: 12, color: AppColors.greyS600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (quiz.difficultyLevel.isNotEmpty) ...[
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.tealGreen.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              quiz.difficultyLevel,
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.tealGreen),
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                        ],
+                        if (quiz.timeLimit.isNotEmpty) ...[
+                          Icon(Icons.timer, size: 12, color: AppColors.greyS500),
+                          SizedBox(width: 3),
+                          Text(quiz.timeLimit, style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
+                        ],
+                      ],
+                    ),
+                    if (quiz.startsInText.isNotEmpty && !quiz.isLive) ...[
+                      SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(Icons.schedule, size: 12, color: AppColors.greyS500),
+                          SizedBox(width: 4),
+                          Text(
+                            'Starts in ${quiz.startsInText}',
+                            style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
+                    SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: colors),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            quiz.isAccessible ? (quiz.isLive ? Icons.play_arrow : Icons.schedule) : Icons.lock,
+                            color: AppColors.white,
+                            size: 16,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            _getButtonText(quiz),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getButtonText(QuizItem quiz) {
+    if (!quiz.isAccessible) {
+      if (quiz.isPaid && !quiz.isPurchased) {
+        return 'Unlock - ₹${quiz.price.toStringAsFixed(0)}';
+      }
+      return 'Locked';
+    }
+
+    if (quiz.isLive) {
+      return 'Join Now';
+    }
+
+    return 'View Details';
   }
 
   Widget _buildFilterBottomSheet() {
@@ -583,6 +765,23 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     ),
                     SizedBox(height: 20),
 
+                    // All Quizzes Option
+                    _buildFilterOption(
+                      context: context,
+                      icon: Icons.view_list,
+                      title: 'All Quizzes',
+                      subtitle: 'Show all available quizzes',
+                      isSelected: tempSelectedFilter == 'all',
+                      activeColor: AppColors.darkNavy,
+                      onTap: () {
+                        setModalState(() {
+                          tempSelectedFilter = 'all';
+                        });
+                      },
+                    ),
+
+                    SizedBox(height: 12),
+
                     // Live Quiz Option
                     _buildFilterOption(
                       context: context,
@@ -590,7 +789,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                       title: 'Live Quiz',
                       subtitle: 'Show quizzes that are currently live',
                       isSelected: tempSelectedFilter == 'live',
-                      activeColor: AppColors.red,
+                      activeColor: Color(0xFFFF3B30),
                       onTap: () {
                         setModalState(() {
                           tempSelectedFilter = 'live';
@@ -622,7 +821,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          _applyFilter(tempSelectedFilter);
+                          setState(() {
+                            _selectedFilter = tempSelectedFilter;
+                          });
                           Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(

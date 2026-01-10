@@ -11,9 +11,7 @@ import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
-import 'package:tazaquiznew/screens/buyStudyM.dart';
 import 'package:tazaquiznew/screens/notificationPage.dart';
-import 'package:tazaquiznew/screens/testSeries.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:tazaquiznew/widgets/WeeklyProgressWidget.dart';
@@ -90,7 +88,7 @@ class _HomePageState extends State<HomePage> {
     Authrepository authRepository = Authrepository(Api_Client.dio);
 
     final responseFuture = await authRepository.fetchHomePageData();
-    print(responseFuture.statusCode);
+
     if (responseFuture.statusCode == 200) {
       var jsonResponse = responseFuture.data;
       HomeDataResponse response = HomeDataResponse.fromJson(jsonResponse);

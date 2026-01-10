@@ -1,6 +1,13 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/models/payment_history_modal.dart';
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 
 class PaymentHistoryPage extends StatefulWidget {
   @override
@@ -10,90 +17,59 @@ class PaymentHistoryPage extends StatefulWidget {
 class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   String _selectedFilter = 'all'; // 'all', 'success', 'pending', 'failed'
 
-  // Sample payment history data
-  final List<Map<String, dynamic>> _allTransactions = [
-    {
-      'id': 'TXN1234567890',
-      'title': 'Complete Mathematics Course',
-      'type': 'Course Purchase',
-      'amount': 2948,
-      'status': 'success',
-      'date': '07 Jan 2026',
-      'time': '10:30 AM',
-      'paymentMethod': 'UPI',
-      'orderId': 'OD7890123',
-    },
-    {
-      'id': 'TXN1234567889',
-      'title': 'Premium Quiz Entry',
-      'type': 'Quiz Entry Fee',
-      'amount': 500,
-      'status': 'success',
-      'date': '05 Jan 2026',
-      'time': '02:15 PM',
-      'paymentMethod': 'Credit Card',
-      'orderId': 'OD7890122',
-    },
-    {
-      'id': 'TXN1234567888',
-      'title': 'Science Master Pack',
-      'type': 'Course Purchase',
-      'amount': 3999,
-      'status': 'pending',
-      'date': '04 Jan 2026',
-      'time': '09:45 AM',
-      'paymentMethod': 'Net Banking',
-      'orderId': 'OD7890121',
-    },
-    {
-      'id': 'TXN1234567887',
-      'title': 'Weekly Quiz Challenge',
-      'type': 'Quiz Entry Fee',
-      'amount': 200,
-      'status': 'failed',
-      'date': '03 Jan 2026',
-      'time': '05:30 PM',
-      'paymentMethod': 'UPI',
-      'orderId': 'OD7890120',
-    },
-    {
-      'id': 'TXN1234567886',
-      'title': 'History Complete Bundle',
-      'type': 'Course Purchase',
-      'amount': 1999,
-      'status': 'success',
-      'date': '02 Jan 2026',
-      'time': '11:20 AM',
-      'paymentMethod': 'Debit Card',
-      'orderId': 'OD7890119',
-    },
-    {
-      'id': 'TXN1234567885',
-      'title': 'GK Quiz Tournament',
-      'type': 'Quiz Entry Fee',
-      'amount': 1000,
-      'status': 'success',
-      'date': '01 Jan 2026',
-      'time': '03:00 PM',
-      'paymentMethod': 'UPI',
-      'orderId': 'OD7890118',
-    },
-  ];
+  bool _isLoading = true;
+  List<PaymentItem> _allTransactions = [];
+  PaymentStats? _stats;
+  UserModel? _user;
+  @override
+  void initState() {
+    super.initState();
+    _getUserData();
+  }
 
-  List<Map<String, dynamic>> get _filteredTransactions {
+  Future<void> _getUserData() async {
+    _user = await SessionManager.getUser();
+    setState(() {});
+    await fetchPaymentHistory(_user!.id);
+  }
+
+  Future<void> fetchPaymentHistory(String userId) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {'user_id': _user!.id.toString()};
+
+      final response = await authRepository.fetch_paymentHistory(data);
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        final paymentResponse = PaymentHistoryResponse.fromJson(responseData);
+
+        setState(() {
+          _allTransactions = paymentResponse.data;
+          _stats = paymentResponse.stats;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching payment history: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<PaymentItem> get _filteredTransactions {
     if (_selectedFilter == 'all') {
       return _allTransactions;
     }
-    return _allTransactions.where((txn) => txn['status'] == _selectedFilter).toList();
+    return _allTransactions.where((txn) => txn.displayStatus == _selectedFilter).toList();
   }
 
-  double get _totalAmount {
-    return _filteredTransactions
-        .where((txn) => txn['status'] == 'success')
-        .fold(0.0, (sum, txn) => sum + txn['amount']);
-  }
-
-  void _showTransactionDetails(Map<String, dynamic> transaction) {
+  void _showTransactionDetails(PaymentItem transaction) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -102,18 +78,39 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     );
   }
 
+  String _formatDate(String dateTime) {
+    try {
+      final date = DateTime.parse(dateTime);
+      return DateFormat('dd MMM yyyy').format(date);
+    } catch (e) {
+      return dateTime;
+    }
+  }
+
+  String _formatTime(String dateTime) {
+    try {
+      final date = DateTime.parse(dateTime);
+      return DateFormat('hh:mm a').format(date);
+    } catch (e) {
+      return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildSummaryCard(),
-          _buildFilterChips(),
-          Expanded(child: _filteredTransactions.isEmpty ? _buildEmptyState() : _buildTransactionsList()),
-        ],
-      ),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)))
+              : Column(
+                children: [
+                  _buildSummaryCard(),
+                  _buildFilterChips(),
+                  Expanded(child: _filteredTransactions.isEmpty ? _buildEmptyState() : _buildTransactionsList()),
+                ],
+              ),
     );
   }
 
@@ -152,9 +149,10 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   }
 
   Widget _buildSummaryCard() {
-    final successCount = _allTransactions.where((txn) => txn['status'] == 'success').length;
-    final pendingCount = _allTransactions.where((txn) => txn['status'] == 'pending').length;
-    final failedCount = _allTransactions.where((txn) => txn['status'] == 'failed').length;
+    final successCount = _stats?.successCount ?? 0;
+    final pendingCount = _stats?.pendingCount ?? 0;
+    final failedCount = _stats?.failedCount ?? 0;
+    final totalSpent = _stats?.totalSpent ?? 0.0;
 
     return Container(
       margin: EdgeInsets.all(16),
@@ -197,7 +195,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     ),
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      '₹${_totalAmount.toStringAsFixed(0)}',
+                      '₹ ${totalSpent.toStringAsFixed(0)}',
                       22,
                       AppColors.white,
                       FontWeight.w900,
@@ -355,12 +353,12 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     );
   }
 
-  Widget _buildTransactionCard(Map<String, dynamic> transaction, bool isLast) {
+  Widget _buildTransactionCard(PaymentItem transaction, bool isLast) {
     Color statusColor;
     IconData statusIcon;
     String statusText;
 
-    switch (transaction['status']) {
+    switch (transaction.displayStatus) {
       case 'success':
         statusColor = AppColors.tealGreen;
         statusIcon = Icons.check_circle;
@@ -424,7 +422,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             Expanded(
                               child: AppRichText.setTextPoppinsStyle(
                                 context,
-                                transaction['title'],
+                                transaction.productDisplayName,
                                 15,
                                 AppColors.darkNavy,
                                 FontWeight.w700,
@@ -435,7 +433,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             ),
                             AppRichText.setTextPoppinsStyle(
                               context,
-                              '₹${transaction['amount']}',
+                              '₹${transaction.amount.toStringAsFixed(0)}',
                               16,
                               AppColors.darkNavy,
                               FontWeight.w900,
@@ -454,7 +452,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                           ),
                           child: AppRichText.setTextPoppinsStyle(
                             context,
-                            transaction['type'],
+                            transaction.productTypeDisplay,
                             10,
                             AppColors.darkNavy,
                             FontWeight.w600,
@@ -470,7 +468,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             SizedBox(width: 4),
                             AppRichText.setTextPoppinsStyle(
                               context,
-                              '${transaction['date']} • ${transaction['time']}',
+                              '${_formatDate(transaction.purchaseDate)} • ${_formatTime(transaction.purchaseDate)}',
                               12,
                               AppColors.greyS600,
                               FontWeight.w500,
@@ -578,12 +576,12 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     );
   }
 
-  Widget _buildTransactionDetailsSheet(Map<String, dynamic> transaction) {
+  Widget _buildTransactionDetailsSheet(PaymentItem transaction) {
     Color statusColor;
     IconData statusIcon;
     String statusText;
 
-    switch (transaction['status']) {
+    switch (transaction.displayStatus) {
       case 'success':
         statusColor = AppColors.tealGreen;
         statusIcon = Icons.check_circle;
@@ -645,7 +643,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                 SizedBox(height: 8),
                 AppRichText.setTextPoppinsStyle(
                   context,
-                  '₹${transaction['amount']}',
+                  '₹${transaction.amount.toStringAsFixed(2)}',
                   32,
                   AppColors.darkNavy,
                   FontWeight.w900,
@@ -676,13 +674,13 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                   0.0,
                 ),
                 SizedBox(height: 16),
-                _buildDetailRow('Item', transaction['title']),
-                _buildDetailRow('Type', transaction['type']),
-                _buildDetailRow('Transaction ID', transaction['id']),
-                _buildDetailRow('Order ID', transaction['orderId']),
-                _buildDetailRow('Date', transaction['date']),
-                _buildDetailRow('Time', transaction['time']),
-                _buildDetailRow('Payment Method', transaction['paymentMethod']),
+                _buildDetailRow('Item', transaction.productDisplayName),
+                _buildDetailRow('Type', transaction.productTypeDisplay),
+                _buildDetailRow('Transaction ID', transaction.transactionId ?? 'N/A'),
+                _buildDetailRow('Order ID', transaction.orderId),
+                _buildDetailRow('Date', _formatDate(transaction.purchaseDate)),
+                _buildDetailRow('Time', _formatTime(transaction.purchaseDate)),
+                _buildDetailRow('Payment Method', transaction.paymentMethod ?? 'N/A'),
                 SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () {
@@ -700,6 +698,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Container(
+                      width: double.infinity,
                       padding: EdgeInsets.symmetric(vertical: 14),
                       alignment: Alignment.center,
                       child: AppRichText.setTextPoppinsStyle(

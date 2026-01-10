@@ -44,9 +44,8 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
   Future<void> fetchStudyLevels() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
     final data = {'categoryId': widget.id};
-    print(data);
+
     Response response = await authRepository.fetchStudySubjectCategory(data);
-    print(response.data);
 
     if (response.statusCode == 200) {
       final data = response.data;
@@ -68,7 +67,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
     final data = {'subject_id': categoryId.toString()};
 
     final responseFuture = await authRepository.fetchStudyMaterialsDetails(data);
-    print(responseFuture.statusCode);
+
     if (responseFuture.statusCode == 200) {
       final responseData = responseFuture.data;
 
@@ -170,7 +169,6 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
         itemCount: _categoryItems.length,
         itemBuilder: (context, index) {
           final category = _categoryItems[index];
-          print(category.name);
 
           bool isSelected = _selectedCategoryId == category.category_id;
           return GestureDetector(
@@ -629,7 +627,6 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                               ),
                             );
                           } else {
-                            print(material.contentType);
                             launchUrl(Uri.parse(material.filePath));
                           }
                         },
