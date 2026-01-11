@@ -1,4 +1,6 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/home.dart';
 import 'package:tazaquiznew/screens/homeSceen.dart';
@@ -17,10 +19,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _slideAnimation;
-
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
   @override
   void initState() {
     super.initState();
+    requestPermission();
+
+    /// 2️⃣ Foreground notification listener 🔥 (YAHI ADD KARNA THA)
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Foreground message received');
+      print(message.notification?.title);
+      print(message.notification?.body);
+
+      // OPTIONAL: yahan custom snackbar / dialog dikha sakte ho
+    });
 
     _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 2000));
 
@@ -42,6 +54,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _controller.forward();
 
     _checkloggedin();
+  }
+
+  Future<void> requestPermission() async {
+    NotificationSettings settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
+
+    print('Permission status: ${settings.authorizationStatus}');
   }
 
   void _checkloggedin() async {

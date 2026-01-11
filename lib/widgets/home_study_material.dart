@@ -5,6 +5,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/screens/buyStudyM.dart';
+import 'package:tazaquiznew/screens/studyMaterial.dart';
 import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
@@ -70,7 +71,9 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
                 ],
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialScreen('1')));
+                },
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(

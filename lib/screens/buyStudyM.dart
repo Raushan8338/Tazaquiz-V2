@@ -15,9 +15,7 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 class BuyCoursePage extends StatefulWidget {
   final String contentId;
 
-  BuyCoursePage({
-    required this.contentId,
-  });
+  BuyCoursePage({required this.contentId});
 
   @override
   _BuyCoursePageState createState() => _BuyCoursePageState();
@@ -40,17 +38,16 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
 
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
-    setState(() {});
     await fetchStudyCategory(_user!.id);
+
+    if (!mounted) return;
+    setState(() {}); // ✅ end me ek hi baar
   }
 
   Future<List<StudyMaterialDetailsItem>> fetchStudyCategory(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {
-        'material_id': widget.contentId.toString(),
-        'user_id': userid.toString(),
-      };
+      final data = {'material_id': widget.contentId.toString(), 'user_id': userid.toString()};
 
       final responseFuture = await authRepository.get_study_wise_details(data);
 
@@ -93,10 +90,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PDFViewerPage(
-            pdfUrl: _currentMaterial!.filePath,
-            title: _currentMaterial!.title,
-          ),
+          builder: (context) => PDFViewerPage(pdfUrl: _currentMaterial!.filePath, title: _currentMaterial!.title),
         ),
       );
     } else {
@@ -110,24 +104,15 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.greyS1,
-        body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen),
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen))),
       );
     }
 
     if (_currentMaterial == null) {
       return Scaffold(
         backgroundColor: AppColors.greyS1,
-        appBar: AppBar(
-          backgroundColor: AppColors.darkNavy,
-          title: Text('Error'),
-        ),
-        body: Center(
-          child: Text('Course not found'),
-        ),
+        appBar: AppBar(backgroundColor: AppColors.darkNavy, title: Text('Error')),
+        body: Center(child: Text('Course not found')),
       );
     }
 
@@ -147,10 +132,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 _buildDescriptionCard(),
                 SizedBox(height: 16),
                 _buildInstructorCard(),
-                if (!_isPurchased && !_isAccessible && !_isFree) ...[
-                  SizedBox(height: 16),
-                  _buildSecurePaymentInfo(),
-                ],
+                if (!_isPurchased && !_isAccessible && !_isFree) ...[SizedBox(height: 16), _buildSecurePaymentInfo()],
                 SizedBox(height: 100),
               ],
             ),
@@ -166,20 +148,19 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     IconData icon;
     List<Color> gradientColors;
 
-   if (_isFree) {
-  message = '🎉 This Study Material is completely FREE!';
-  icon = Icons.celebration;
-  gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
-} else if (_isPurchased) {
-  message = '✅ You have already purchased this Course!';
-  icon = Icons.check_circle;
-  gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
-} else {
-  message = '🔓 This Content is accessible for you!';
-  icon = Icons.lock_open;
-  gradientColors = [AppColors.lightGold, AppColors.lightGoldS2];
-}
-
+    if (_isFree) {
+      message = '🎉 This Study Material is completely FREE!';
+      icon = Icons.celebration;
+      gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
+    } else if (_isPurchased) {
+      message = '✅ You have already purchased this Course!';
+      icon = Icons.check_circle;
+      gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
+    } else {
+      message = '🔓 This Content is accessible for you!';
+      icon = Icons.lock_open;
+      gradientColors = [AppColors.lightGold, AppColors.lightGoldS2];
+    }
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
@@ -187,22 +168,13 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: gradientColors),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: gradientColors[0].withOpacity(0.3),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
+            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: gradientColors[0], size: 22),
           ),
           SizedBox(width: 12),
@@ -231,10 +203,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       leading: IconButton(
         icon: Container(
           padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(10),
-          ),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
           child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
@@ -256,10 +225,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 child: Container(
                   width: 200,
                   height: 200,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
               Positioned(
@@ -268,10 +234,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 child: Container(
                   width: 150,
                   height: 150,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
               Center(
@@ -285,17 +248,11 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                         color: AppColors.lightGold.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(18),
                         boxShadow: [
-                          BoxShadow(
-                            color: AppColors.lightGold.withOpacity(0.4),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
+                          BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 8)),
                         ],
                       ),
                       child: Icon(
-                        _currentMaterial!.contentType.toUpperCase() == 'PDF'
-                            ? Icons.picture_as_pdf
-                            : Icons.school,
+                        _currentMaterial!.contentType.toUpperCase() == 'PDF' ? Icons.picture_as_pdf : Icons.school,
                         size: 36,
                         color: AppColors.darkNavy,
                       ),
@@ -305,9 +262,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.lightGold, AppColors.lightGoldS2],
-                          ),
+                          gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -346,13 +301,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,10 +406,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 ),
                 Container(
                   padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightGold,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(10)),
                   child: Icon(
                     _isFree ? Icons.card_giftcard : Icons.shopping_bag_outlined,
                     color: AppColors.darkNavy,
@@ -516,13 +462,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,13 +516,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Row(
         children: [
@@ -664,13 +598,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -764,13 +692,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: Offset(0, -5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.1), blurRadius: 20, offset: Offset(0, -5))],
       ),
       child: SafeArea(
         child: Row(
@@ -833,10 +755,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CheckoutPage(
-                          contentType: 'STUDY',
-                          contentId: widget.contentId,
-                        ),
+                        builder: (context) => CheckoutPage(contentType: 'STUDY', contentId: widget.contentId),
                       ),
                     );
                   }
@@ -850,9 +769,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 child: Ink(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: showStartLearning
-                          ? [AppColors.lightGold, AppColors.lightGoldS2]
-                          : [AppColors.tealGreen, AppColors.darkNavy],
+                      colors:
+                          showStartLearning
+                              ? [AppColors.lightGold, AppColors.lightGoldS2]
+                              : [AppColors.tealGreen, AppColors.darkNavy],
                     ),
                     borderRadius: BorderRadius.circular(14),
                   ),

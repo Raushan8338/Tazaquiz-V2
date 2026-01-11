@@ -13,6 +13,9 @@ import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class StudyMaterialScreen extends StatefulWidget {
+  String pageId;
+  StudyMaterialScreen(this.pageId, {Key? key}) : super(key: key);
+
   @override
   _StudyMaterialScreenState createState() => _StudyMaterialScreenState();
 }
@@ -29,8 +32,13 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    fetchStudyLevels();
-    fetchStudyCategory(0);
+    getdata();
+  }
+
+  getdata() async {
+    await fetchStudyLevels();
+    await fetchStudyCategory(0);
+    setState(() {});
   }
 
   Future<void> fetchStudyLevels() async {
@@ -125,14 +133,26 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Icon(Icons.library_books, color: AppColors.white, size: 22),
-                          ),
+                          (widget.pageId == '1')
+                              ? IconButton(
+                                icon: Container(
+                                  padding: EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                              )
+                              : Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(Icons.library_books, color: AppColors.white, size: 22),
+                              ),
                           SizedBox(width: 14),
                           Expanded(
                             child: Text(

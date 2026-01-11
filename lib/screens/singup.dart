@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tazaquiznew/API/api_client.dart';
@@ -16,7 +17,7 @@ class RegistrationPage extends StatefulWidget {
 }
 
 class _RegistrationPageState extends State<RegistrationPage> {
-   //hyggtt
+  //hyggtt
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -38,14 +39,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       Authrepository authRepository = Authrepository(Api_Client.dio);
-
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
       setState(() => _isLoading = true);
       final data = {
         'mobile': _phoneController.text.trim(),
         'OTP': '',
         'name': '',
         'email': '',
-        'device_id': '',
+        'device_id': fcmToken ?? '',
         'referalCode': '',
         'androidInfo': '',
       };

@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tazaquiznew/API/api_client.dart';
@@ -119,7 +120,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
 
   void _verifyOTP() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
     String otp = _otpControllers.map((controller) => controller.text).join();
     if (otp.length == 6) {
       setState(() => _isLoading = true);
@@ -128,7 +129,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         'OTP': otp,
         'name': widget.name,
         'email': widget.email,
-        'device_id': '',
+        'device_id': fcmToken ?? '',
         'referalCode': 'widget.referalCode',
         'androidInfo': '',
       };
@@ -136,9 +137,6 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
       print(data);
 
       final responseFuture = await authRepository.signupVerifyOTP(data);
-
-      print("STATUS => ${responseFuture.statusCode}");
-      print("DATA => ${responseFuture.data}");
 
       if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);

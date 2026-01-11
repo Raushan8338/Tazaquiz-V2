@@ -3,6 +3,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/course_item_modal.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/screens/buyStudyM.dart';
+import 'package:tazaquiznew/screens/studyMaterial.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 class Home_courses extends StatelessWidget {
@@ -53,7 +54,9 @@ class Home_courses extends StatelessWidget {
                 ],
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialScreen('1')));
+                },
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
@@ -93,15 +96,7 @@ class Home_courses extends StatelessWidget {
               final course = popularCourses[index];
               return InkWell(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => BuyCoursePage(
-                            contentId: course.id,
-                          ),
-                    ),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => BuyCoursePage(contentId: course.id)));
                 },
                 child: Container(
                   width: 220,

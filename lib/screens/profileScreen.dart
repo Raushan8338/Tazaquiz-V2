@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
@@ -34,7 +35,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   final Map<String, dynamic> _statistics = {'coursesEnrolled': 8, 'testsCompleted': 45, 'totalXP': 12450, 'rank': 42};
 
   Future<void> handleLogout(BuildContext context) async {
+    final googleSignIn = GoogleSignIn();
     await SessionManager.logout();
+
+    await googleSignIn.signOut();
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => SplashScreen()), (route) => false);
   }

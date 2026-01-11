@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,10 +9,13 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/API/api_endpoint.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/screens/homeSceen.dart';
 import 'package:tazaquiznew/screens/otpVerificationPage.dart';
 import 'package:tazaquiznew/screens/singup.dart';
 import 'package:tazaquiznew/testpage.dart';
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -23,7 +28,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   //hyggtt
   bool _isPhoneLogin = true;
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
@@ -43,33 +47,51 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   void dispose() {
     _animationController.dispose();
     _phoneController.dispose();
-    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _handleLogin() async {
+  Future _handleLogin(email) async {
     //final GoogleData = await GoogleSignInApi.login();
-    // print(GoogleData?.email);
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      Authrepository authRepository = Authrepository(Api_Client.dio);
-      try {
-        final data = {
-          'phone': _phoneController.text,
-          'email': _emailController.text,
-          'device_id': 'sd',
-          'androidInfo': 'android',
-        };
-        final response = await authRepository.loginUser(data);
+    setState(() => _isLoading = true);
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    try {
+      final String phone = _phoneController.text.trim();
+      final String? finalEmail = phone.isNotEmpty ? null : email;
 
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.data); // ✅ FIX
+      final data = {
+        'phone': phone,
+        'email': finalEmail, // 👈 phone hai to email null
+        'device_id': fcmToken ?? '',
+        'androidInfo': 'android',
+      };
+      print(data);
+      final response = await authRepository.loginUser(data);
+      print(response.data);
 
-          final status = data['status'];
-          final otpSent = data['otp_sent'] == true;
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.data);
+        print(responseData);
 
-          if (status == "register" && otpSent) {
+        final status = responseData['status'];
+
+        // Check if it's email login (email_verified field exists and is true)
+        if (responseData.containsKey('email_verified') && responseData['email_verified'] == true) {
+          // EMAIL LOGIN FLOW
+          setState(() => _isLoading = false);
+          final userJson = responseData['series'];
+          final user = UserModel.fromJson(userJson);
+          await SessionManager.saveUser(user);
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
+        }
+        // Check if it's phone login (otp_sent field exists)
+        else if (responseData.containsKey('otp_sent') && status == 'register') {
+          // PHONE LOGIN FLOW
+          final otpSent = responseData['otp_sent'] == true;
+
+          if (otpSent) {
+            setState(() => _isLoading = false);
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -82,30 +104,13 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                     ),
               ),
             );
-          } else if (status == "not_register") {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: AppRichText.setTextPoppinsStyle(
-                  context,
-                  'Account not found. Please sign up to continue.',
-                  12,
-                  AppColors.white,
-                  FontWeight.normal,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
-                backgroundColor: AppColors.red,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
           } else {
+            setState(() => _isLoading = false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: AppRichText.setTextPoppinsStyle(
                   context,
-                  'Something went wrong. Please try again.',
+                  'Failed to send OTP. Please try again.',
                   12,
                   AppColors.white,
                   FontWeight.normal,
@@ -120,19 +125,77 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
             );
           }
         }
-      } catch (e) {
-      } finally {
-        setState(() => _isLoading = false);
+        // Not registered
+        else if (status == "not_register") {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: AppRichText.setTextPoppinsStyle(
+                context,
+                'Account not found. Please sign up to continue.',
+                12,
+                AppColors.white,
+                FontWeight.normal,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+              backgroundColor: AppColors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+        // Unknown response
+        else {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: AppRichText.setTextPoppinsStyle(
+                context,
+                'Something went wrong. Please try again.',
+                12,
+                AppColors.white,
+                FontWeight.normal,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+              backgroundColor: AppColors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
       }
+    } catch (e) {
+      print('Login error: $e');
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: AppRichText.setTextPoppinsStyle(
+            context,
+            'An error occurred. Please try again.',
+            12,
+            AppColors.white,
+            FontWeight.normal,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+          backgroundColor: AppColors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
-  void _toggleLoginMethod() {
-    setState(() {
-      _isPhoneLogin = !_isPhoneLogin;
-      _animationController.reset();
-      _animationController.forward();
-    });
+  Future<void> signIn() async {
+    final user = await GoogleSignInApi.login();
+    _handleLogin(user?.email);
   }
 
   @override
@@ -381,7 +444,11 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
     return AppButton.setButtonStyle(
       context,
       _isPhoneLogin ? 'Send OTP' : 'Sign In',
-      _isLoading ? null : _handleLogin,
+      _isLoading
+          ? null
+          : () {
+            signIn(); // ya email pass karo
+          },
       _isLoading,
     );
   }
@@ -409,7 +476,15 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   }
 
   Widget _buildSocialButtons() {
-    return Row(children: [Expanded(child: _buildSocialButton('Sign In With Google', () {}))]);
+    return Row(
+      children: [
+        Expanded(
+          child: _buildSocialButton('Sign In With Google', () {
+            signIn();
+          }),
+        ),
+      ],
+    );
   }
 
   Widget _buildSocialButton(String name, VoidCallback onTap) {
@@ -493,8 +568,8 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   }
 }
 
-// class GoogleSignInApi {
-//   static final _googlesignin = GoogleSignIn();
-//   static Future<GoogleSignInAccount?> login() => _googlesignin.signIn();
-//   static Future<GoogleSignInAccount?> logout() => _googlesignin.disconnect();
-// }
+class GoogleSignInApi {
+  static final _googlesignin = GoogleSignIn();
+  static Future<GoogleSignInAccount?> login() => _googlesignin.signIn();
+  static Future<GoogleSignInAccount?> logout() => _googlesignin.disconnect();
+}

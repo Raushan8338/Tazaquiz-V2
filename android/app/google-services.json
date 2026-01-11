@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "546353065882",
+    "project_id": "tazaquiz-d6e1c",
+    "storage_bucket": "tazaquiz-d6e1c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:546353065882:android:11d423df375f8f75e7d423",
+        "android_client_info": {
+          "package_name": "com.tazaquiz.quiz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEN_4mMYXOcqgRY-Y9Eq_PStSKyjubS1U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

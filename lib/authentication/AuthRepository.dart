@@ -134,4 +134,14 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.Quiz_performanceApi, data: formData);
   }
+
+  Future<Response> fetch_non_paid_materials(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.get_nonpaid_study_materials_details, data: formData);
+  }
+
+  Future<Response> save_bookmark_data(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.save_bookmark, data: formData);
+  }
 }

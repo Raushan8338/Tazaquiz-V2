@@ -13,9 +13,7 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 class QuizDetailPage extends StatefulWidget {
   final String quizId;
 
-  QuizDetailPage({
-    required this.quizId,
-  });
+  QuizDetailPage({required this.quizId});
 
   @override
   _QuizDetailPageState createState() => _QuizDetailPageState();
@@ -46,23 +44,22 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
 
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
-    setState(() {});
     await fetchQuizDetails(_user!.id);
+
+    if (!mounted) return;
+    setState(() {}); // ✅ end me ek hi baar
   }
 
   Future<void> fetchQuizDetails(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {
-        'quiz_id': widget.quizId.toString(),
-        'user_id': userid.toString(),
-      };
+      final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
 
       final responseFuture = await authRepository.get_quizId_wise_details(data);
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
-        
+
         if (responseData['status'] == true && responseData['data'] != null) {
           _currentQuiz = QuizItem.fromJson(responseData['data']);
           _isPurchased = _currentQuiz!.isPurchased;
@@ -106,7 +103,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
 
   String _getCountdownText() {
     if (_remainingSeconds <= 0) return "LIVE NOW!";
-    
+
     int hours = _remainingSeconds ~/ 3600;
     int minutes = (_remainingSeconds % 3600) ~/ 60;
     int seconds = _remainingSeconds % 60;
@@ -124,12 +121,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     if (_currentQuiz == null) return;
 
     // TODO: Navigate to quiz page
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Starting quiz...'),
-        backgroundColor: AppColors.tealGreen,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Starting quiz...'), backgroundColor: AppColors.tealGreen));
   }
 
   @override
@@ -137,24 +131,15 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.greyS1,
-        body: Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen),
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen))),
       );
     }
 
     if (_currentQuiz == null) {
       return Scaffold(
         backgroundColor: AppColors.greyS1,
-        appBar: AppBar(
-          backgroundColor: AppColors.darkNavy,
-          title: Text('Error'),
-        ),
-        body: Center(
-          child: Text('Quiz not found'),
-        ),
+        appBar: AppBar(backgroundColor: AppColors.darkNavy, title: Text('Error')),
+        body: Center(child: Text('Quiz not found')),
       );
     }
 
@@ -180,10 +165,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                 _buildInstructionsCard(),
                 SizedBox(height: 16),
                 _buildQuizInfoCard(),
-                if (!_isPurchased && !_isAccessible && !_isFree) ...[
-                  SizedBox(height: 16),
-                  _buildSecurePaymentInfo(),
-                ],
+                if (!_isPurchased && !_isAccessible && !_isFree) ...[SizedBox(height: 16), _buildSecurePaymentInfo()],
                 SizedBox(height: 100),
               ],
             ),
@@ -199,20 +181,19 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     IconData icon;
     List<Color> gradientColors;
 
-   if (_isFree) {
-  message = '🎉 This Quiz is completely FREE!';
-  icon = Icons.celebration;
-  gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
-} else if (_isPurchased) {
-  message = '✅ You have already purchased this Quiz!';
-  icon = Icons.check_circle;
-  gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
-} else {
-  message = '🔓 This Quiz is accessible for you!';
-  icon = Icons.lock_open;
-  gradientColors = [AppColors.lightGold, AppColors.lightGoldS2];
-}
-
+    if (_isFree) {
+      message = '🎉 This Quiz is completely FREE!';
+      icon = Icons.celebration;
+      gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
+    } else if (_isPurchased) {
+      message = '✅ You have already purchased this Quiz!';
+      icon = Icons.check_circle;
+      gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
+    } else {
+      message = '🔓 This Quiz is accessible for you!';
+      icon = Icons.lock_open;
+      gradientColors = [AppColors.lightGold, AppColors.lightGoldS2];
+    }
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
@@ -220,22 +201,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: gradientColors),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: gradientColors[0].withOpacity(0.3),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
+            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: gradientColors[0], size: 22),
           ),
           SizedBox(width: 12),
@@ -261,26 +233,15 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       margin: EdgeInsets.symmetric(horizontal: 16),
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.red.shade600, Colors.red.shade800],
-        ),
+        gradient: LinearGradient(colors: [Colors.red.shade600, Colors.red.shade800]),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withOpacity(0.4),
-            blurRadius: 20,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 5))],
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
+            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10)),
             child: Icon(Icons.play_circle_filled, color: Colors.red, size: 22),
           ),
           SizedBox(width: 12),
@@ -309,10 +270,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       leading: IconButton(
         icon: Container(
           padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(10),
-          ),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
           child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
@@ -334,10 +292,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                 child: Container(
                   width: 200,
                   height: 200,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
               Positioned(
@@ -346,10 +301,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                 child: Container(
                   width: 150,
                   height: 150,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
                 ),
               ),
               Center(
@@ -363,27 +315,17 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                         color: AppColors.lightGold.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(18),
                         boxShadow: [
-                          BoxShadow(
-                            color: AppColors.lightGold.withOpacity(0.4),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
+                          BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 8)),
                         ],
                       ),
-                      child: Icon(
-                        Icons.quiz,
-                        size: 36,
-                        color: AppColors.darkNavy,
-                      ),
+                      child: Icon(Icons.quiz, size: 36, color: AppColors.darkNavy),
                     ),
                     if (_currentQuiz!.isPaid && _currentQuiz!.price > 0) ...[
                       SizedBox(height: 10),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.lightGold, AppColors.lightGoldS2],
-                          ),
+                          gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -422,13 +364,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,15 +493,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                 ),
                 Container(
                   padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.lightGold,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    _isFree ? Icons.card_giftcard : Icons.paid,
-                    color: AppColors.darkNavy,
-                    size: 24,
-                  ),
+                  decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(10)),
+                  child: Icon(_isFree ? Icons.card_giftcard : Icons.paid, color: AppColors.darkNavy, size: 24),
                 ),
               ],
             ),
@@ -595,13 +524,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -643,9 +566,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
             Container(
               padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.orange.shade400, Colors.orange.shade600],
-                ),
+                gradient: LinearGradient(colors: [Colors.orange.shade400, Colors.orange.shade600]),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -730,13 +651,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -767,8 +682,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
           SizedBox(height: 14),
           AppRichText.setTextPoppinsStyle(
             context,
-            _currentQuiz!.description.isNotEmpty 
-                ? _currentQuiz!.description 
+            _currentQuiz!.description.isNotEmpty
+                ? _currentQuiz!.description
                 : 'Test your knowledge with this exciting quiz!',
             13,
             AppColors.greyS700,
@@ -791,13 +706,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -853,32 +762,28 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: matches.map((match) {
-        String content = match.group(1) ?? '';
-        String cleanText = _removeHtmlTags(content);
-        
-        return Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: EdgeInsets.only(top: 5),
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: AppColors.tealGreen,
-                  shape: BoxShape.circle,
-                ),
+      children:
+          matches.map((match) {
+            String content = match.group(1) ?? '';
+            String cleanText = _removeHtmlTags(content);
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(top: 5),
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(color: AppColors.tealGreen, shape: BoxShape.circle),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(child: _buildFormattedText(cleanText)),
+                ],
               ),
-              SizedBox(width: 10),
-              Expanded(
-                child: _buildFormattedText(cleanText),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
     );
   }
 
@@ -891,8 +796,42 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     for (final match in strongRegex.allMatches(text)) {
       // Add normal text before bold
       if (match.start > lastIndex) {
-        parts.add(TextSpan(
-          text: text.substring(lastIndex, match.start),
+        parts.add(
+          TextSpan(
+            text: text.substring(lastIndex, match.start),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              color: AppColors.greyS700,
+              fontWeight: FontWeight.w500,
+              height: 1.6,
+            ),
+          ),
+        );
+      }
+
+      // Add bold text
+      parts.add(
+        TextSpan(
+          text: match.group(1),
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 13,
+            color: AppColors.darkNavy,
+            fontWeight: FontWeight.w700,
+            height: 1.6,
+          ),
+        ),
+      );
+
+      lastIndex = match.end;
+    }
+
+    // Add remaining normal text
+    if (lastIndex < text.length) {
+      parts.add(
+        TextSpan(
+          text: text.substring(lastIndex),
           style: TextStyle(
             fontFamily: 'Poppins',
             fontSize: 13,
@@ -900,41 +839,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
             fontWeight: FontWeight.w500,
             height: 1.6,
           ),
-        ));
-      }
-
-      // Add bold text
-      parts.add(TextSpan(
-        text: match.group(1),
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 13,
-          color: AppColors.darkNavy,
-          fontWeight: FontWeight.w700,
-          height: 1.6,
         ),
-      ));
-
-      lastIndex = match.end;
+      );
     }
 
-    // Add remaining normal text
-    if (lastIndex < text.length) {
-      parts.add(TextSpan(
-        text: text.substring(lastIndex),
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 13,
-          color: AppColors.greyS700,
-          fontWeight: FontWeight.w500,
-          height: 1.6,
-        ),
-      ));
-    }
-
-    return RichText(
-      text: TextSpan(children: parts),
-    );
+    return RichText(text: TextSpan(children: parts));
   }
 
   String _removeHtmlTags(String htmlText) {
@@ -961,13 +870,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -1033,13 +936,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
         children: [
@@ -1134,13 +1031,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: Offset(0, -5),
-          )
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.1), blurRadius: 20, offset: Offset(0, -5))],
       ),
       child: SafeArea(
         child: Row(
@@ -1201,19 +1092,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                     _handleStartQuiz();
                   } else if (canStartQuiz) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Quiz will start at scheduled time'),
-                        backgroundColor: Colors.orange,
-                      ),
+                      SnackBar(content: Text('Quiz will start at scheduled time'), backgroundColor: Colors.orange),
                     );
                   } else {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CheckoutPage(
-                          contentType: 'QUIZ',
-                          contentId: widget.quizId,
-                        ),
+                        builder: (context) => CheckoutPage(contentType: 'QUIZ', contentId: widget.quizId),
                       ),
                     );
                   }
@@ -1227,9 +1112,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                 child: Ink(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: isAvailable
-                          ? [Colors.red.shade600, Colors.red.shade800]
-                          : canStartQuiz
+                      colors:
+                          isAvailable
+                              ? [Colors.red.shade600, Colors.red.shade800]
+                              : canStartQuiz
                               ? [Colors.orange.shade400, Colors.orange.shade600]
                               : [AppColors.tealGreen, AppColors.darkNavy],
                     ),
@@ -1244,8 +1130,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                           isAvailable
                               ? Icons.play_arrow
                               : canStartQuiz
-                                  ? Icons.schedule
-                                  : Icons.lock_outline,
+                              ? Icons.schedule
+                              : Icons.lock_outline,
                           color: AppColors.white,
                           size: 20,
                         ),
@@ -1255,8 +1141,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                           isAvailable
                               ? 'Start Quiz Now'
                               : canStartQuiz
-                                  ? 'Registered - ${_getCountdownText()}'
-                                  : 'Buy Now',
+                              ? 'Registered - ${_getCountdownText()}'
+                              : 'Buy Now',
                           14,
                           AppColors.white,
                           FontWeight.w700,

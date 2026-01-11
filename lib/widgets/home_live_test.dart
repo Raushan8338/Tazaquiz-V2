@@ -55,7 +55,7 @@ class Home_live_test extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => QuizListScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => QuizListScreen('1')));
                 },
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -99,13 +99,12 @@ class Home_live_test extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder:
-                           (context) => QuizDetailPage(quizId: liveTests[index].quizId)
-                           // LiveTestScreen(
-                          //   testTitle: liveTests[index].title,
-                          //   subject: liveTests[index].difficultyLevel,
-                          //   Quiz_id: liveTests[index].quizId,
-                          // ),
+                      builder: (context) => QuizDetailPage(quizId: liveTests[index].quizId),
+                      // LiveTestScreen(
+                      //   testTitle: liveTests[index].title,
+                      //   subject: liveTests[index].difficultyLevel,
+                      //   Quiz_id: liveTests[index].quizId,
+                      // ),
                     ),
                   );
                 },

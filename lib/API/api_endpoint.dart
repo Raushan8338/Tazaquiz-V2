@@ -16,6 +16,7 @@ class BaseUrl {
   static String get_study_category = "studyCategory.php";
   static String get_study_subject_category = "subjectLevelSlider.php";
   static String get_paid_study_materials_details = "study_materials_details.php";
+  static String get_nonpaid_study_materials_details = "study_non_paid_materials_details.php";
   static String gsubmit_service_requestet = "serviceRequestGen.php";
   static String fetch_ticket_status = "serviceRequestView.php";
   static String fetch_referral_list = "referalUserList.php";
@@ -29,4 +30,5 @@ class BaseUrl {
   static String fetch_all_quiz = "quizes_api.php";
   static String fetch_payment_history = "purchaseHistory.php";
   static String Quiz_performanceApi = "performanceApi.php";
+  static String save_bookmark = "save_bookmark.php";
 }

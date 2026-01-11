@@ -5,6 +5,7 @@ import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/models/study_category_item.dart';
 import 'package:tazaquiznew/models/study_material_details_item.dart';
@@ -13,6 +14,7 @@ import 'package:tazaquiznew/screens/checkout.dart';
 import 'package:tazaquiznew/screens/studyMaterial.dart';
 import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SubjectContentPage extends StatefulWidget {
@@ -27,18 +29,38 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
   late TabController _tabController;
   bool _isLoading = true;
   String subjectName = '';
+  bool _bookmarkLoading = false;
 
   List<CategoryItem> _categoryItems = [];
   int _selectedCategoryId = 0;
 
   List<StudyMaterialDetailsItem> _studyMaterials_new = [];
+  UserModel? _user;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    fetchStudyLevels();
-    fetchStudyCategory(0);
+
+    getdata();
+  }
+
+  Future<void> getdata() async {
+    _user = await SessionManager.getUser();
+
+    // 1️⃣ Pehle levels lao
+    await fetchStudyLevels();
+
+    // 2️⃣ Default category set karo
+    _selectedCategoryId = 0;
+
+    // 3️⃣ Ab category ka data lao
+    await fetchStudyCategory(_selectedCategoryId);
+
+    // 4️⃣ Sab kuch ke baad UI update
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> fetchStudyLevels() async {
@@ -64,9 +86,10 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
 
   Future<List<StudyMaterialDetailsItem>> fetchStudyCategory(int categoryId) async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    final data = {'subject_id': categoryId.toString()};
+    final data = {'subject_id': categoryId.toString(), 'category_id': widget.id};
+    print(data);
 
-    final responseFuture = await authRepository.fetchStudyMaterialsDetails(data);
+    final responseFuture = await authRepository.fetch_non_paid_materials(data);
 
     if (responseFuture.statusCode == 200) {
       final responseData = responseFuture.data;
@@ -80,6 +103,31 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
       return [];
     }
   }
+
+  // Future<void> saveBookmark(int materialid) async {
+  //   Authrepository authRepository = Authrepository(Api_Client.dio);
+  //   final data = {
+  //     'action': categoryId.toString(),
+  //     'user_id': widget.id,
+  //     'content_type': materialid,
+  //     'content_id': widget.id,
+  //   };
+  //   print(data);
+
+  //   final responseFuture = await authRepository.save_bookmark_data(data);
+
+  //   if (responseFuture.statusCode == 200) {
+  //     final responseData = responseFuture.data;
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text(responseData["status"] == "success" ? "Bookmark added" : "Bookmark failed")),
+  //     );
+  //   } else {}
+  //   if (!mounted) return;
+
+  //   setState(() {
+  //     _bookmarkLoading = false;
+  //   });
+  // }
 
   @override
   void dispose() {
@@ -367,6 +415,10 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                               ],
                             ),
                           ),
+                        // IconButton(
+                        //   icon: Icon(Icons.bookmark, size: 14, color: Colors.amber[700]),
+                        //   onPressed: () => saveBookmark(material.materialId),
+                        // ),
                       ],
                     ),
                   ),

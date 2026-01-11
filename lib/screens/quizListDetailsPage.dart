@@ -12,6 +12,9 @@ import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 class QuizListScreen extends StatefulWidget {
+  String pageId;
+  QuizListScreen(this.pageId);
+
   @override
   _QuizListScreenState createState() => _QuizListScreenState();
 }
@@ -209,14 +212,27 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Icon(Icons.quiz, color: AppColors.white, size: 22),
-                          ),
+                          (widget.pageId == '1')
+                              ? IconButton(
+                                icon: Container(
+                                  padding: EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                              )
+                              : Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(Icons.quiz, color: AppColors.white, size: 22),
+                              ),
+
                           SizedBox(width: 14),
                           Expanded(
                             child: Column(

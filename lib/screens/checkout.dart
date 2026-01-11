@@ -55,14 +55,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
     _initialize();
   }
 
-  void _initialize() async {
-    await _getUserData();
-    await fetchCheckoutDetails();
+  Future<void> _initialize() async {
+    await _getUserData(); // pehle user lao
+    await fetchCheckoutDetails(); // phir API call
+
+    if (!mounted) return;
+    setState(() {}); // 🔥 ek hi baar UI update
   }
 
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
-    setState(() {});
   }
 
   Future<void> fetchCheckoutDetails() async {
@@ -211,15 +213,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (session == null) {
         return;
       }
-      // final cfPaymentService = CFPaymentGatewayService();
+      final cfPaymentService = CFPaymentGatewayService();
 
-      // final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
+      final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
 
-      // cfPaymentService.doPayment(payment);
-      var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
-      var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
+      cfPaymentService.doPayment(payment);
+      // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
+      // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
 
-      service.doPayment(upiPayment);
+      // service.doPayment(upiPayment);
 
       // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
       // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();

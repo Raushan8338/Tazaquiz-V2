@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
+import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'dart:async';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/coaching_item_modal.dart';
@@ -45,6 +46,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
     _getUserData();
     get_home_page_data();
     getAppBanner();
