@@ -1116,7 +1116,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                           isAvailable
                               ? [Colors.red.shade600, Colors.red.shade800]
                               : canStartQuiz
-                              ? [Colors.orange.shade400, Colors.orange.shade600]
+                              ? [Color(0xFFF59E0B), Color(0xFFD97706)] // Amber/Gold gradient
                               : [AppColors.tealGreen, AppColors.darkNavy],
                     ),
                     borderRadius: BorderRadius.circular(14),
@@ -1141,7 +1141,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                           isAvailable
                               ? 'Start Quiz Now'
                               : canStartQuiz
-                              ? 'Registered - ${_getCountdownText()}'
+                              ? 'Starts In - ${_getCountdownText()}'
                               : 'Buy Now',
                           14,
                           AppColors.white,

@@ -52,6 +52,22 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     return name[0].toUpperCase();
   }
 
+  String formatMemberSince(String? date) {
+    if (date == null || date.isEmpty) return 'N/A';
+
+    try {
+      final dt = DateTime.parse(date);
+      return '${_monthName(dt.month)} ${dt.year}';
+    } catch (e) {
+      return date;
+    }
+  }
+
+  String _monthName(int m) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[m - 1];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,7 +153,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                             SizedBox(height: 4),
                             AppRichText.setTextPoppinsStyle(
                               context,
-                              'Member since ${_user?.createdAt ?? 'N/A'}',
+                              'Joined • ${formatMemberSince(_user?.createdAt)}',
                               11,
                               AppColors.white.withOpacity(0.75),
                               FontWeight.w500,

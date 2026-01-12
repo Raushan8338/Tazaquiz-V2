@@ -1,10 +1,9 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
-import 'package:tazaquiznew/authentication/notification_service.dart';
-import 'dart:async';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/coaching_item_modal.dart';
 import 'package:tazaquiznew/models/course_item_modal.dart';
@@ -25,106 +24,106 @@ import 'package:tazaquiznew/widgets/home_study_material.dart';
 
 class HomePage extends StatefulWidget {
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
   Timer? _bannerTimer;
+
   List _banners = [];
   List<QuizItem> liveTests = [];
   List<CourseItem> popularCourses = [];
   List<CoachingItem> coachingProfiles = [];
   List<StudyMaterialItem> studyMaterials = [];
+
   UserModel? _user;
   int notificationCount = 0;
+
   List<HomeSection> homePageItemData = [];
-  // Sections
+
   HomeSection? quizSection;
   HomeSection? courseSection;
   HomeSection? coachingSection;
   HomeSection? studySection;
+
   @override
   void initState() {
     super.initState();
-
-    _getUserData();
-    get_home_page_data();
-    getAppBanner();
+    _loadHome();
   }
 
-  void _getUserData() async {
-    // Fetch and set user data here if needed
+  /// 🔄 Load everything
+  Future<void> _loadHome() async {
+    await _getUserData();
+    await get_home_page_data();
+    await getAppBanner();
+  }
+
+  /// 🔄 Pull to refresh
+  Future<void> _refreshHome() async {
+    await _loadHome();
+  }
+
+  Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
     setState(() {});
     getNotificationCount();
   }
 
-  void getAppBanner() async {
-    // Fetch app banner data from API if needed
-    Authrepository authRepository = Authrepository(Api_Client.dio);
-
-    final responseFuture = await authRepository.fetchAppBanner();
-
-    var jsonResponses = jsonDecode(responseFuture.data);
-    _banners = jsonResponses['slider'];
+  Future<void> getAppBanner() async {
+    final authRepository = Authrepository(Api_Client.dio);
+    final response = await authRepository.fetchAppBanner();
+    final jsonResponses = jsonDecode(response.data);
+    _banners = jsonResponses['slider'] ?? [];
     setState(() {});
-    // You can use Authrepository's fetchAppBanner method here
   }
 
-  void getNotificationCount() async {
-    // Fetch notification count from API if needed
-    Authrepository authRepository = Authrepository(Api_Client.dio);
-
+  Future<void> getNotificationCount() async {
+    final authRepository = Authrepository(Api_Client.dio);
     final data = {'user_id': _user?.id};
-    final responseFuture = await authRepository.fetchNotificationCount(data);
-    var jsonResponsesCount = jsonDecode(responseFuture.data);
+    final response = await authRepository.fetchNotificationCount(data);
+    final jsonResponses = jsonDecode(response.data);
 
     setState(() {
-      notificationCount = jsonResponsesCount['count'];
+      notificationCount = jsonResponses['count'] ?? 0;
     });
-    // Handle the response as needed
   }
 
-  void get_home_page_data() async {
-    // Fetch home page data from API if needed
-    Authrepository authRepository = Authrepository(Api_Client.dio);
+  Future<void> get_home_page_data() async {
+    final authRepository = Authrepository(Api_Client.dio);
+    final response = await authRepository.fetchHomePageData();
 
-    final responseFuture = await authRepository.fetchHomePageData();
-
-    if (responseFuture.statusCode == 200) {
-      var jsonResponse = responseFuture.data;
-      HomeDataResponse response = HomeDataResponse.fromJson(jsonResponse);
-      homePageItemData = response.data;
+    if (response.statusCode == 200) {
+      HomeDataResponse res = HomeDataResponse.fromJson(response.data);
+      homePageItemData = res.data;
 
       liveTests.clear();
       popularCourses.clear();
       coachingProfiles.clear();
       studyMaterials.clear();
-      for (var section in homePageItemData) {
-        if (section.section == 'quiz') {
-          quizSection = section;
 
-          liveTests = section.items.cast<QuizItem>();
-        } else if (section.section == 'course') {
-          courseSection = section;
-          popularCourses = section.items.cast<CourseItem>();
-        } else if (section.section == 'coaching') {
-          coachingSection = section;
-          coachingProfiles = section.items.cast<CoachingItem>();
-        } else if (section.section == 'study_material') {
-          studySection = section;
-          studyMaterials = section.items.cast<StudyMaterialItem>();
+      for (var section in homePageItemData) {
+        switch (section.section) {
+          case 'quiz':
+            quizSection = section;
+            liveTests = section.items.cast<QuizItem>();
+            break;
+          case 'course':
+            courseSection = section;
+            popularCourses = section.items.cast<CourseItem>();
+            break;
+          case 'coaching':
+            coachingSection = section;
+            coachingProfiles = section.items.cast<CoachingItem>();
+            break;
+          case 'study_material':
+            studySection = section;
+            studyMaterials = section.items.cast<StudyMaterialItem>();
+            break;
         }
       }
-
       setState(() {});
-
-      // Process the data as needed
-    } else {
-      // Handle error case
     }
-
-    // Handle the response as needed
   }
 
   @override
@@ -135,68 +134,65 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (quizSection == null || quizSection!.items.isEmpty || liveTests.isEmpty) {
-      return Center(child: Padding(padding: const EdgeInsets.symmetric(vertical: 20), child: QuizShimmerUI()));
+    if (quizSection == null || liveTests.isEmpty) {
+      return const Center(child: QuizShimmerUI());
     }
 
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(),
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  HomeBanner(imgLists: _banners),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 14, right: 14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildStatsSection(),
-
-                        Home_live_test(liveTests: liveTests, homeSections: quizSection!),
-                        Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
-                        CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
-                        HomeStudyMaterials(studyMaterials: studyMaterials, homeSections: studySection!),
-
-                        _buildAchievementsSection(),
-                      ],
+        child: RefreshIndicator(
+          onRefresh: _refreshHome,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              _buildAppBar(),
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    HomeBanner(imgLists: _banners),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Column(
+                        children: [
+                          _buildStatsSection(),
+                          Home_live_test(liveTests: liveTests, homeSections: quizSection!),
+                          Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
+                          CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
+                          HomeStudyMaterials(studyMaterials: studyMaterials, homeSections: studySection!),
+                          _buildAchievementsSection(),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
+  /// 🔹 APP BAR
   Widget _buildAppBar() {
     return SliverAppBar(
       floating: true,
       backgroundColor: AppColors.white,
       elevation: 0,
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 7, top: 2, bottom: 2),
-        child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
-      ),
+      leading: Padding(padding: const EdgeInsets.all(6), child: Image.asset('assets/images/logo.png')),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppRichText.setTextPoppinsStyle(
             context,
-            '${_user?.username ?? '👋'}',
+            _user?.username ?? "👋",
             15,
             AppColors.darkNavy,
             FontWeight.w700,
             1,
             TextAlign.left,
-            0.0,
+            0,
           ),
           AppRichText.setTextPoppinsStyle(
             context,
@@ -206,69 +202,53 @@ class _HomePageState extends State<HomePage> {
             FontWeight.w500,
             1,
             TextAlign.left,
-            0.0,
+            0,
           ),
         ],
       ),
       actions: [
         Stack(
-          clipBehavior: Clip.none,
           children: [
             IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.notifications_outlined, color: AppColors.darkNavy, size: 22),
-              ),
+              icon: const Icon(Icons.notifications_outlined),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => NotificationsPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage()));
               },
             ),
-
-            /// Notification Badge
             if (notificationCount > 0)
               Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.tealGreen, borderRadius: BorderRadius.circular(10)),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                  child: Text(
-                    notificationCount.toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
+                right: 6,
+                top: 6,
+                child: CircleAvatar(
+                  radius: 9,
+                  backgroundColor: AppColors.tealGreen,
+                  child: Text(notificationCount.toString(), style: const TextStyle(fontSize: 10, color: Colors.white)),
                 ),
               ),
           ],
         ),
-
-        SizedBox(width: 4),
       ],
     );
   }
 
   Widget _buildStatsSection() {
     return Container(
-      padding: EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [WeeklyProgressWidget()]),
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(20)),
+      child: WeeklyProgressWidget(),
     );
   }
 
+  /// 🏆 ACHIEVEMENTS
   Widget _buildAchievementsSection() {
     return Container(
-      margin: EdgeInsets.only(top: 16, bottom: 16, left: 8, right: 8),
-      padding: EdgeInsets.all(15),
+      margin: const EdgeInsets.only(top: 16, bottom: 20),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,14 +256,14 @@ class _HomePageState extends State<HomePage> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [AppColors.lightGold, Color(0xFFFDD835)]),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 17),
+                child: const Icon(Icons.emoji_events, size: 18, color: AppColors.darkNavy),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               AppRichText.setTextPoppinsStyle(
                 context,
                 'Recent Achievements',
@@ -292,33 +272,43 @@ class _HomePageState extends State<HomePage> {
                 FontWeight.w800,
                 1,
                 TextAlign.left,
-                0.0,
+                0,
               ),
             ],
           ),
-          SizedBox(height: 16),
-          _buildAchievementItem('First Test Completed', '2 days ago', Icons.check_circle, AppColors.tealGreen),
-          SizedBox(height: 12),
-          _buildAchievementItem('Week Streak Master', '5 days ago', Icons.local_fire_department, Colors.orange),
-          SizedBox(height: 12),
-          _buildAchievementItem('Top 10% Scorer', '1 week ago', Icons.star, AppColors.lightGold),
+          const SizedBox(height: 16),
+          _achievementItem(
+            title: 'First Test Completed',
+            time: 'Pending',
+            icon: Icons.check_circle,
+            color: AppColors.tealGreen,
+          ),
+          const SizedBox(height: 12),
+          _achievementItem(
+            title: 'Week Streak Master',
+            time: 'Pending',
+            icon: Icons.local_fire_department,
+            color: Colors.orange,
+          ),
+          const SizedBox(height: 12),
+          _achievementItem(title: 'Top 10% Scorer', time: 'Pending', icon: Icons.star, color: AppColors.lightGold),
         ],
       ),
     );
   }
 
-  Widget _buildAchievementItem(String title, String time, IconData icon, Color color) {
+  Widget _achievementItem({required String title, required String time, required IconData icon, required Color color}) {
     return Container(
-      padding: EdgeInsets.only(top: 12, bottom: 12, left: 8, right: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 20),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,9 +321,9 @@ class _HomePageState extends State<HomePage> {
                   FontWeight.w700,
                   1,
                   TextAlign.left,
-                  0.0,
+                  0,
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 AppRichText.setTextPoppinsStyle(
                   context,
                   time,
@@ -342,7 +332,7 @@ class _HomePageState extends State<HomePage> {
                   FontWeight.w500,
                   1,
                   TextAlign.left,
-                  0.0,
+                  0,
                 ),
               ],
             ),

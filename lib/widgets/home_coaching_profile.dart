@@ -103,6 +103,8 @@ class CoachingProfileWidget extends StatelessWidget {
                                 name: coachingProfiles[index].coachingName,
                                 bannerImg: coachingProfiles[index].bannerImg.toString(),
                                 coachingId: coachingProfiles[index].id.toString(),
+                                bioInfo: coachingProfiles[index].bioInfo.toString(),
+                                profileIcon: coachingProfiles[index].profileIcon.toString(),
                               ),
                         ),
                       );
@@ -345,6 +347,7 @@ class CoachingProfileWidget extends StatelessWidget {
       ),
     );
   }
+
 }
 
 // Usage: CoachingProfileWidget()

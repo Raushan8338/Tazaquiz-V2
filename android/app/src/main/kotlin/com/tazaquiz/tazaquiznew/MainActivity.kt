@@ -1,4 +1,4 @@
-package com.tazaquiz.tazaquiznew
+package com.tazaquiz.quiz
 
 import io.flutter.embedding.android.FlutterActivity
 

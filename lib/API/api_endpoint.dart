@@ -31,4 +31,5 @@ class BaseUrl {
   static String fetch_payment_history = "purchaseHistory.php";
   static String Quiz_performanceApi = "performanceApi.php";
   static String save_bookmark = "save_bookmark.php";
+  static String error_CF_response = "insert_error_message.php";
 }

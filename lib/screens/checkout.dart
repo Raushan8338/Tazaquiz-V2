@@ -213,15 +213,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (session == null) {
         return;
       }
-      final cfPaymentService = CFPaymentGatewayService();
+      // final cfPaymentService = CFPaymentGatewayService();
 
-      final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
+      // final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
 
-      cfPaymentService.doPayment(payment);
-      // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
-      // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
+      // cfPaymentService.doPayment(payment);
+      var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
+      var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
 
-      // service.doPayment(upiPayment);
+      service.doPayment(upiPayment);
 
       // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
       // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
@@ -244,10 +244,52 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return null;
   }
 
-  void onError(CFErrorResponse errorResponse, String orderId) {}
+  void onError(CFErrorResponse errorResponse, String orderId) async {
+    final String combinedError =
+        "Message: ${errorResponse.getMessage()}, "
+        "Status: ${errorResponse.getStatus()}, "
+        "Type: ${errorResponse.getType()}";
+
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    final data = {'error_message': combinedError, 'order_id': orderId, 'user_id': _user?.id};
+
+    final responseCreate = await authRepository.save_CF_error_response(data);
+    print(responseCreate.data);
+  }
 
   void _verifyPayment(String orderId) async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
+
+    // ✅ Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User dismiss nahi kar sakta
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false, // Back button disable
+          child: Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Payment verify ho raha hai...\nKripya pratiksha karen',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
     final data = {'order_id': orderId};
 
     final responseCreate = await authRepository.savePaymentStatus(data);
@@ -270,6 +312,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
           ),
         );
+        Navigator.pop(context);
       } else {
         // Payment Failed
         Navigator.pushReplacement(
@@ -284,6 +327,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
           ),
         );
+        Navigator.pop(context);
       }
     } else {
       //  Optional: show failed page
@@ -299,6 +343,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
         ),
       );
+      Navigator.pop(context);
     }
   }
 

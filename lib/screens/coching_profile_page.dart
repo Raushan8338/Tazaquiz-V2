@@ -1,233 +1,293 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/utils/htmlText.dart';
+import 'package:tazaquiznew/utils/richText.dart';
 
-// ========== COACHING PROFILE CARD WIDGET (NEW DESIGN) ==========
-class CoachingProfileCard extends StatelessWidget {
+// ========== SIMPLE COACHING PROFILE CARD WIDGET ==========
+class CoachingProfileCard extends StatefulWidget {
   final String name;
   final String? bannerImg;
   final String coachingId;
+  final String? profileIcon;
+  final int studentCount;
+  final int courseCount;
+  final double rating;
+  final String bioInfo;
 
-  const CoachingProfileCard({Key? key, required this.name, this.bannerImg, required this.coachingId}) : super(key: key);
+  const CoachingProfileCard({
+    Key? key,
+    required this.name,
+    this.bannerImg,
+    required this.coachingId,
+    this.profileIcon,
+    this.studentCount = 10,
+    this.courseCount = 10,
+    this.rating = 4.8,
+    required this.bioInfo,
+  }) : super(key: key);
 
   @override
+  State<CoachingProfileCard> createState() => _CoachingProfileCardState();
+}
+
+class _CoachingProfileCardState extends State<CoachingProfileCard> {
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // Navigate to detail page
-      },
-      child: Container(
-        margin: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, 5))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Banner Section with Avatar
-            Stack(
+    return Scaffold(
+      backgroundColor: AppColors.greyS1,
+      appBar: _buildAppBar(widget.name),
+      body: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.1), blurRadius: 24, offset: Offset(0, 8))],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Banner Image or Gradient
-                Container(
-                  height: 140,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-                    gradient:
-                        bannerImg == null || bannerImg!.isEmpty
-                            ? LinearGradient(
-                              colors: [Color(0xFF0F4C75), Color(0xFF1B9AAA), Color(0xFF06D6A0)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            )
-                            : null,
-                    image:
-                        bannerImg != null && bannerImg!.isNotEmpty
-                            ? DecorationImage(image: NetworkImage(bannerImg!), fit: BoxFit.cover)
-                            : null,
-                  ),
-                ),
-
-                // Rating Badge (Top Right)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFFFC107),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: Offset(0, 3)),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.star, size: 16, color: Colors.white),
-                        SizedBox(width: 4),
-                        Text(
-                          '4.5',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Avatar (Bottom Left - Overlapping)
-                Positioned(
-                  bottom: -30,
-                  left: 16,
-                  child: Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 10, offset: Offset(0, 4)),
-                      ],
-                    ),
-                    child: Container(
+                // Banner Image with gradient
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Banner
+                    Container(
+                      height: 140,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF6C63FF), Color(0xFF4834DF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+                        gradient:
+                            widget.bannerImg != null && widget.bannerImg!.isNotEmpty
+                                ? null // Banner hai to gradient nahi chahiye
+                                : LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [AppColors.darkNavy, AppColors.tealGreen],
+                                ),
+                        image:
+                            widget.bannerImg != null && widget.bannerImg!.isNotEmpty
+                                ? DecorationImage(
+                                  image: NetworkImage(Api_Client.baseUrl + widget.bannerImg!),
+                                  fit: BoxFit.cover,
+                                  onError: (error, stackTrace) {
+                                    print('Banner image load failed: $error');
+                                  },
+                                )
+                                : null,
                       ),
-                      child: Center(
-                        child: Text(
-                          name[0].toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontFamily: 'Poppins',
-                          ),
+                      child:
+                          widget.bannerImg != null && widget.bannerImg!.isNotEmpty
+                              ? null // Banner hai to decorative circles nahi chahiye
+                              : Stack(
+                                children: [
+                                  // Decorative circles (only when no banner)
+                                  Positioned(
+                                    right: -50,
+                                    top: -50,
+                                    child: Container(
+                                      width: 150,
+                                      height: 150,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.white.withOpacity(0.08),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: -30,
+                                    bottom: -30,
+                                    child: Container(
+                                      width: 100,
+                                      height: 100,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.lightGold.withOpacity(0.1),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                    ),
+
+                    // Rating Badge
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGold,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 8, offset: Offset(0, 4)),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.star, size: 16, color: AppColors.darkNavy),
+                            SizedBox(width: 4),
+                            AppRichText.setTextPoppinsStyle(
+                              context,
+                              '4.8',
+                              12,
+                              AppColors.darkNavy,
+                              FontWeight.w700,
+                              1,
+                              TextAlign.center,
+                              0.0,
+                            ),
+                          ],
                         ),
                       ),
                     ),
+
+                    // Profile Icon (overlapping)
+                    Positioned(
+                      bottom: -35,
+                      left: 24,
+                      child: Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.white,
+                          border: Border.all(color: AppColors.lightGold, width: 4),
+                          boxShadow: [
+                            BoxShadow(color: AppColors.darkNavy.withOpacity(0.2), blurRadius: 16, offset: Offset(0, 4)),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child:
+                              widget.profileIcon != null && widget.profileIcon!.isNotEmpty
+                                  ? Image.network(
+                                    Api_Client.baseUrl + widget.profileIcon!,
+                                    width: 62,
+                                    height: 62,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      // Image load nahi hua to fallback
+                                      return _buildNameInitial(widget.name, context);
+                                    },
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.tealGreen),
+                                      );
+                                    },
+                                  )
+                                  : _buildNameInitial(widget.name, context),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Content Section
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24, 45, 24, 15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Coaching Name
+                      AppRichText.setTextPoppinsStyle(
+                        context,
+                        widget.name,
+                        14,
+                        AppColors.darkNavy,
+                        FontWeight.w900,
+                        2,
+                        TextAlign.left,
+                        1.3,
+                      ),
+                      SizedBox(height: 2),
+
+                      AppHtmlText(
+                        html: widget.bioInfo,
+                        fontSize: 12,
+                        color: AppColors.darkNavy.withOpacity(0.6),
+                        fontWeight: FontWeight.w500,
+                        lineHeight: 1.4,
+                        maxLines: 2, // optional
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-
-            // Content Section
-            Padding(
-              padding: EdgeInsets.fromLTRB(16, 40, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D3142),
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                  SizedBox(height: 6),
-
-                  // Description
-                  // if (description != null && description!.isNotEmpty)
-                  Text(
-                    'description',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93), height: 1.4, fontFamily: 'Poppins'),
-                  ),
-                  SizedBox(height: 12),
-
-                  // Stats Row
-                  Row(
-                    children: [
-                      _buildStatItem(icon: Icons.people_outline, label: '10 + Students', color: Color(0xFF6C63FF)),
-                      SizedBox(width: 20),
-                      _buildStatItem(icon: Icons.school_outlined, label: '10 Courses', color: Color(0xFF1B9AAA)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildStatItem({required IconData icon, required String label, required Color color}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: color),
-        SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Color(0xFF8E8E93), fontWeight: FontWeight.w500, fontFamily: 'Poppins'),
+  PreferredSizeWidget _buildAppBar(String Coachingname) {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: AppColors.darkNavy,
+      leading: IconButton(
+        icon: Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+          child: Icon(Icons.arrow_back, color: AppColors.white, size: 16),
         ),
-      ],
+        onPressed: () => Navigator.pop(context),
+      ),
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [AppColors.darkNavy, AppColors.tealGreen],
+          ),
+        ),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AppRichText.setTextPoppinsStyle(
+            context,
+            Coachingname,
+            14,
+            AppColors.white,
+            FontWeight.w900,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+        ],
+      ),
     );
   }
-}
 
-// ========== EXAMPLE USAGE IN HOME PAGE ==========
-class CoachingProfilesSection extends StatelessWidget {
-  const CoachingProfilesSection({Key? key}) : super(key: key);
+  Widget _buildNameInitial(String name, BuildContext context) {
+    // First letter nikalo
+    String initial = name.isNotEmpty ? name[0].toUpperCase() : 'C';
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Coaching Profiles',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3142),
-                  fontFamily: 'Poppins',
-                ),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: Text(
-                  'View All',
-                  style: TextStyle(
-                    color: Color(0xFF6C63FF),
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return Container(
+      margin: EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.tealGreen.withOpacity(0.3), AppColors.darkNavy.withOpacity(0.2)],
         ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'Learn from expert coaches',
-            style: TextStyle(fontSize: 14, color: Color(0xFF8E8E93), fontFamily: 'Poppins'),
-          ),
+      ),
+      child: Center(
+        child: AppRichText.setTextPoppinsStyle(
+          context,
+          initial,
+          20,
+          AppColors.darkNavy,
+          FontWeight.w900,
+          1,
+          TextAlign.center,
+          0.0,
         ),
-        SizedBox(height: 16),
-      ],
+      ),
     );
   }
 }

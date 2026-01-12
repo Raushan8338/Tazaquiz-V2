@@ -51,7 +51,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
     super.dispose();
   }
 
-  Future _handleLogin(email) async {
+  Future<void> _handleLogin(email) async {
     //final GoogleData = await GoogleSignInApi.login();
     setState(() => _isLoading = true);
     Authrepository authRepository = Authrepository(Api_Client.dio);
@@ -68,8 +68,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       };
       print(data);
       final response = await authRepository.loginUser(data);
-      print(response.data);
-
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.data);
         print(responseData);
@@ -195,6 +193,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
 
   Future<void> signIn() async {
     final user = await GoogleSignInApi.login();
+
     _handleLogin(user?.email);
   }
 
@@ -447,7 +446,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       _isLoading
           ? null
           : () {
-            signIn(); // ya email pass karo
+            _handleLogin(''); // ya email pass karo
           },
       _isLoading,
     );

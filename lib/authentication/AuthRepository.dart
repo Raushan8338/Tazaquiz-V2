@@ -144,4 +144,9 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.save_bookmark, data: formData);
   }
+
+  Future<Response> save_CF_error_response(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.error_CF_response, data: formData);
+  }
 }
