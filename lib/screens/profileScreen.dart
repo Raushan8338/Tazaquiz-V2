@@ -474,6 +474,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             launchUrl(Uri.parse('https://tazaquiz.com/privacy_policy.html'), mode: LaunchMode.externalApplication);
           }),
           Divider(height: 28, color: AppColors.greyS300),
+          _buildSettingItem(Icons.book, 'Refund Policy', () {
+            launchUrl(Uri.parse('https://tazaquiz.com/refund_policy.html'), mode: LaunchMode.externalApplication);
+          }),
+          Divider(height: 28, color: AppColors.greyS300),
+
           _buildSettingItem(Icons.help_outline, 'Help & Support', () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
           }),

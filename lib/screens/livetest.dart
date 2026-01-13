@@ -231,6 +231,12 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    if (_questions.isEmpty || _currentQuestionData.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppColors.greyS1,
+        body: Center(child: CircularProgressIndicator(color: AppColors.tealGreen)),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       body: Column(
@@ -576,7 +582,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 ),
                 child: AppRichText.setTextPoppinsStyle(
                   context,
-                  _currentQuestionData['difficulty'],
+                  widget.subject,
                   11,
                   AppColors.red,
                   FontWeight.w700,
@@ -590,7 +596,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
           SizedBox(height: 10),
           AppRichText.setTextPoppinsStyle(
             context,
-            _currentQuestionData['question'],
+            _currentQuestionData['question'] ?? '',
             15,
             AppColors.darkNavy,
             FontWeight.w700,
@@ -604,6 +610,11 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   }
 
   Widget _buildOptionsSection() {
+    //   final List options = _currentQuestionData['options'] ?? [];
+
+    // if (options.isEmpty) {
+    //   return const SizedBox(); // 👈 no crash
+    // }
     return Container(
       margin: EdgeInsets.all(16),
       child: Column(

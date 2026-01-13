@@ -156,10 +156,19 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         children: [
                           _buildStatsSection(),
-                          Home_live_test(liveTests: liveTests, homeSections: quizSection!),
-                          Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
-                          CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
-                          HomeStudyMaterials(studyMaterials: studyMaterials, homeSections: studySection!),
+
+                          if (quizSection != null && liveTests.isNotEmpty)
+                            Home_live_test(liveTests: liveTests, homeSections: quizSection!),
+
+                          if (courseSection != null && popularCourses.isNotEmpty)
+                            Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
+
+                          if (coachingSection != null && coachingProfiles.isNotEmpty)
+                            CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
+
+                          if (studySection != null && studyMaterials.isNotEmpty)
+                            HomeStudyMaterials(studyMaterials: studyMaterials, homeSections: studySection!),
+
                           _buildAchievementsSection(),
                         ],
                       ),

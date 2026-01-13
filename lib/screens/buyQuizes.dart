@@ -7,6 +7,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/checkout.dart';
+import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
@@ -119,11 +120,24 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
 
   void _handleStartQuiz() {
     if (_currentQuiz == null) return;
-
-    // TODO: Navigate to quiz page
-    ScaffoldMessenger.of(
+    print(_currentQuiz!.title);
+    print(_currentQuiz!.difficultyLevel);
+    print(_currentQuiz!.quizId);
+    Navigator.push(
       context,
-    ).showSnackBar(SnackBar(content: Text('Starting quiz...'), backgroundColor: AppColors.tealGreen));
+      MaterialPageRoute(
+        builder:
+            (context) => LiveTestScreen(
+              testTitle: _currentQuiz!.title.toString(),
+              subject: _currentQuiz!.difficultyLevel.toString(),
+              Quiz_id: _currentQuiz!.quizId.toString(),
+            ),
+      ),
+    );
+
+    // ScaffoldMessenger.of(
+    //   context,
+    // ).showSnackBar(SnackBar(content: Text('Starting quiz...'), backgroundColor: AppColors.tealGreen));
   }
 
   @override
