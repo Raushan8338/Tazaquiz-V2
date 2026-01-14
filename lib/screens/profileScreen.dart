@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
+import 'package:tazaquiznew/screens/course_selection.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
 import 'package:tazaquiznew/screens/paymentHistory.dart';
 import 'package:tazaquiznew/screens/refer_earn_page.dart';
@@ -398,8 +399,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
               SizedBox(width: 12),
               Expanded(
-                child: _buildActionButton('Need Help', Icons.help, AppColors.oxfordBlue, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
+                child: _buildActionButton('Selected Courses', Icons.help, AppColors.oxfordBlue, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection()));
                 }),
               ),
             ],
@@ -483,12 +484,101 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
           }),
           Divider(height: 28, color: AppColors.greyS300),
-          _buildSettingItem(Icons.logout, 'Logout', () async {
-            await handleLogout(context);
-          }, isLogout: true),
+          _buildSettingItem(Icons.logout, 'Logout', () => _showLogoutDialog(context), isLogout: true),
         ],
       ),
     );
+  }
+
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: const Color(0xFF3498db).withOpacity(0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.logout_rounded, size: 48, color: Color(0xFF3498db)),
+                ),
+                const SizedBox(height: 20),
+
+                // Title
+                const Text(
+                  'Logout',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF003161)),
+                ),
+                const SizedBox(height: 12),
+
+                // Message
+                Text(
+                  'Are you sure you want to logout from your account?',
+                  style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: Colors.grey[300]!),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(true);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: const Color(0xFF3498db),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Logout',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      handleLogout(context);
+    }
   }
 
   Widget _buildSettingItem(IconData icon, String title, VoidCallback onTap, {bool isLogout = false}) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/home.dart';
 import 'package:tazaquiznew/screens/profileScreen.dart';
@@ -24,9 +25,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _selectedNavIndex, children: _pages),
-      bottomNavigationBar: _buildBottomNav(),
+    return WillPopScope(
+      onWillPop: () async {
+        if (_selectedNavIndex != 0) {
+          setState(() {
+            _selectedNavIndex = 0;
+          });
+          return false;
+        } else {
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return _buildExitDialog(context);
+            },
+          );
+          return shouldExit ?? false;
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(index: _selectedNavIndex, children: _pages),
+        bottomNavigationBar: _buildBottomNav(),
+      ),
     );
   }
 
@@ -95,6 +115,88 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExitDialog(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: const Color(0xFFe74c3c).withOpacity(0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.exit_to_app_rounded, size: 48, color: Color(0xFFe74c3c)),
+            ),
+            const SizedBox(height: 20),
+
+            // Title
+            const Text(
+              'Exit App',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF003161)),
+            ),
+            const SizedBox(height: 12),
+
+            // Message
+            Text(
+              'Are you sure you want to exit TazaQuiz?',
+              style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+
+            // Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey[300]!),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(true);
+                      SystemNavigator.pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: const Color(0xFFe74c3c),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Exit',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

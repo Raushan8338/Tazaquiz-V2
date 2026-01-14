@@ -209,7 +209,7 @@ class _CoachingProfileCardState extends State<CoachingProfileCard> {
                         color: AppColors.darkNavy.withOpacity(0.6),
                         fontWeight: FontWeight.w500,
                         lineHeight: 1.4,
-                        maxLines: 2, // optional
+                        maxLines: 100, // optional
                       ),
                     ],
                   ),

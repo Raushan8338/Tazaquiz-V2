@@ -205,7 +205,7 @@ class Home_courses extends StatelessWidget {
                               children: [
                                 AppRichText.setTextPoppinsStyle(
                                   context,
-                                  '₹${course.price}',
+                                  int.parse('${course.price}') < 1 ? 'Free' : '₹ ${course.price}',
                                   16,
                                   AppColors.tealGreen,
                                   FontWeight.w900,

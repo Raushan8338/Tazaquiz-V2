@@ -86,7 +86,7 @@ class CoachingProfileWidget extends StatelessWidget {
             ),
           ),
           Container(
-            height: 270,
+            height: 260,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               shrinkWrap: true,
@@ -279,7 +279,7 @@ class CoachingProfileWidget extends StatelessWidget {
 
                         // Content Section
                         Padding(
-                          padding: EdgeInsets.fromLTRB(24, 45, 24, 15),
+                          padding: EdgeInsets.fromLTRB(24, 45, 24, 10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -296,13 +296,15 @@ class CoachingProfileWidget extends StatelessWidget {
                               ),
                               SizedBox(height: 2),
 
-                              AppHtmlText(
-                                html: coachingProfiles[index].bioInfo ?? '',
-                                fontSize: 12,
-                                color: AppColors.darkNavy.withOpacity(0.6),
-                                fontWeight: FontWeight.w500,
-                                lineHeight: 1.4,
-                                maxLines: 2, // optional
+                              AppRichText.setTextPoppinsStyle(
+                                context,
+                                '✔ Verified by TazaQuiz',
+                                10,
+                                AppColors.greyS600,
+                                FontWeight.w500,
+                                1,
+                                TextAlign.left,
+                                0.0,
                               ),
                             ],
                           ),
@@ -347,7 +349,6 @@ class CoachingProfileWidget extends StatelessWidget {
       ),
     );
   }
-
 }
 
 // Usage: CoachingProfileWidget()

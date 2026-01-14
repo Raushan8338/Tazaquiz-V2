@@ -5,6 +5,7 @@ class CoachingItem {
   final String? bioInfo;
   final String? bannerImg;
   final String? profileIcon;
+  
 
   CoachingItem({required this.id, required this.coachingName, this.bioInfo, this.bannerImg, this.profileIcon});
 

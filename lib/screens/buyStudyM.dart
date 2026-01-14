@@ -382,7 +382,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                         children: [
                           AppRichText.setTextPoppinsStyle(
                             context,
-                            '₹',
+                            '₹ ',
                             15,
                             AppColors.white,
                             FontWeight.w600,

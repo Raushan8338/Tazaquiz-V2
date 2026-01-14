@@ -10,13 +10,14 @@ class QuizItem {
   final String difficultyLevel;
   final String instruction;
   final String quizStatus;
-  
+  final bool is_attempted;
+
   // Payment & Access
   final bool isPaid;
   final double price;
   final bool isPurchased;
   final bool isAccessible;
-  
+
   // Live Status
   final bool isLive;
   final int startsInSeconds;
@@ -31,8 +32,9 @@ class QuizItem {
     this.endDateTime = '',
     this.timeLimit = '',
     this.difficultyLevel = '',
-      this.instruction = '',
+    this.instruction = '',
     required this.quizStatus,
+    this.is_attempted = false,
     this.isPaid = false,
     this.price = 0.0,
     this.isPurchased = false,
@@ -56,8 +58,9 @@ class QuizItem {
       endDateTime: json['endDateTime']?.toString() ?? '',
       timeLimit: json['time_limit']?.toString() ?? '',
       difficultyLevel: json['difficulty_level']?.toString() ?? '',
-       instruction: json['instruction']?.toString() ?? '',
+      instruction: json['instruction']?.toString() ?? '',
       quizStatus: json['quiz_status']?.toString() ?? 'upcoming',
+      is_attempted: json['is_attempted'] ?? false,
       isPaid: _toBool(json['isPaid']),
       price: _toDouble(json['price']),
       isPurchased: _toBool(json['is_purchased']),
@@ -78,8 +81,9 @@ class QuizItem {
       'endDateTime': endDateTime,
       'time_limit': timeLimit,
       'difficulty_level': difficultyLevel,
-       'instruction': instruction,
+      'instruction': instruction,
       'quiz_status': quizStatus,
+      'is_attempted': is_attempted,
       'isPaid': isPaid,
       'price': price,
       'is_purchased': isPurchased,

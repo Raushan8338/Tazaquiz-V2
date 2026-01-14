@@ -24,6 +24,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
   UserModel? _user;
   bool _isLoading = true;
   bool _isPurchased = false;
+  bool _attempted = false;
   bool _isAccessible = false;
   bool _isFree = false;
   bool _isLive = false;
@@ -65,6 +66,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
           _currentQuiz = QuizItem.fromJson(responseData['data']);
           _isPurchased = _currentQuiz!.isPurchased;
           _isAccessible = _currentQuiz!.isAccessible;
+          _attempted = _currentQuiz!.is_attempted;
           _isFree = _currentQuiz!.price == 0 || !_currentQuiz!.isPaid;
           _isLive = _currentQuiz!.isLive;
           _remainingSeconds = _currentQuiz!.startsInSeconds;
@@ -1102,6 +1104,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
               flex: canStartQuiz ? 1 : 3,
               child: ElevatedButton(
                 onPressed: () {
+                  if (_attempted) return;
                   if (isAvailable) {
                     _handleStartQuiz();
                   } else if (canStartQuiz) {
@@ -1127,10 +1130,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors:
-                          isAvailable
+                          _attempted
+                              ? [Colors.grey.shade600, Colors.grey.shade800]
+                              : isAvailable
                               ? [Colors.red.shade600, Colors.red.shade800]
                               : canStartQuiz
-                              ? [Color(0xFFF59E0B), Color(0xFFD97706)] // Amber/Gold gradient
+                              ? [Color(0xFFF59E0B), Color(0xFFD97706)]
                               : [AppColors.tealGreen, AppColors.darkNavy],
                     ),
                     borderRadius: BorderRadius.circular(14),
@@ -1141,7 +1146,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          isAvailable
+                          _attempted
+                              ? Icons.check_circle_outline
+                              : isAvailable
                               ? Icons.play_arrow
                               : canStartQuiz
                               ? Icons.schedule
@@ -1152,7 +1159,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                         SizedBox(width: 8),
                         AppRichText.setTextPoppinsStyle(
                           context,
-                          isAvailable
+                          _attempted
+                              ? 'Already Attempted'
+                              : isAvailable
                               ? 'Start Quiz Now'
                               : canStartQuiz
                               ? 'Starts In - ${_getCountdownText()}'

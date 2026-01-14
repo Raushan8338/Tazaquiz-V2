@@ -226,7 +226,28 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
     final responseData = await authRepository.finalSubmitQuiz(data);
 
-    showDialog(context: context, barrierDismissible: false, builder: (context) => _buildResultDialog());
+    final resultRes = jsonDecode(responseData.data);
+
+    int correctScore = int.tryParse(resultRes['score'].toString()) ?? 0;
+    int correctCount = int.tryParse(resultRes['correctCount'].toString()) ?? 0;
+    int totalQuestions = int.tryParse(resultRes['total_question'].toString()) ?? 0;
+    int totalMarks = int.tryParse(resultRes['totalMarks'].toString()) ?? 0;
+    int wrongQuestions = int.tryParse(resultRes['wrongQuestions'].toString()) ?? 0;
+
+    double accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => _buildResultDialog(
+            correctScore: correctScore,
+            correctCount: correctCount,
+            totalQuestions: totalQuestions,
+            wrongQuestions: wrongQuestions,
+            totalMarks: totalMarks,
+            accuracy: accuracy,
+          ),
+    );
   }
 
   @override
@@ -762,8 +783,14 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildResultDialog() {
-    double accuracy = (_score / (totalQuestions * 50) * 100);
+  Widget _buildResultDialog({
+    required int correctScore,
+    required int correctCount,
+    required int totalQuestions,
+    required int wrongQuestions,
+    required int totalMarks,
+    required double accuracy,
+  }) {
     int rank = 1;
 
     return Dialog(
@@ -819,7 +846,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildResultStat('Score', '$_score', Icons.stars, AppColors.tealGreen),
+                _buildResultStat('Score', '$correctScore', Icons.stars, AppColors.tealGreen),
                 _buildResultStat('Rank', '#$rank', Icons.leaderboard, AppColors.darkNavy),
                 _buildResultStat('Accuracy', '${accuracy.toInt()}%', Icons.percent, Color(0xFF000B58)),
               ],
@@ -844,7 +871,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                       children: [
                         AppRichText.setTextPoppinsStyle(
                           context,
-                          'You earned $_score XP',
+                          'You earned $correctScore XP',
                           14,
                           AppColors.darkNavy,
                           FontWeight.w700,
@@ -943,22 +970,13 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       children: [
         Container(
           padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: Icon(icon, color: color, size: 20),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(icon, color: color, size: 24),
         ),
         SizedBox(height: 8),
-        AppRichText.setTextPoppinsStyle(context, value, 16, color, FontWeight.w900, 2, TextAlign.left, 0.0),
-
-        AppRichText.setTextPoppinsStyle(
-          context,
-          label,
-          11,
-          AppColors.greyS600,
-          FontWeight.normal,
-          2,
-          TextAlign.left,
-          0.0,
-        ),
+        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
       ],
     );
   }

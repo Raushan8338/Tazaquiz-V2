@@ -72,11 +72,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     }
   }
 
-  // 🔥 FILTER: Only show purchased materials
-  List<StudyMaterialDetailsItem> get _purchasedMaterials {
-    return _allStudyMaterials.where((material) => material.isPurchased).toList();
-  }
-
   // 🔥 Get subject name from subject_id
   String _getSubjectName(int subjectId) {
     switch (subjectId) {
@@ -151,7 +146,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Purchased Materials',
+                              'Study Materials',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -161,7 +156,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                             ),
                             if (!_isLoading)
                               Text(
-                                '${_purchasedMaterials.length} item${_purchasedMaterials.length != 1 ? 's' : ''}',
+                                '${_allStudyMaterials.length} item${_allStudyMaterials.length != 1 ? 's' : ''}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.white.withOpacity(0.8),
@@ -194,7 +189,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
       );
     }
 
-    if (_purchasedMaterials.isEmpty) {
+    if (_allStudyMaterials.isEmpty) {
       return SliverToBoxAdapter(
         child: Center(
           child: Padding(
@@ -213,12 +208,12 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                 ),
                 SizedBox(height: 24),
                 Text(
-                  'No Purchased Materials',
+                  'No Study Materials',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                 ),
                 SizedBox(height: 12),
                 Text(
-                  'You haven\'t purchased any study materials yet',
+                  'No study materials available at the moment',
                   style: TextStyle(fontSize: 14, color: AppColors.greyS600),
                   textAlign: TextAlign.center,
                 ),
@@ -231,9 +226,10 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
 
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
-        final material = _purchasedMaterials[index];
+        final material = _allStudyMaterials[index];
+
         return _buildMaterialCard(material);
-      }, childCount: _purchasedMaterials.length),
+      }, childCount: _allStudyMaterials.length),
     );
   }
 
@@ -340,36 +336,37 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                     ),
                   ),
 
-                  // Top badges - Show "PURCHASED" instead of "PREMIUM"
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: AppColors.black.withOpacity(0.15), blurRadius: 8, offset: Offset(0, 2)),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.check_circle, size: 14, color: AppColors.tealGreen),
-                          SizedBox(width: 4),
-                          Text(
-                            'PURCHASED',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.tealGreen,
-                              letterSpacing: 0.5,
+                  // Top badges - Conditional badge based on purchase status
+                  if (material.isPurchased)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(color: AppColors.black.withOpacity(0.15), blurRadius: 8, offset: Offset(0, 2)),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle, size: 14, color: AppColors.tealGreen),
+                            SizedBox(width: 4),
+                            Text(
+                              'PURCHASED',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.tealGreen,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
                   // Bottom content type badge
                   Positioned(
@@ -539,7 +536,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                           Icon(Icons.access_time_rounded, size: 12, color: AppColors.greyS500),
                           SizedBox(width: 4),
                           Text(
-                            'Purchased on ${material.createdAt}',
+                            'Added on ${material.createdAt}',
                             style: TextStyle(fontSize: 10, color: AppColors.greyS500, fontWeight: FontWeight.w500),
                           ),
                         ],

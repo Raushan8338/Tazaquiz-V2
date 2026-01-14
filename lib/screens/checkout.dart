@@ -261,34 +261,34 @@ class _CheckoutPageState extends State<CheckoutPage> {
     Authrepository authRepository = Authrepository(Api_Client.dio);
 
     // ✅ Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false, // User dismiss nahi kar sakta
-      builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false, // Back button disable
-          child: Center(
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text(
-                      'Payment verify ho raha hai...\nKripya pratiksha karen',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    // showDialog(
+    //   context: context,
+    //   barrierDismissible: false, // User dismiss nahi kar sakta
+    //   builder: (BuildContext context) {
+    //     return WillPopScope(
+    //       onWillPop: () async => false, // Back button disable
+    //       child: Center(
+    //         child: Card(
+    //           child: Padding(
+    //             padding: const EdgeInsets.all(20.0),
+    //             child: Column(
+    //               mainAxisSize: MainAxisSize.min,
+    //               children: [
+    //                 CircularProgressIndicator(),
+    //                 SizedBox(height: 16),
+    //                 Text(
+    //                   'Payment verify ho raha hai...\nKripya pratiksha karen',
+    //                   textAlign: TextAlign.center,
+    //                   style: TextStyle(fontSize: 16),
+    //                 ),
+    //               ],
+    //             ),
+    //           ),
+    //         ),
+    //       ),
+    //     );
+    //   },
+    // );
 
     final data = {'order_id': orderId};
 
@@ -312,7 +312,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
           ),
         );
-        Navigator.pop(context);
+        //   Navigator.pop(context);
       } else {
         // Payment Failed
         Navigator.pushReplacement(
@@ -327,7 +327,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
           ),
         );
-        Navigator.pop(context);
+        //  Navigator.pop(context);
       }
     } else {
       //  Optional: show failed page
@@ -343,7 +343,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
         ),
       );
-      Navigator.pop(context);
+      // Navigator.pop(context);
     }
   }
 

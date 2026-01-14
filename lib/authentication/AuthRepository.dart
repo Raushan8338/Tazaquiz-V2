@@ -149,4 +149,14 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.error_CF_response, data: formData);
   }
+
+  Future<Response> getUserSelected_non_Courses(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.getUserSelectedCourses, data: formData);
+  }
+
+  Future<Response> Saveupdate_user_courses(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.save_update_user_courses, data: formData);
+  }
 }
