@@ -67,6 +67,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     name: _nameController.text.trim(),
                     email: _emailController.text.trim(),
                     referalCode: _referralController.text.trim(),
+                    pageId: 0,
                   ),
             ),
           );

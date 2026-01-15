@@ -99,6 +99,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                       name: '',
                       email: '',
                       referalCode: '',
+                      pageId: 1,
                     ),
               ),
             );

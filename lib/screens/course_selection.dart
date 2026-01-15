@@ -4,10 +4,12 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/selected_courses_item.dart';
+import 'package:tazaquiznew/screens/homeSceen.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 class MyCoursesSelection extends StatefulWidget {
-  const MyCoursesSelection({super.key});
+  int pageId;
+  MyCoursesSelection({super.key, required this.pageId});
 
   @override
   State<MyCoursesSelection> createState() => _MyCoursesSelectionState();
@@ -109,21 +111,19 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
     });
   }
 
-  Future<void> _updateCourses() async {
+  Future<void> _updateCourses() async {  
     setState(() => _isUpdating = true);
 
     try {
       final selectedIds = _coursesItem.where((c) => c.isSelected).map((c) => c.categoryId).toList();
-
-      print("Selected course IDs: $selectedIds");
       Authrepository authRepository = Authrepository(Api_Client.dio);
       List<int> categoryIds = selectedIds;
       for (var id in categoryIds) {
         final data = {'user_id': _user!.id.toString(), 'category_id': id.toString()};
-        print(data);
+
 
         await authRepository.Saveupdate_user_courses(data);
-        print(authRepository);
+     
       }
 
       await Future.delayed(const Duration(seconds: 1));
@@ -136,7 +136,11 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.pop(context);
+        widget.pageId == 0 ?
+        Navigator.pop(context):
+                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
+
+
       }
     } catch (e) {
       if (mounted) {
@@ -161,7 +165,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
         elevation: 0,
         backgroundColor: primaryTeal,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(widget.pageId == 0 ? Icons.arrow_back : Icons.check, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -320,45 +324,50 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                                           const Spacer(),
 
                                           // Bottom row: Checkbox (left) + Description (right)
-                                          Row(
-                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                        Row(
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: [
+    // Description - always center aligned
+    Expanded(
+      child: Center(
+        child: course.description.isNotEmpty
+            ? Text(
+                course.description,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey.shade500,
+                  height: 1.1,
+                ),
+              )
+            : const SizedBox.shrink(),
+      ),
+    ),
 
-                                            children: [
-                                              // Checkbox on left
+    const SizedBox(width: 6),
 
-                                              // Description on right - only if not empty
-                                              if (course.description.isNotEmpty)
-                                                Expanded(
-                                                  child: Text(
-                                                    course.description,
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      color: Colors.grey.shade500,
-                                                      height: 1.1,
-                                                    ),
-                                                  ),
-                                                ),
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  color: course.isSelected ? primaryTeal : Colors.white,
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  border: Border.all(
-                                                    color: course.isSelected ? primaryTeal : Colors.grey.shade400,
-                                                    width: 2,
-                                                  ),
-                                                ),
-                                                width: 18,
-                                                height: 18,
-                                                child:
-                                                    course.isSelected
-                                                        ? const Icon(Icons.check, color: Colors.white, size: 14)
-                                                        : null,
-                                              ),
-                                            ],
-                                          ),
+    // Checkbox - always on right
+    Container(
+      decoration: BoxDecoration(
+        color: course.isSelected ? primaryTeal : Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: course.isSelected
+              ? primaryTeal
+              : Colors.grey.shade400,
+          width: 2,
+        ),
+      ),
+      width: 18,
+      height: 18,
+      child: course.isSelected
+          ? const Icon(Icons.check, color: Colors.white, size: 14)
+          : null,
+    ),
+  ],
+)
                                         ],
                                       ),
                                     ),

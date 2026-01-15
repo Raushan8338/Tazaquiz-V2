@@ -5,6 +5,7 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/screens/course_selection.dart';
 import 'package:tazaquiznew/screens/homeSceen.dart';
 import 'package:tazaquiznew/screens/singup.dart';
 import 'dart:async';
@@ -15,6 +16,7 @@ import 'package:tazaquiznew/widgets/custom_button.dart';
 class OTPBasedVerificationPage extends StatefulWidget {
   final String phoneNumber, name, email;
   final String? referalCode;
+  int pageId;
 
   OTPBasedVerificationPage({
     super.key,
@@ -22,6 +24,7 @@ class OTPBasedVerificationPage extends StatefulWidget {
     required this.name,
     required this.email,
     this.referalCode,
+    required this.pageId
   });
 
   @override
@@ -134,8 +137,6 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         'androidInfo': '',
       };
 
-      print(data);
-
       final responseFuture = await authRepository.signupVerifyOTP(data);
 
       if (responseFuture.statusCode == 200) {
@@ -143,7 +144,14 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         final userJson = responseFuture.data['series'];
         final user = UserModel.fromJson(userJson);
         await SessionManager.saveUser(user);
+         if(widget.pageId == 0){
+             Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId:1)));
+         }
+         else {
         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
+
+         }
+        
       } else {
         setState(() => _isLoading = false);
 

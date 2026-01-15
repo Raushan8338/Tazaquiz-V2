@@ -100,11 +100,7 @@ class Home_live_test extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => QuizDetailPage(quizId: liveTests[index].quizId),
-                      // LiveTestScreen(
-                      //   testTitle: liveTests[index].title,
-                      //   subject: liveTests[index].difficultyLevel,
-                      //   Quiz_id: liveTests[index].quizId,
-                      // ),
+                   
                     ),
                   );
                 },
@@ -192,7 +188,15 @@ class Home_live_test extends StatelessWidget {
                               ],
                             ),
                             ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => QuizDetailPage(quizId: liveTests[index].quizId),
+                   
+                    ),
+                  );
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.lightGold,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

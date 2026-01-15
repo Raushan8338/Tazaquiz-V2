@@ -399,8 +399,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
               SizedBox(width: 12),
               Expanded(
-                child: _buildActionButton('Selected Courses', Icons.help, AppColors.oxfordBlue, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection()));
+                child: _buildActionButton('Need Help', Icons.help, AppColors.oxfordBlue, () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
                 }),
               ),
             ],
@@ -466,6 +466,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             TextAlign.left,
             0.0,
           ),
+            SizedBox(height: 16),
+          _buildSettingItem(Icons.check_rounded, 'Selected Courses', () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId:0)));
+          }),
           SizedBox(height: 16),
           _buildSettingItem(Icons.share, 'Refer and Earn', () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => ReferEarnPage()));
@@ -477,11 +481,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           Divider(height: 28, color: AppColors.greyS300),
           _buildSettingItem(Icons.book, 'Refund Policy', () {
             launchUrl(Uri.parse('https://tazaquiz.com/refund_policy.html'), mode: LaunchMode.externalApplication);
-          }),
-          Divider(height: 28, color: AppColors.greyS300),
-
-          _buildSettingItem(Icons.help_outline, 'Help & Support', () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
           }),
           Divider(height: 28, color: AppColors.greyS300),
           _buildSettingItem(Icons.logout, 'Logout', () => _showLogoutDialog(context), isLogout: true),
