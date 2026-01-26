@@ -5,6 +5,8 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
+import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 class WeeklyProgressWidget extends StatefulWidget {
@@ -90,6 +92,10 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget> {
 
       return Container(
         padding: const EdgeInsets.all(18),
+        margin: const EdgeInsets.only(top: 12),
+
+        // padding: const EdgeInsets.all(10),
+        // decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(20)),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -157,10 +163,64 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget> {
                 Expanded(child: _buildStatItem('Remaining', '${totalQuizzes - completedQuizzes}', Colors.orange[700]!)),
               ],
             ),
+            _buildMyCoursesButton(),
           ],
         ),
       );
     }
+  }
+
+  /// 📚 MY COURSES BUTTON
+  Widget _buildMyCoursesButton() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16, bottom: 8),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()));
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.tealGreen, AppColors.tealGreen.withOpacity(0.8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(color: AppColors.tealGreen.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3)),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.school_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: AppRichText.setTextPoppinsStyle(
+                  context,
+                  'My Courses',
+                  15,
+                  Colors.white,
+                  FontWeight.w700,
+                  1,
+                  TextAlign.left,
+                  0,
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildStatItem(String label, String value, Color valueColor) {

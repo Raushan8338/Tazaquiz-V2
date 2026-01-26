@@ -125,49 +125,50 @@ class _HomePageState extends State<HomePage> {
       setState(() {});
     }
   }
+
   Widget greetingWidget(BuildContext context) {
-  // Determine greeting
-  final hour = DateTime.now().hour;
-  String greeting = 'Hello';
-  IconData icon = Icons.wb_sunny; // Default sun
+    // Determine greeting
+    final hour = DateTime.now().hour;
+    String greeting = 'Hello';
+    IconData icon = Icons.wb_sunny; // Default sun
 
-  if (hour >= 5 && hour < 12) {
-    greeting = 'Good Morning';
-    icon = Icons.wb_sunny;
-  } else if (hour >= 12 && hour < 17) {
-    greeting = 'Good Afternoon';
-    icon = Icons.wb_sunny_outlined;
-  } else if (hour >= 17 && hour < 21) {
-    greeting = 'Good Evening';
-    icon = Icons.nights_stay;
-  } else {
-    greeting = 'Good Night';
-    icon = Icons.nights_stay_outlined;
+    if (hour >= 5 && hour < 12) {
+      greeting = 'Good Morning';
+      icon = Icons.wb_sunny;
+    } else if (hour >= 12 && hour < 17) {
+      greeting = 'Good Afternoon';
+      icon = Icons.wb_sunny_outlined;
+    } else if (hour >= 17 && hour < 21) {
+      greeting = 'Good Evening';
+      icon = Icons.nights_stay;
+    } else {
+      greeting = 'Good Night';
+      icon = Icons.nights_stay_outlined;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          icon,
+          color: Colors.orangeAccent, // Stylish color
+          size: 16,
+        ),
+        const SizedBox(width: 6),
+        AppRichText.setTextPoppinsStyle(
+          context,
+          greeting,
+          12, // Font size
+          Colors.grey.shade600, // Text color
+          FontWeight.w500,
+          1,
+          TextAlign.left,
+          0,
+        ),
+      ],
+    );
   }
-
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.center,
-    children: [
-      Icon(
-        icon,
-        color: Colors.orangeAccent, // Stylish color
-        size: 16,
-      ),
-      const SizedBox(width: 6),
-      AppRichText.setTextPoppinsStyle(
-        context,
-        greeting,
-        12, // Font size
-        Colors.grey.shade600, // Text color
-        FontWeight.w500,
-        1,
-        TextAlign.left,
-        0,
-      ),
-    ],
-  );
-}
 
   @override
   void dispose() {
@@ -246,7 +247,7 @@ class _HomePageState extends State<HomePage> {
             TextAlign.left,
             0,
           ),
-         greetingWidget(context),
+          greetingWidget(context),
         ],
       ),
       actions: [
@@ -275,13 +276,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildStatsSection() {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(20)),
-      child: WeeklyProgressWidget(),
-    );
+    return Container(child: WeeklyProgressWidget());
   }
+  
 
   /// 🏆 ACHIEVEMENTS
   Widget _buildAchievementsSection() {

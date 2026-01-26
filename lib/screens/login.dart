@@ -127,6 +127,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         // Not registered
         else if (status == "not_register") {
           setState(() => _isLoading = false);
+          Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage()));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: AppRichText.setTextPoppinsStyle(
@@ -148,6 +149,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         // Unknown response
         else {
           setState(() => _isLoading = false);
+          Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage()));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: AppRichText.setTextPoppinsStyle(

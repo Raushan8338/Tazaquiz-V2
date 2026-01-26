@@ -179,6 +179,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'email': _user?.email,
       'phone': _user?.phone,
     };
+    print(data);
 
     final responseCreate = await authRepository.createPaymentOrder(data);
 

@@ -13,8 +13,9 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 
 class QuizDetailPage extends StatefulWidget {
   final String quizId;
+  final bool is_subscribed;
 
-  QuizDetailPage({required this.quizId});
+  QuizDetailPage({required this.quizId, required this.is_subscribed});
 
   @override
   _QuizDetailPageState createState() => _QuizDetailPageState();
@@ -24,6 +25,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
   UserModel? _user;
   bool _isLoading = true;
   bool _isPurchased = false;
+  int _product_sub_id = 0;
+  int _isPremium = 0;
   bool _attempted = false;
   bool _isAccessible = false;
   bool _isFree = false;
@@ -49,13 +52,14 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     await fetchQuizDetails(_user!.id);
 
     if (!mounted) return;
-    setState(() {}); // ✅ end me ek hi baar
+    setState(() {});
   }
 
   Future<void> fetchQuizDetails(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
+      print('Fetching quiz details for Quiz ID: ${widget.quizId} and User ID: $userid');
 
       final responseFuture = await authRepository.get_quizId_wise_details(data);
 
@@ -64,12 +68,18 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
 
         if (responseData['status'] == true && responseData['data'] != null) {
           _currentQuiz = QuizItem.fromJson(responseData['data']);
-          _isPurchased = _currentQuiz!.isPurchased;
-          _isAccessible = _currentQuiz!.isAccessible;
-          _attempted = _currentQuiz!.is_attempted;
-          _isFree = _currentQuiz!.price == 0 || !_currentQuiz!.isPaid;
-          _isLive = _currentQuiz!.isLive;
-          _remainingSeconds = _currentQuiz!.startsInSeconds;
+
+          setState(() {
+            _isPurchased = _currentQuiz!.isPurchased;
+            print(_currentQuiz!.isPurchased);
+            _isAccessible =widget.is_subscribed == true ? true : _currentQuiz!.isAccessible;
+            _attempted = _currentQuiz!.is_attempted;
+            _isFree = _currentQuiz!.price == 0 || !_currentQuiz!.isPaid;
+            _isLive = _currentQuiz!.isLive;
+            _isPremium = _currentQuiz!.is_premium;
+            _product_sub_id = _currentQuiz!.subscription_id;
+            _remainingSeconds = _currentQuiz!.startsInSeconds;
+          });
 
           if (_remainingSeconds > 0) {
             _startCountdown();
@@ -85,6 +95,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
         });
       }
     } catch (e) {
+      print('Error fetching quiz details: $e');
       setState(() {
         _isLoading = false;
       });
@@ -122,9 +133,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
 
   void _handleStartQuiz() {
     if (_currentQuiz == null) return;
-    print(_currentQuiz!.title);
-    print(_currentQuiz!.difficultyLevel);
-    print(_currentQuiz!.quizId);
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -136,10 +145,32 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
             ),
       ),
     );
+  }
 
-    // ScaffoldMessenger.of(
-    //   context,
-    // ).showSnackBar(SnackBar(content: Text('Starting quiz...'), backgroundColor: AppColors.tealGreen));
+  void _handleSubscribe() {
+    if (_currentQuiz == null) return;
+
+    print('Navigating to checkout with Quiz ID: ${_isPremium}');
+    String susb_category;
+    String send_product_id;
+
+    if (_isPremium == 1) {
+      susb_category = 'QUIZ';
+      send_product_id = widget.quizId;
+    } else {
+      susb_category = 'Subscription';
+      send_product_id = _product_sub_id.toString();
+    }
+    print('susb_category: $susb_category');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CheckoutPage(contentType: susb_category, contentId: send_product_id)),
+    ).then((value) {
+      if (value == true) {
+        _getUserData();
+      }
+    });
   }
 
   @override
@@ -159,30 +190,38 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       );
     }
 
+    bool canStartQuiz = _isPurchased || _isAccessible || _isFree;
+    print('canStartQuiz: $canStartQuiz');
+    bool isAvailable = _isLive && canStartQuiz;
+
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(),
+          _buildAppBar(_currentQuiz!.title.toString()),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                SizedBox(height: 16),
-                if (_isPurchased || _isAccessible || _isFree) _buildStatusBanner(),
-                if (_isPurchased || _isAccessible || _isFree) SizedBox(height: 16),
-                if (_isLive && (_isPurchased || _isAccessible || _isFree)) _buildLiveBanner(),
-                if (_isLive && (_isPurchased || _isAccessible || _isFree)) SizedBox(height: 16),
-                _buildQuizCard(),
-                SizedBox(height: 16),
-                _buildTimingCard(),
-                SizedBox(height: 16),
-                _buildDescriptionCard(),
-                SizedBox(height: 16),
-                _buildInstructionsCard(),
-                SizedBox(height: 16),
-                _buildQuizInfoCard(),
-                if (!_isPurchased && !_isAccessible && !_isFree) ...[SizedBox(height: 16), _buildSecurePaymentInfo()],
-                SizedBox(height: 100),
+                SizedBox(height: 12),
+                if (canStartQuiz) _buildStatusBanner(),
+                if (canStartQuiz) SizedBox(height: 12),
+                if (_isLive && canStartQuiz) _buildLiveBanner(),
+                if (_isLive && canStartQuiz) SizedBox(height: 12),
+
+                // Course/Package Info (if part of a course)
+                _buildCourseInfo(),
+                SizedBox(height: 12),
+
+                _buildQuizHeader(),
+                SizedBox(height: 12),
+                if (!canStartQuiz) _buildSubscriptionSection() else _buildQuizDetailsSection(),
+                SizedBox(height: 12),
+                if (_currentQuiz!.description.isNotEmpty) _buildDescriptionCard(),
+                if (_currentQuiz!.description.isNotEmpty) SizedBox(height: 12),
+                if (_currentQuiz!.instruction.isNotEmpty) _buildInstructionsCard(),
+                if (_currentQuiz!.instruction.isNotEmpty) SizedBox(height: 12),
+                _buildInfoCard(),
+                SizedBox(height: 90),
               ],
             ),
           ),
@@ -198,45 +237,45 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     List<Color> gradientColors;
 
     if (_isFree) {
-      message = '🎉 This Quiz is completely FREE!';
+      message = '🎉 This Quiz is FREE!';
       icon = Icons.celebration;
       gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
     } else if (_isPurchased) {
-      message = '✅ You have already purchased this Quiz!';
+      message = '✅ You are subscribed!';
       icon = Icons.check_circle;
       gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
     } else {
-      message = '🔓 This Quiz is accessible for you!';
+      message = '🔓 Accessible for you!';
       icon = Icons.lock_open;
       gradientColors = [AppColors.lightGold, AppColors.lightGoldS2];
     }
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: gradientColors),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: gradientColors[0], size: 22),
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: gradientColors[0], size: 18),
           ),
-          SizedBox(width: 12),
+          SizedBox(width: 10),
           Expanded(
             child: AppRichText.setTextPoppinsStyle(
               context,
               message,
-              13,
+              12,
               AppColors.white,
               FontWeight.w600,
-              3,
+              2,
               TextAlign.left,
-              1.3,
+              1.2,
             ),
           ),
         ],
@@ -247,30 +286,30 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
   Widget _buildLiveBanner() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [Colors.red.shade600, Colors.red.shade800]),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.play_circle_filled, color: Colors.red, size: 22),
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(8)),
+            child: Icon(Icons.play_circle_filled, color: Colors.red, size: 18),
           ),
-          SizedBox(width: 12),
+          SizedBox(width: 10),
           Expanded(
             child: AppRichText.setTextPoppinsStyle(
               context,
-              '🔴 LIVE NOW! Quiz Started - Join Immediately!',
-              13,
+              '🔴 LIVE NOW! Join Immediately',
+              12,
               AppColors.white,
               FontWeight.w700,
-              3,
+              2,
               TextAlign.left,
-              1.3,
+              1.2,
             ),
           ),
         ],
@@ -278,15 +317,25 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(title) {
     return SliverAppBar(
-      expandedHeight: 180,
+      expandedHeight: 55,
       pinned: true,
       backgroundColor: AppColors.darkNavy,
+      title: AppRichText.setTextPoppinsStyle(
+        context,
+        title,
+        12,
+        AppColors.white,
+        FontWeight.w700,
+        2,
+        TextAlign.left,
+        1.2,
+      ),
       leading: IconButton(
         icon: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+          padding: EdgeInsets.all(6),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
           child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
@@ -300,87 +349,83 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
               colors: [AppColors.darkNavy, AppColors.tealGreen],
             ),
           ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -50,
-                top: 20,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
-                ),
-              ),
-              Positioned(
-                left: -30,
-                bottom: -30,
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
-                ),
-              ),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 60),
-                    Container(
-                      padding: EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGold.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 8)),
-                        ],
-                      ),
-                      child: Icon(Icons.quiz, size: 36, color: AppColors.darkNavy),
-                    ),
-                    if (_currentQuiz!.isPaid && _currentQuiz!.price > 0) ...[
-                      SizedBox(height: 10),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.workspace_premium, size: 12, color: AppColors.darkNavy),
-                            SizedBox(width: 4),
-                            AppRichText.setTextPoppinsStyle(
-                              context,
-                              'PREMIUM',
-                              10,
-                              AppColors.darkNavy,
-                              FontWeight.w800,
-                              1,
-                              TextAlign.center,
-                              0.0,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
-  Widget _buildQuizCard() {
+  Widget _buildCourseInfo() {
+    String? courseTitle = _currentQuiz?.title; // Replace with: _currentQuiz?.courseTitle
+    String? category = _currentQuiz?.Material_name; // Replace with: _currentQuiz?.category
+
+    if (courseTitle == null || courseTitle.isEmpty) {
+      return SizedBox.shrink();
+    }
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.lightGold.withOpacity(0.1), AppColors.lightGoldS2.withOpacity(0.05)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightGold.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.lightGold.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.library_books, color: AppColors.darkNavy, size: 18),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (category != null && category.isNotEmpty) ...[
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    category,
+                    10,
+                    AppColors.greyS600,
+                    FontWeight.w600,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
+                  SizedBox(height: 2),
+                ],
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  courseTitle,
+                  13,
+                  AppColors.darkNavy,
+                  FontWeight.w700,
+                  2,
+                  TextAlign.left,
+                  1.2,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuizHeader() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 8))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,17 +436,17 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: _getStatusColor().withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.schedule, size: 13, color: _getStatusColor()),
+                    Icon(Icons.circle, size: 8, color: _getStatusColor()),
                     SizedBox(width: 5),
                     AppRichText.setTextPoppinsStyle(
                       context,
                       _currentQuiz!.quizStatus.toUpperCase(),
-                      11,
+                      10,
                       _getStatusColor(),
                       FontWeight.w600,
                       1,
@@ -417,12 +462,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: AppColors.tealGreen.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: AppRichText.setTextPoppinsStyle(
                     context,
                     _currentQuiz!.difficultyLevel,
-                    11,
+                    10,
                     AppColors.tealGreen,
                     FontWeight.w600,
                     1,
@@ -433,88 +478,75 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
               ],
             ],
           ),
-          SizedBox(height: 14),
+          SizedBox(height: 10),
           AppRichText.setTextPoppinsStyle(
             context,
-            _currentQuiz!.title,
+            _currentQuiz!.Category_name,
             17,
             AppColors.darkNavy,
             FontWeight.w700,
             3,
             TextAlign.left,
-            1.4,
+            1.3,
           ),
-          SizedBox(height: 18),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      _isFree ? 'Free Quiz' : 'Entry Fee',
-                      12,
-                      AppColors.lightGold,
-                      FontWeight.w600,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                    SizedBox(height: 5),
-                    if (_isFree)
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'FREE',
-                        24,
-                        AppColors.white,
-                        FontWeight.w800,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      )
-                    else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            '₹',
-                            15,
-                            AppColors.white,
-                            FontWeight.w600,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            _currentQuiz!.price.toStringAsFixed(0),
-                            26,
-                            AppColors.white,
-                            FontWeight.w800,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(10)),
-                  child: Icon(_isFree ? Icons.card_giftcard : Icons.paid, color: AppColors.darkNavy, size: 24),
-                ),
-              ],
-            ),
+          SizedBox(height: 10),
+
+          Row(
+            children: [
+              Icon(Icons.help_outline, size: 14, color: AppColors.greyS600),
+              SizedBox(width: 5),
+              AppRichText.setTextPoppinsStyle(
+                context,
+                'Series / Courses Name',
+                11,
+                AppColors.greyS600,
+                FontWeight.w500,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+            ],
           ),
+          SizedBox(height: 8),
+          AppRichText.setTextPoppinsStyle(
+            context,
+            _currentQuiz!.subscription_description,
+            11,
+            AppColors.darkNavy,
+            FontWeight.normal,
+            20,
+            TextAlign.left,
+            1.3,
+          ),
+          SizedBox(height: 10),
+          if (_remainingSeconds > 0) ...[
+            SizedBox(height: 12),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.schedule, color: Colors.orange.shade700, size: 16),
+                  SizedBox(width: 6),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Starts in ${_getCountdownText()}',
+                    12,
+                    Colors.orange.shade700,
+                    FontWeight.w600,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -533,32 +565,137 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     }
   }
 
-  Widget _buildTimingCard() {
+  Widget _buildSubscriptionSection() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.darkNavy, AppColors.tealGreen],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5))],
       ),
       child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.lightGold.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 18),
+                SizedBox(width: 6),
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Subscription Benefits',
+                  13,
+                  AppColors.white,
+                  FontWeight.w700,
+                  1,
+                  TextAlign.center,
+                  0.0,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 14),
+          _buildBenefit(Icons.all_inclusive, 'Unlimited Quiz Access', 'Attempt all quizzes without limits'),
+          SizedBox(height: 10),
+          _buildBenefit(Icons.menu_book, 'Complete Study Material', 'PDFs, videos, notes & practice sets'),
+          SizedBox(height: 10),
+          _buildBenefit(Icons.school, 'Expert Guidance', 'Learn from experienced teachers'),
+          SizedBox(height: 10),
+          _buildBenefit(Icons.bar_chart, 'Performance Analytics', 'Track progress with detailed reports'),
+          SizedBox(height: 10),
+          _buildBenefit(Icons.update, 'Regular Content Updates', 'New quizzes added every week'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefit(IconData icon, String title, String subtitle) {
+    return Container(
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.white.withOpacity(0.2), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(7),
+            decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: AppColors.darkNavy, size: 16),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  title,
+                  12,
+                  AppColors.white,
+                  FontWeight.w600,
+                  1,
+                  TextAlign.left,
+                  0.0,
+                ),
+                SizedBox(height: 2),
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  subtitle,
+                  10,
+                  AppColors.white.withOpacity(0.85),
+                  FontWeight.w400,
+                  2,
+                  TextAlign.left,
+                  1.2,
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.check_circle, color: AppColors.lightGold, size: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuizDetailsSection() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.access_time, color: AppColors.lightGold, size: 18),
+                child: Icon(Icons.access_time, color: AppColors.lightGold, size: 16),
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               AppRichText.setTextPoppinsStyle(
                 context,
-                'Quiz Timing',
-                14,
+                'Quiz Schedule',
+                13,
                 AppColors.darkNavy,
                 FontWeight.w700,
                 1,
@@ -567,68 +704,26 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
               ),
             ],
           ),
-          SizedBox(height: 16),
-          _buildTimingRow(Icons.calendar_today, 'Start Time', _currentQuiz!.startDateTime),
+          SizedBox(height: 12),
+          _buildDetailRow(Icons.calendar_today, 'Start Time', _currentQuiz!.startDateTime),
           if (_currentQuiz!.endDateTime.isNotEmpty) ...[
-            SizedBox(height: 12),
-            _buildTimingRow(Icons.event_busy, 'End Time', _currentQuiz!.endDateTime),
+            SizedBox(height: 8),
+            _buildDetailRow(Icons.event_busy, 'End Time', _currentQuiz!.endDateTime),
           ],
           if (_currentQuiz!.timeLimit.isNotEmpty) ...[
-            SizedBox(height: 12),
-            _buildTimingRow(Icons.timer, 'Duration', '${_currentQuiz!.timeLimit} minutes'),
-          ],
-          if (_remainingSeconds > 0) ...[
-            SizedBox(height: 16),
-            Container(
-              padding: EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Colors.orange.shade400, Colors.orange.shade600]),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.hourglass_bottom, color: AppColors.white, size: 20),
-                  SizedBox(width: 10),
-                  Column(
-                    children: [
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Starts In',
-                        11,
-                        AppColors.white,
-                        FontWeight.w500,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                      SizedBox(height: 2),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        _getCountdownText(),
-                        18,
-                        AppColors.white,
-                        FontWeight.w800,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            SizedBox(height: 8),
+            _buildDetailRow(Icons.timer, 'Duration', '${_currentQuiz!.timeLimit} min'),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildTimingRow(IconData icon, String label, String value) {
+  Widget _buildDetailRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.tealGreen),
-        SizedBox(width: 10),
+        Icon(icon, size: 14, color: AppColors.tealGreen),
+        SizedBox(width: 8),
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -636,22 +731,24 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
               AppRichText.setTextPoppinsStyle(
                 context,
                 label,
-                12,
+                11,
                 AppColors.greyS600,
                 FontWeight.w500,
                 1,
                 TextAlign.left,
                 0.0,
               ),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                value,
-                12,
-                AppColors.darkNavy,
-                FontWeight.w600,
-                1,
-                TextAlign.right,
-                0.0,
+              Flexible(
+                child: AppRichText.setTextPoppinsStyle(
+                  context,
+                  value,
+                  11,
+                  AppColors.darkNavy,
+                  FontWeight.w600,
+                  1,
+                  TextAlign.right,
+                  0.0,
+                ),
               ),
             ],
           ),
@@ -663,11 +760,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
   Widget _buildDescriptionCard() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -675,18 +772,18 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.description_outlined, color: AppColors.lightGold, size: 18),
+                child: Icon(Icons.description_outlined, color: AppColors.lightGold, size: 16),
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               AppRichText.setTextPoppinsStyle(
                 context,
                 'About This Quiz',
-                14,
+                13,
                 AppColors.darkNavy,
                 FontWeight.w700,
                 1,
@@ -695,18 +792,16 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
               ),
             ],
           ),
-          SizedBox(height: 14),
+          SizedBox(height: 10),
           AppRichText.setTextPoppinsStyle(
             context,
-            _currentQuiz!.description.isNotEmpty
-                ? _currentQuiz!.description
-                : 'Test your knowledge with this exciting quiz!',
-            13,
+            _currentQuiz!.description,
+            12,
             AppColors.greyS700,
-            FontWeight.w500,
+            FontWeight.w400,
             10,
             TextAlign.left,
-            1.6,
+            1.5,
           ),
         ],
       ),
@@ -714,15 +809,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
   }
 
   Widget _buildInstructionsCard() {
-    if (_currentQuiz!.instruction.isEmpty) return SizedBox.shrink();
-
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -730,18 +823,18 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.rule, color: AppColors.darkNavy, size: 18),
+                child: Icon(Icons.rule, color: AppColors.darkNavy, size: 16),
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               AppRichText.setTextPoppinsStyle(
                 context,
                 'Instructions',
-                14,
+                13,
                 AppColors.darkNavy,
                 FontWeight.w700,
                 1,
@@ -750,7 +843,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
               ),
             ],
           ),
-          SizedBox(height: 14),
+          SizedBox(height: 10),
           _buildInstructionItems(),
         ],
       ),
@@ -758,7 +851,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
   }
 
   Widget _buildInstructionItems() {
-    // Parse HTML and extract li elements
     final instructionText = _currentQuiz!.instruction;
     final liRegex = RegExp(r'<li[^>]*>(.*?)</li>', dotAll: true);
     final matches = liRegex.allMatches(instructionText);
@@ -767,12 +859,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       return AppRichText.setTextPoppinsStyle(
         context,
         _removeHtmlTags(instructionText),
-        13,
+        12,
         AppColors.greyS700,
-        FontWeight.w500,
+        FontWeight.w400,
         10,
         TextAlign.left,
-        1.6,
+        1.5,
       );
     }
 
@@ -784,18 +876,29 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
             String cleanText = _removeHtmlTags(content);
 
             return Padding(
-              padding: EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.only(bottom: 8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    margin: EdgeInsets.only(top: 5),
-                    width: 6,
-                    height: 6,
+                    margin: EdgeInsets.only(top: 6),
+                    width: 4,
+                    height: 4,
                     decoration: BoxDecoration(color: AppColors.tealGreen, shape: BoxShape.circle),
                   ),
-                  SizedBox(width: 10),
-                  Expanded(child: _buildFormattedText(cleanText)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: AppRichText.setTextPoppinsStyle(
+                      context,
+                      cleanText,
+                      11,
+                      AppColors.greyS700,
+                      FontWeight.w400,
+                      10,
+                      TextAlign.left,
+                      1.4,
+                    ),
+                  ),
                 ],
               ),
             );
@@ -803,237 +906,79 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     );
   }
 
-  Widget _buildFormattedText(String text) {
-    // Extract bold text patterns
-    final strongRegex = RegExp(r'\*\*(.*?)\*\*');
-    final parts = <TextSpan>[];
-    int lastIndex = 0;
-
-    for (final match in strongRegex.allMatches(text)) {
-      // Add normal text before bold
-      if (match.start > lastIndex) {
-        parts.add(
-          TextSpan(
-            text: text.substring(lastIndex, match.start),
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              color: AppColors.greyS700,
-              fontWeight: FontWeight.w500,
-              height: 1.6,
-            ),
-          ),
-        );
-      }
-
-      // Add bold text
-      parts.add(
-        TextSpan(
-          text: match.group(1),
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-            color: AppColors.darkNavy,
-            fontWeight: FontWeight.w700,
-            height: 1.6,
-          ),
-        ),
-      );
-
-      lastIndex = match.end;
-    }
-
-    // Add remaining normal text
-    if (lastIndex < text.length) {
-      parts.add(
-        TextSpan(
-          text: text.substring(lastIndex),
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 13,
-            color: AppColors.greyS700,
-            fontWeight: FontWeight.w500,
-            height: 1.6,
-          ),
-        ),
-      );
-    }
-
-    return RichText(text: TextSpan(children: parts));
-  }
-
   String _removeHtmlTags(String htmlText) {
-    // Remove HTML tags
     String text = htmlText.replaceAll(RegExp(r'<[^>]*>'), '');
-    // Decode HTML entities
     text = text.replaceAll('&amp;', '&');
     text = text.replaceAll('&lt;', '<');
     text = text.replaceAll('&gt;', '>');
     text = text.replaceAll('&quot;', '"');
     text = text.replaceAll('&#39;', "'");
     text = text.replaceAll('\n', ' ');
-    // Replace multiple spaces with single space
     text = text.replaceAll(RegExp(r'\s+'), ' ');
-    // Mark bold text with **
-    text = text.replaceAll(RegExp(r'<strong[^>]*>(.*?)</strong>'), '**\$1**');
     return text.trim();
   }
 
-  Widget _buildQuizInfoCard() {
+  Widget _buildInfoCard() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(18),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Column(
         children: [
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.info_outline, color: AppColors.darkNavy, size: 18),
+                child: Icon(Icons.info_outline, color: AppColors.darkNavy, size: 16),
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               AppRichText.setTextPoppinsStyle(
                 context,
-                'Quiz Information',
-                13,
+                'Important Information',
+                12,
                 AppColors.darkNavy,
-                FontWeight.w600,
+                FontWeight.w700,
                 1,
                 TextAlign.left,
                 0.0,
               ),
             ],
           ),
-          SizedBox(height: 14),
-          _buildInfoItem(Icons.check_circle_outline, 'One-time attempt only'),
           SizedBox(height: 10),
-          _buildInfoItem(Icons.wifi_off, 'Stable internet required'),
-          SizedBox(height: 10),
-          _buildInfoItem(Icons.leaderboard, 'Instant results & ranking'),
+          _buildInfoRow(Icons.check_circle_outline, 'Single attempt only'),
+          SizedBox(height: 6),
+          _buildInfoRow(Icons.wifi, 'Stable internet required'),
+          SizedBox(height: 6),
+          _buildInfoRow(Icons.leaderboard, 'Instant results & ranking'),
         ],
       ),
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String text) {
+  Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.tealGreen),
-        SizedBox(width: 10),
+        Icon(icon, size: 14, color: AppColors.tealGreen),
+        SizedBox(width: 8),
         Expanded(
           child: AppRichText.setTextPoppinsStyle(
             context,
             text,
-            12,
+            11,
             AppColors.greyS700,
-            FontWeight.w500,
+            FontWeight.w400,
             1,
             TextAlign.left,
             0.0,
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSecurePaymentInfo() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.security, color: AppColors.darkNavy, size: 18),
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      'Secure Payment',
-                      13,
-                      AppColors.darkNavy,
-                      FontWeight.w600,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                    SizedBox(height: 3),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      '100% secure payment with encryption',
-                      11,
-                      AppColors.greyS600,
-                      FontWeight.w500,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 14),
-          Container(
-            padding: EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.tealGreen.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildPaymentMethod(Icons.credit_card, 'Cards'),
-                Container(width: 1, height: 28, color: AppColors.greyS300),
-                _buildPaymentMethod(Icons.account_balance_wallet, 'UPI'),
-                Container(width: 1, height: 28, color: AppColors.greyS300),
-                _buildPaymentMethod(Icons.account_balance, 'Banking'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentMethod(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: AppColors.darkNavy, size: 22),
-        SizedBox(height: 5),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          label,
-          11,
-          AppColors.greyS700,
-          FontWeight.w600,
-          1,
-          TextAlign.center,
-          0.0,
         ),
       ],
     );
@@ -1044,142 +989,91 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
     bool isAvailable = _isLive && canStartQuiz;
 
     return Container(
-      padding: EdgeInsets.all(18),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.white,
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.1), blurRadius: 20, offset: Offset(0, -5))],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, -3))],
       ),
       child: SafeArea(
-        child: Row(
-          children: [
-            if (!canStartQuiz) ...[
-              Expanded(
-                flex: 2,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              if (_attempted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('You have already attempted this quiz'), backgroundColor: AppColors.greyS600),
+                );
+                return;
+              }
+
+              if (isAvailable) {
+                _handleStartQuiz();
+              } else if (canStartQuiz) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Quiz will start at scheduled time'), backgroundColor: Colors.orange),
+                );
+              } else {
+                _handleSubscribe();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.transparent,
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: Ink(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors:
+                      _attempted
+                          ? [Colors.grey.shade500, Colors.grey.shade700]
+                          : isAvailable
+                          ? [Colors.red.shade600, Colors.red.shade800]
+                          : canStartQuiz
+                          ? [Color(0xFFF59E0B), Color(0xFFD97706)]
+                          : [AppColors.tealGreen, AppColors.darkNavy],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Icon(
+                      _attempted
+                          ? Icons.check_circle_outline
+                          : isAvailable
+                          ? Icons.play_arrow_rounded
+                          : canStartQuiz
+                          ? Icons.schedule
+                          : Icons.workspace_premium,
+                      color: AppColors.white,
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      'Entry Fee',
-                      11,
-                      AppColors.greyS600,
-                      FontWeight.w600,
+                      _attempted
+                          ? 'Already Attempted'
+                          : isAvailable
+                          ? 'Start Quiz'
+                          : canStartQuiz
+                          ? 'Starts ${_getCountdownText()}'
+                          : 'Subscribe Now',
+                      14,
+                      AppColors.white,
+                      FontWeight.w700,
                       1,
-                      TextAlign.left,
+                      TextAlign.center,
                       0.0,
-                    ),
-                    SizedBox(height: 3),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          '₹',
-                          14,
-                          AppColors.darkNavy,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          _currentQuiz!.price.toStringAsFixed(0),
-                          22,
-                          AppColors.darkNavy,
-                          FontWeight.w800,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 12),
-            ],
-            Expanded(
-              flex: canStartQuiz ? 1 : 3,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (_attempted) return;
-                  if (isAvailable) {
-                    _handleStartQuiz();
-                  } else if (canStartQuiz) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Quiz will start at scheduled time'), backgroundColor: Colors.orange),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CheckoutPage(contentType: 'QUIZ', contentId: widget.quizId),
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.transparent,
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors:
-                          _attempted
-                              ? [Colors.grey.shade600, Colors.grey.shade800]
-                              : isAvailable
-                              ? [Colors.red.shade600, Colors.red.shade800]
-                              : canStartQuiz
-                              ? [Color(0xFFF59E0B), Color(0xFFD97706)]
-                              : [AppColors.tealGreen, AppColors.darkNavy],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _attempted
-                              ? Icons.check_circle_outline
-                              : isAvailable
-                              ? Icons.play_arrow
-                              : canStartQuiz
-                              ? Icons.schedule
-                              : Icons.lock_outline,
-                          color: AppColors.white,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          _attempted
-                              ? 'Already Attempted'
-                              : isAvailable
-                              ? 'Start Quiz Now'
-                              : canStartQuiz
-                              ? 'Starts In - ${_getCountdownText()}'
-                              : 'Buy Now',
-                          14,
-                          AppColors.white,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.center,
-                          0.0,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ),
-          ],
+          ),
         ),
       ),
     );

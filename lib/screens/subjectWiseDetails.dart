@@ -10,6 +10,7 @@ import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/models/study_category_item.dart';
 import 'package:tazaquiznew/models/study_material_details_item.dart';
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
+import 'package:tazaquiznew/screens/buyStudyM.dart';
 import 'package:tazaquiznew/screens/checkout.dart';
 import 'package:tazaquiznew/screens/studyMaterial.dart';
 import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
@@ -86,7 +87,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
 
   Future<List<StudyMaterialDetailsItem>> fetchStudyCategory(int categoryId) async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    final data = {'subject_id': categoryId.toString(), 'category_id': widget.id};
+    final data = {'subject_id': categoryId.toString(), 'category_id': widget.id, 'user_id': _user!.id.toString()};
     print(data);
 
     final responseFuture = await authRepository.fetch_non_paid_materials(data);
@@ -507,7 +508,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                       SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          material.author,
+                          material.coaching_name,
                           style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -560,7 +561,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   SizedBox(height: 14),
 
                   // Action Buttons - Enhanced for Paid Content
-                  if (material.isPaid)
+                  if (material.is_premium == 1)
                     Row(
                       children: [
                         // Price Display
@@ -608,6 +609,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                           ),
                         ),
                         SizedBox(width: 10),
+
                         // Enroll Now Button
                         Expanded(
                           flex: 3,
@@ -617,10 +619,22 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                                 context,
                                 MaterialPageRoute(
                                   builder:
-                                      (context) =>
-                                          CheckoutPage(contentType: 'STUDY', contentId: material.materialId.toString()),
+                                      (context) => BuyCoursePage(
+                                        contentId: material.materialId.toString(),
+                                        page_API_call: 'STUDY',
+                                      ),
                                 ),
                               );
+
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder:
+                              //         (context) =>
+                              //             CheckoutPage(contentType: 'STUDY', contentId: material.materialId.toString()),
+                              //   ),
+                              // );
+
                               // Navigator.push(context, MaterialPageRoute(builder: (context) => CheckoutPage()));
                             },
                             style: ElevatedButton.styleFrom(
@@ -671,15 +685,28 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          if (material.contentType != 'Video') {
+                          if (material.is_premium == 0 && material.isAccessible == false) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title),
+                                builder:
+                                    (context) => BuyCoursePage(
+                                      contentId: material.materialId.toString(),
+                                      page_API_call: 'STUDY',
+                                    ),
                               ),
                             );
                           } else {
-                            launchUrl(Uri.parse(material.filePath));
+                            if (material.contentType != 'Video') {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title),
+                                ),
+                              );
+                            } else {
+                              launchUrl(Uri.parse(material.filePath));
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -694,7 +721,11 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                             Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
                             SizedBox(width: 8),
                             Text(
-                              'Start Learning',
+                              (material.isAccessible == true)
+                                  ? 'Start Learning'
+                                  : (material.is_premium == 0)
+                                  ? 'SUBSCRIBE NOW'
+                                  : 'Start Learning',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,

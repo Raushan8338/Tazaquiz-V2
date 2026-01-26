@@ -99,8 +99,7 @@ class Home_live_test extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => QuizDetailPage(quizId: liveTests[index].quizId),
-                   
+                      builder: (context) => QuizDetailPage(quizId: liveTests[index].quizId, is_subscribed: false),
                     ),
                   );
                 },
@@ -189,13 +188,14 @@ class Home_live_test extends StatelessWidget {
                             ),
                             ElevatedButton(
                               onPressed: () {
-                                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => QuizDetailPage(quizId: liveTests[index].quizId),
-                   
-                    ),
-                  );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) =>
+                                            QuizDetailPage(quizId: liveTests[index].quizId, is_subscribed: false),
+                                  ),
+                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.lightGold,

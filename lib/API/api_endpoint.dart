@@ -34,4 +34,5 @@ class BaseUrl {
   static String error_CF_response = "insert_error_message.php";
   static String getUserSelectedCourses = "getUserSelectedCourses.php";
   static String save_update_user_courses = "update_user_courses.php";
+  static String fetch_paid_quizes_api = "paid_quizes_api.php";
 }

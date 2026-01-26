@@ -272,81 +272,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  Widget _buildStatsCards() {
-    return Container(
-      margin: EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatCard('Courses', '${_statistics['coursesEnrolled']}', Icons.school_outlined, [
-              AppColors.tealGreen,
-              AppColors.tealGreen.withOpacity(0.7),
-            ]),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: _buildStatCard('Tests Done', '${_statistics['testsCompleted']}', Icons.quiz_outlined, [
-              AppColors.oxfordBlue,
-              AppColors.darkNavy,
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, IconData icon, List<Color> colors) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: colors),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: colors[0].withOpacity(0.25), blurRadius: 12, offset: Offset(0, 6))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppColors.white, size: 24),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  value,
-                  24,
-                  AppColors.white,
-                  FontWeight.w800,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
-                SizedBox(height: 2),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  label,
-                  12,
-                  AppColors.white.withOpacity(0.9),
-                  FontWeight.w600,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildQuickActions() {
     return Container(
       margin: EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -379,7 +304,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               ),
               SizedBox(width: 12),
               Expanded(
-                child: _buildActionButton('Study Materials', Icons.book, AppColors.orange, () {
+                child: _buildActionButton('My Courses', Icons.book, AppColors.orange, () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()),
@@ -466,9 +391,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             TextAlign.left,
             0.0,
           ),
-            SizedBox(height: 16),
+          SizedBox(height: 16),
           _buildSettingItem(Icons.check_rounded, 'Selected Courses', () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId:0)));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId: 0)));
           }),
           SizedBox(height: 16),
           _buildSettingItem(Icons.share, 'Refer and Earn', () {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
@@ -14,8 +15,9 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 
 class BuyCoursePage extends StatefulWidget {
   final String contentId;
+  final String page_API_call;
 
-  BuyCoursePage({required this.contentId});
+  BuyCoursePage({required this.contentId, required this.page_API_call});
 
   @override
   _BuyCoursePageState createState() => _BuyCoursePageState();
@@ -26,6 +28,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
   List<StudyMaterialDetailsItem> _studyMaterials_new = [];
   bool _isLoading = true;
   bool _isPurchased = false;
+  int _product_sub_id = 0;
+  int _isPremium = 0;
   bool _isAccessible = false;
   bool _isFree = false;
   StudyMaterialDetailsItem? _currentMaterial;
@@ -41,13 +45,18 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     await fetchStudyCategory(_user!.id);
 
     if (!mounted) return;
-    setState(() {}); // ✅ end me ek hi baar
+    setState(() {});
   }
 
   Future<List<StudyMaterialDetailsItem>> fetchStudyCategory(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {'material_id': widget.contentId.toString(), 'user_id': userid.toString()};
+      final data = {
+        'material_id': widget.contentId.toString(),
+        'user_id': userid.toString(),
+        'page_API_call': widget.page_API_call,
+      };
+      print('data: $data');
 
       final responseFuture = await authRepository.get_study_wise_details(data);
 
@@ -61,7 +70,11 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
           _currentMaterial = _studyMaterials_new.first;
           _isPurchased = _currentMaterial!.isPurchased;
           _isAccessible = _currentMaterial!.isAccessible;
-          _isFree = _currentMaterial!.price == 0 || !_currentMaterial!.isPaid;
+          _isFree = !_currentMaterial!.isPaid;
+
+          // Add these fields from API if available
+          _isPremium = _currentMaterial!.is_premium ?? 0;
+          _product_sub_id = _currentMaterial!.subscription_id ?? 0;
         }
 
         setState(() {
@@ -76,6 +89,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
         return [];
       }
     } catch (e) {
+      print('Error fetching study details: $e');
       setState(() {
         _isLoading = false;
       });
@@ -99,6 +113,32 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     }
   }
 
+  void _handleSubscribe() {
+    if (_currentMaterial == null) return;
+
+    print('Navigating to checkout with isPremium: $_isPremium');
+    String susb_category;
+    String send_product_id;
+
+    if (_isPremium == 1) {
+      susb_category = 'STUDY';
+      send_product_id = widget.contentId;
+    } else {
+      susb_category = 'Subscription';
+      send_product_id = _product_sub_id.toString();
+    }
+    print('susb_category: $susb_category');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CheckoutPage(contentType: susb_category, contentId: send_product_id)),
+    ).then((value) {
+      if (value == true) {
+        _getUserData();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -116,24 +156,36 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       );
     }
 
+    bool canStartLearning = _isPurchased || _isAccessible || _isFree;
+    print('canStartLearning: ${_currentMaterial!.description}');
+
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(),
+          _buildAppBar(_currentMaterial!.title.toString()),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                SizedBox(height: 16),
-                if (_isPurchased || _isAccessible || _isFree) _buildPurchaseStatusBanner(),
-                if (_isPurchased || _isAccessible || _isFree) SizedBox(height: 16),
+                SizedBox(height: 12),
+                if (canStartLearning) _buildPurchaseStatusBanner(),
+                if (canStartLearning) SizedBox(height: 12),
+
+                // Course/Package Info
+                _buildCourseInfo(),
+                SizedBox(height: 12),
+
                 _buildCourseCard(),
-                SizedBox(height: 16),
-                _buildDescriptionCard(),
-                SizedBox(height: 16),
-                _buildInstructorCard(),
-                if (!_isPurchased && !_isAccessible && !_isFree) ...[SizedBox(height: 16), _buildSecurePaymentInfo()],
-                SizedBox(height: 100),
+                SizedBox(height: 12),
+
+                // Subscription Benefits or Course Details
+                if (!canStartLearning) _buildSubscriptionSection() else _buildCourseDetailsSection(),
+
+                SizedBox(height: 12),
+                (_currentMaterial!.description.isEmpty) ? SizedBox() : _buildDescriptionCard(),
+                SizedBox(height: 12),
+                (_currentMaterial!.description.isEmpty) ? SizedBox() : _buildInstructorCard(),
+                SizedBox(height: 90),
               ],
             ),
           ),
@@ -149,45 +201,45 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     List<Color> gradientColors;
 
     if (_isFree) {
-      message = '🎉 This Study Material is completely FREE!';
+      message = '🎉 This Study Material is FREE!';
       icon = Icons.celebration;
       gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
     } else if (_isPurchased) {
-      message = '✅ You have already purchased this Course!';
+      message = '✅ You are subscribed!';
       icon = Icons.check_circle;
       gradientColors = [AppColors.tealGreen, AppColors.darkNavy];
     } else {
-      message = '🔓 This Content is accessible for you!';
+      message = '🔓 Accessible for you!';
       icon = Icons.lock_open;
       gradientColors = [AppColors.lightGold, AppColors.lightGoldS2];
     }
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: gradientColors),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: gradientColors[0], size: 22),
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: gradientColors[0], size: 18),
           ),
-          SizedBox(width: 12),
+          SizedBox(width: 10),
           Expanded(
             child: AppRichText.setTextPoppinsStyle(
               context,
               message,
-              13,
+              12,
               AppColors.white,
               FontWeight.w600,
-              3,
+              2,
               TextAlign.left,
-              1.3,
+              1.2,
             ),
           ),
         ],
@@ -195,15 +247,25 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(String title) {
     return SliverAppBar(
-      expandedHeight: 180,
+      expandedHeight: 55,
       pinned: true,
       backgroundColor: AppColors.darkNavy,
+      title: AppRichText.setTextPoppinsStyle(
+        context,
+        title,
+        12,
+        AppColors.white,
+        FontWeight.w700,
+        2,
+        TextAlign.left,
+        1.2,
+      ),
       leading: IconButton(
         icon: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+          padding: EdgeInsets.all(6),
+          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
           child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
@@ -217,79 +279,72 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
               colors: [AppColors.darkNavy, AppColors.tealGreen],
             ),
           ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -50,
-                top: 20,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
-                ),
-              ),
-              Positioned(
-                left: -30,
-                bottom: -30,
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(color: AppColors.white.withOpacity(0.05), shape: BoxShape.circle),
-                ),
-              ),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 60),
-                    Container(
-                      padding: EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGold.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 8)),
-                        ],
-                      ),
-                      child: Icon(
-                        _currentMaterial!.contentType.toUpperCase() == 'PDF' ? Icons.picture_as_pdf : Icons.school,
-                        size: 36,
-                        color: AppColors.darkNavy,
-                      ),
-                    ),
-                    if (_currentMaterial!.isPaid && _currentMaterial!.price > 0) ...[
-                      SizedBox(height: 10),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.workspace_premium, size: 12, color: AppColors.darkNavy),
-                            SizedBox(width: 4),
-                            AppRichText.setTextPoppinsStyle(
-                              context,
-                              'PREMIUM',
-                              10,
-                              AppColors.darkNavy,
-                              FontWeight.w800,
-                              1,
-                              TextAlign.center,
-                              0.0,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCourseInfo() {
+    // Using subscription fields similar to QuizDetailPage
+    String? courseTitle = _currentMaterial?.Category_name;
+    String? category = _currentMaterial?.Material_name;
+
+    if (courseTitle == null || courseTitle.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.lightGold.withOpacity(0.1), AppColors.lightGoldS2.withOpacity(0.05)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightGold.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.lightGold.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.library_books, color: AppColors.darkNavy, size: 18),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (category != null && category.isNotEmpty) ...[
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    category,
+                    10,
+                    AppColors.greyS600,
+                    FontWeight.w600,
+                    1,
+                    TextAlign.left,
+                    0.0,
+                  ),
+                  SizedBox(height: 2),
+                ],
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  courseTitle,
+                  13,
+                  AppColors.darkNavy,
+                  FontWeight.w700,
+                  2,
+                  TextAlign.left,
+                  1.2,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -297,129 +352,79 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
   Widget _buildCourseCard() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 8))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.tealGreen.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.category_outlined, size: 13, color: AppColors.tealGreen),
-                SizedBox(width: 5),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  _currentMaterial!.contentType,
-                  11,
-                  AppColors.tealGreen,
-                  FontWeight.w600,
-                  1,
-                  TextAlign.left,
-                  0.0,
+          // Content Type Badge
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.tealGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              ],
-            ),
-          ),
-          SizedBox(height: 14),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            _currentMaterial!.title,
-            17,
-            AppColors.darkNavy,
-            FontWeight.w700,
-            3,
-            TextAlign.left,
-            1.4,
-          ),
-          SizedBox(height: 18),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(
+                      _currentMaterial!.contentType.toUpperCase() == 'PDF' ? Icons.picture_as_pdf : Icons.video_library,
+                      size: 12,
+                      color: AppColors.tealGreen,
+                    ),
+                    SizedBox(width: 5),
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      _isFree ? 'Free Course' : 'Course Price',
-                      12,
-                      AppColors.lightGold,
+                      _currentMaterial!.contentType,
+                      10,
+                      AppColors.tealGreen,
                       FontWeight.w600,
                       1,
                       TextAlign.left,
                       0.0,
                     ),
-                    SizedBox(height: 5),
-                    if (_isFree)
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'FREE',
-                        24,
-                        AppColors.white,
-                        FontWeight.w800,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      )
-                    else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            '₹ ',
-                            15,
-                            AppColors.white,
-                            FontWeight.w600,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            _currentMaterial!.price.toStringAsFixed(1),
-                            26,
-                            AppColors.white,
-                            FontWeight.w800,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                        ],
-                      ),
                   ],
                 ),
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(10)),
-                  child: Icon(
-                    _isFree ? Icons.card_giftcard : Icons.shopping_bag_outlined,
-                    color: AppColors.darkNavy,
-                    size: 24,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          SizedBox(height: 14),
+          SizedBox(height: 10),
+
+          // Course Title
+          AppRichText.setTextPoppinsStyle(
+            context,
+            _currentMaterial!.Material_name,
+            12,
+            AppColors.darkNavy,
+            FontWeight.w700,
+            3,
+            TextAlign.left,
+            1.3,
+          ),
+          SizedBox(height: 10),
+          // Course Title
+          AppRichText.setTextPoppinsStyle(
+            context,
+            _currentMaterial!.subscription_description,
+            12,
+            AppColors.darkNavy,
+            FontWeight.normal,
+            50,
+            TextAlign.left,
+            1.3,
+          ),
+          SizedBox(height: 10),
+
+          // Updated Date
           Row(
             children: [
-              Icon(Icons.access_time, size: 13, color: AppColors.greyS500),
+              Icon(Icons.access_time, size: 13, color: AppColors.greyS600),
               SizedBox(width: 5),
               AppRichText.setTextPoppinsStyle(
                 context,
@@ -455,14 +460,118 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     }
   }
 
-  Widget _buildDescriptionCard() {
+  Widget _buildSubscriptionSection() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.darkNavy, AppColors.tealGreen],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 15, offset: Offset(0, 5))],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.lightGold.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 18),
+                SizedBox(width: 6),
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Subscription Benefits',
+                  13,
+                  AppColors.white,
+                  FontWeight.w700,
+                  1,
+                  TextAlign.center,
+                  0.0,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 14),
+          _buildBenefit(Icons.all_inclusive, 'Unlimited Content Access', 'Access all study materials without limits'),
+          SizedBox(height: 10),
+          _buildBenefit(Icons.menu_book, 'Complete Study Material', 'PDFs, videos, notes & practice sets'),
+          SizedBox(height: 10),
+          _buildBenefit(Icons.school, 'Expert Guidance', 'Learn from experienced teachers'),
+          SizedBox(height: 10),
+          _buildBenefit(Icons.bar_chart, 'Performance Analytics', 'Track progress with detailed reports'),
+          SizedBox(height: 10),
+          _buildBenefit(Icons.update, 'Regular Content Updates', 'New materials added every week'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefit(IconData icon, String title, String subtitle) {
+    return Container(
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.white.withOpacity(0.2), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(7),
+            decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: AppColors.darkNavy, size: 16),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  title,
+                  12,
+                  AppColors.white,
+                  FontWeight.w600,
+                  1,
+                  TextAlign.left,
+                  0.0,
+                ),
+                SizedBox(height: 2),
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  subtitle,
+                  10,
+                  AppColors.white.withOpacity(0.85),
+                  FontWeight.w400,
+                  2,
+                  TextAlign.left,
+                  1.2,
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.check_circle, color: AppColors.lightGold, size: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCourseDetailsSection() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,18 +579,18 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                padding: EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.description_outlined, color: AppColors.lightGold, size: 18),
+                child: Icon(Icons.info_outline, color: AppColors.lightGold, size: 16),
               ),
-              SizedBox(width: 10),
+              SizedBox(width: 8),
               AppRichText.setTextPoppinsStyle(
                 context,
-                'About This Course',
-                14,
+                'Course Details',
+                13,
                 AppColors.darkNavy,
                 FontWeight.w700,
                 1,
@@ -490,16 +599,100 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
               ),
             ],
           ),
-          SizedBox(height: 14),
+          SizedBox(height: 12),
+          _buildDetailRow(Icons.category_outlined, 'Content Type', _currentMaterial!.contentType),
+          SizedBox(height: 8),
+          _buildDetailRow(Icons.person_outline, 'Author', _currentMaterial!.coaching_name),
+          SizedBox(height: 8),
+          _buildDetailRow(Icons.calendar_today, 'Published', _formatDate(_currentMaterial!.createdAt)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.tealGreen),
+        SizedBox(width: 8),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              AppRichText.setTextPoppinsStyle(
+                context,
+                label,
+                11,
+                AppColors.greyS600,
+                FontWeight.w500,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+              Flexible(
+                child: AppRichText.setTextPoppinsStyle(
+                  context,
+                  value,
+                  11,
+                  AppColors.darkNavy,
+                  FontWeight.w600,
+                  1,
+                  TextAlign.right,
+                  0.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDescriptionCard() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.description_outlined, color: AppColors.lightGold, size: 16),
+              ),
+              SizedBox(width: 8),
+              AppRichText.setTextPoppinsStyle(
+                context,
+                'About This Course',
+                13,
+                AppColors.darkNavy,
+                FontWeight.w700,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
           AppRichText.setTextPoppinsStyle(
             context,
             _currentMaterial!.description,
-            13,
+            12,
             AppColors.greyS700,
-            FontWeight.w500,
+            FontWeight.w400,
             10,
             TextAlign.left,
-            1.6,
+            1.5,
           ),
         ],
       ),
@@ -507,31 +700,31 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
   }
 
   Widget _buildInstructorCard() {
-    String instructorName = _currentMaterial!.author;
+    String instructorName = _currentMaterial!.coaching_name;
     String instructorInitial = instructorName.isNotEmpty ? instructorName[0].toUpperCase() : 'I';
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(18),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Row(
         children: [
           Container(
-            width: 55,
-            height: 55,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
               child: AppRichText.setTextPoppinsStyle(
                 context,
                 instructorInitial,
-                24,
+                20,
                 AppColors.white,
                 FontWeight.w700,
                 1,
@@ -540,7 +733,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
               ),
             ),
           ),
-          SizedBox(width: 14),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,33 +741,39 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 AppRichText.setTextPoppinsStyle(
                   context,
                   'Instructor',
-                  11,
+                  10,
                   AppColors.greyS600,
                   FontWeight.w500,
                   1,
                   TextAlign.left,
                   0.0,
                 ),
-                SizedBox(height: 3),
+                SizedBox(height: 2),
                 AppRichText.setTextPoppinsStyle(
                   context,
                   instructorName,
-                  14,
+                  13,
                   AppColors.darkNavy,
                   FontWeight.w600,
                   1,
                   TextAlign.left,
                   0.0,
                 ),
-                SizedBox(height: 5),
+                SizedBox(height: 4),
+
+                Html(
+                  data: _currentMaterial!.coaching_bio, // ya bioInfo
+                ),
+                SizedBox(height: 4),
+
                 Row(
                   children: [
-                    Icon(Icons.verified, size: 13, color: AppColors.tealGreen),
+                    Icon(Icons.verified, size: 12, color: AppColors.tealGreen),
                     SizedBox(width: 4),
                     AppRichText.setTextPoppinsStyle(
                       context,
                       'Verified Instructor',
-                      11,
+                      10,
                       AppColors.tealGreen,
                       FontWeight.w600,
                       1,
@@ -591,219 +790,68 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     );
   }
 
-  Widget _buildSecurePaymentInfo() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.security, color: AppColors.darkNavy, size: 18),
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      'Secure Payment',
-                      13,
-                      AppColors.darkNavy,
-                      FontWeight.w600,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                    SizedBox(height: 3),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      '100% secure payment with encryption',
-                      11,
-                      AppColors.greyS600,
-                      FontWeight.w500,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 14),
-          Container(
-            padding: EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.tealGreen.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildPaymentMethod(Icons.credit_card, 'Cards'),
-                Container(width: 1, height: 28, color: AppColors.greyS300),
-                _buildPaymentMethod(Icons.account_balance_wallet, 'UPI'),
-                Container(width: 1, height: 28, color: AppColors.greyS300),
-                _buildPaymentMethod(Icons.account_balance, 'Banking'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentMethod(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: AppColors.darkNavy, size: 22),
-        SizedBox(height: 5),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          label,
-          11,
-          AppColors.greyS700,
-          FontWeight.w600,
-          1,
-          TextAlign.center,
-          0.0,
-        ),
-      ],
-    );
-  }
-
   Widget _buildBottomBar() {
-    bool showStartLearning = _isPurchased || _isAccessible || _isFree;
+    bool canStartLearning = _isPurchased || _isAccessible || _isFree;
 
     return Container(
-      padding: EdgeInsets.all(18),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.white,
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.1), blurRadius: 20, offset: Offset(0, -5))],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 15, offset: Offset(0, -3))],
       ),
       child: SafeArea(
-        child: Row(
-          children: [
-            if (!showStartLearning) ...[
-              Expanded(
-                flex: 2,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              if (canStartLearning) {
+                _handleStartLearning();
+              } else {
+                _handleSubscribe();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.transparent,
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: Ink(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors:
+                      canStartLearning
+                          ? [AppColors.lightGold, AppColors.lightGoldS2]
+                          : [AppColors.tealGreen, AppColors.darkNavy],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Icon(
+                      canStartLearning ? Icons.play_circle_filled : Icons.workspace_premium,
+                      color: canStartLearning ? AppColors.darkNavy : AppColors.white,
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      'Total Amount',
-                      11,
-                      AppColors.greyS600,
-                      FontWeight.w600,
+                      canStartLearning ? 'Start Learning' : 'Subscribe Now',
+                      14,
+                      canStartLearning ? AppColors.darkNavy : AppColors.white,
+                      FontWeight.w700,
                       1,
-                      TextAlign.left,
+                      TextAlign.center,
                       0.0,
-                    ),
-                    SizedBox(height: 3),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          '₹',
-                          14,
-                          AppColors.darkNavy,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          _currentMaterial!.price.toStringAsFixed(1),
-                          22,
-                          AppColors.darkNavy,
-                          FontWeight.w800,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 12),
-            ],
-            Expanded(
-              flex: showStartLearning ? 1 : 3,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (showStartLearning) {
-                    _handleStartLearning();
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CheckoutPage(contentType: 'STUDY', contentId: widget.contentId),
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.transparent,
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors:
-                          showStartLearning
-                              ? [AppColors.lightGold, AppColors.lightGoldS2]
-                              : [AppColors.tealGreen, AppColors.darkNavy],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          showStartLearning ? Icons.play_circle_filled : Icons.lock_outline,
-                          color: showStartLearning ? AppColors.darkNavy : AppColors.white,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          showStartLearning ? 'Start Learning' : 'Buy Now',
-                          14,
-                          showStartLearning ? AppColors.darkNavy : AppColors.white,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.center,
-                          0.0,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ),
-          ],
+          ),
         ),
       ),
     );

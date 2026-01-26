@@ -18,17 +18,21 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> with SingleTickerProviderStateMixin {
   List<NotificationItem> notifications = [];
   UserModel? _user;
+  Future<List<NotificationItem>>? _notificationFuture;
 
   @override
   void initState() {
     super.initState();
-    _getUserData();
+    _initData();
   }
 
-  void _getUserData() async {
-    // Fetch and set user data here if needed
+  Future<void> _initData() async {
     _user = await SessionManager.getUser();
-    setState(() {});
+
+    if (_user != null) {
+      _notificationFuture = NotificationHistory();
+      setState(() {});
+    }
   }
 
   Future<List<NotificationItem>> NotificationHistory() async {
@@ -90,7 +94,7 @@ class _NotificationsPageState extends State<NotificationsPage> with SingleTicker
         ),
       ),
       body: FutureBuilder<List<NotificationItem>>(
-        future: NotificationHistory(),
+        future: _notificationFuture,
         builder: (BuildContext context, AsyncSnapshot<List<NotificationItem>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

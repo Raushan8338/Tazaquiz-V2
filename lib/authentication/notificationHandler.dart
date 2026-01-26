@@ -34,11 +34,17 @@ class NotificationHandler {
   static void _navigateToQuiz(BuildContext context, String? quizId) {
     if (quizId == null) return;
 
-    Navigator.push(context, MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quizId)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quizId, is_subscribed: false)),
+    );
   }
 
   // Quiz details page pe navigate
   static void _navigateToQuizDetails(BuildContext context, String quizId) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quizId)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quizId, is_subscribed: false)),
+    );
   }
 }

@@ -243,6 +243,13 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
 
                   ElevatedButton(
                     onPressed: () {
+                      // Navigator.push(
+                      //   context,
+                      //   MaterialPageRoute(
+                      //     builder: (context) => BuyCoursePage(contentId: material.id, page_API_call: 'SUBSCRIPTION'),
+                      //   ),
+                      // );
+
                       Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage(material.id)));
                     },
                     style: ElevatedButton.styleFrom(

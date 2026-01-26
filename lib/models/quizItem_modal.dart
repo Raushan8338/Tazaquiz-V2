@@ -11,6 +11,13 @@ class QuizItem {
   final String instruction;
   final String quizStatus;
   final bool is_attempted;
+  final int is_premium;
+
+  final String Category_name;
+  final String Material_name;
+  final double subscription_price;
+  final String subscription_description;
+  final int subscription_id;
 
   // Payment & Access
   final bool isPaid;
@@ -35,13 +42,19 @@ class QuizItem {
     this.instruction = '',
     required this.quizStatus,
     this.is_attempted = false,
+    this.subscription_id = 0,
     this.isPaid = false,
     this.price = 0.0,
-    this.isPurchased = false,
-    this.isAccessible = false,
-    this.isLive = false,
+    required this.isPurchased,
+    required this.isAccessible,
+    required this.isLive,
     this.startsInSeconds = 0,
     this.startsInText = '',
+    this.is_premium = 0,
+    this.Category_name = '',
+    this.Material_name = '',
+    this.subscription_price = 0.0,
+    this.subscription_description = '',
   });
 
   factory QuizItem.fromJson(Map<String, dynamic> json) {
@@ -61,13 +74,19 @@ class QuizItem {
       instruction: json['instruction']?.toString() ?? '',
       quizStatus: json['quiz_status']?.toString() ?? 'upcoming',
       is_attempted: json['is_attempted'] ?? false,
+      subscription_id: _toInt(json['subscription_id']),
       isPaid: _toBool(json['isPaid']),
       price: _toDouble(json['price']),
-      isPurchased: _toBool(json['is_purchased']),
-      isAccessible: _toBool(json['is_accessible']),
-      isLive: _toBool(json['is_live']),
-      startsInSeconds: _toInt(json['starts_in_seconds']),
+      isPurchased: _toBool(json['isPurchased']),
+      isAccessible: _toBool(json['isAccessible']),
+      isLive: _toBool(json['isLive']),
+      startsInSeconds: _toInt(json['startsInSeconds']),
       startsInText: json['starts_in_text']?.toString() ?? '',
+      is_premium: _toInt(json['is_premium']),
+      Category_name: json['Category_name']?.toString() ?? 'Test Series Name',
+      Material_name: json['Material_name']?.toString() ?? 'Material Name',
+      subscription_price: _toDouble(json['subscription_price']),
+      subscription_description: json['subscription_description']?.toString() ?? '',
     );
   }
 
@@ -84,6 +103,7 @@ class QuizItem {
       'instruction': instruction,
       'quiz_status': quizStatus,
       'is_attempted': is_attempted,
+      'subscription_id': subscription_id,
       'isPaid': isPaid,
       'price': price,
       'is_purchased': isPurchased,
@@ -91,6 +111,11 @@ class QuizItem {
       'is_live': isLive,
       'starts_in_seconds': startsInSeconds,
       'starts_in_text': startsInText,
+      'is_premium': is_premium,
+      'Category_name': Category_name,
+      'Material_name': Material_name,
+      'subscription_price': subscription_price,
+      'subscription_description': subscription_description,
     };
   }
 }

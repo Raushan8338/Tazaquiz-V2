@@ -14,7 +14,16 @@ class StudyMaterialDetailsItem {
   final bool isPublished;
   final String rating;
   final String thumbnail;
-  final String author;
+  final String coaching_name;
+  final String coaching_bio;
+
+  final int is_premium;
+
+  final String Category_name;
+  final String Material_name;
+  final double subscription_price;
+  final String subscription_description;
+  final int subscription_id;
 
   // 🔥 NEW OPTIONAL FLAGS (SAFE)
   final bool isPurchased;
@@ -36,7 +45,16 @@ class StudyMaterialDetailsItem {
     required this.isPublished,
     this.rating = '4.5',
     required this.thumbnail,
-    this.author = '***********',
+    required this.coaching_name,
+    required this.coaching_bio,
+
+    // 🔥 NEW OPTIONAL FLAGS (SAFE)
+    required this.is_premium,
+    required this.Category_name,
+    required this.Material_name,
+    required this.subscription_price,
+    required this.subscription_description,
+    required this.subscription_id,
 
     // 🔥 DEFAULT SAFE VALUES
     this.isPurchased = false,
@@ -64,7 +82,16 @@ class StudyMaterialDetailsItem {
       isPublished: _toBool(json['is_published']),
       rating: json['rating']?.toString() ?? '4.5',
       thumbnail: json['thumbnail']?.toString() ?? '',
-      author: json['author']?.toString() ?? '**********',
+      coaching_name: json['coaching_name']?.toString() ?? '**********',
+      coaching_bio: json['bio_info']?.toString() ?? '',
+
+      // 🔥 NEW OPTIONAL FLAGS (SAFE)
+      is_premium: _toInt(json['is_premium']),
+      Category_name: json['Category_name']?.toString() ?? '',
+      Material_name: json['Material_name']?.toString() ?? '',
+      subscription_price: _toDouble(json['subscription_price']),
+      subscription_description: json['subscription_description']?.toString() ?? '',
+      subscription_id: _toInt(json['subscription_id']),
 
       // 🔥 SAFE PARSING (agar na aaye to false)
       isPurchased: _toBool(json['is_purchased']),
@@ -89,7 +116,16 @@ class StudyMaterialDetailsItem {
       'is_published': isPublished ? 1 : 0,
       'rating': rating,
       'thumbnail': thumbnail,
-      'author': author,
+      'coaching_name': coaching_name,
+      'coaching_bio': coaching_bio,
+
+      // 🔥 NEW OPTIONAL FLAGS (SAFE)
+      'is_premium': is_premium,
+      'Category_name': Category_name,
+      'Material_name': Material_name,
+      'subscription_price': subscription_price,
+      'subscription_description': subscription_description,
+      'subscription_id': subscription_id,
 
       // 🔥 OPTIONAL
       'is_purchased': isPurchased,

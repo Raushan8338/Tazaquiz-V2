@@ -11,15 +11,15 @@ import 'package:tazaquiznew/screens/seriesWiseQuizList.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
-class QuizListScreen extends StatefulWidget {
+class Paid_QuizListScreen extends StatefulWidget {
   String pageId;
-  QuizListScreen(this.pageId);
+  Paid_QuizListScreen(this.pageId);
 
   @override
-  _QuizListScreenState createState() => _QuizListScreenState();
+  _Paid_QuizListScreenState createState() => _Paid_QuizListScreenState();
 }
 
-class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProviderStateMixin {
+class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTickerProviderStateMixin {
   bool _isGridView = true;
   String _selectedFilter = 'all'; // 'all', 'live', 'upcoming'
 
@@ -56,47 +56,19 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
     setState(() {});
-    await fetchStudyLevels();
+    fetchQuizData();
   }
 
-  Future<void> fetchStudyLevels() async {
-    try {
-      Authrepository authRepository = Authrepository(Api_Client.dio);
-      Response response = await authRepository.fetchStudyLevels();
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final List list = data['data'] ?? [];
-
-        setState(() {
-          _categories = [
-            CategoryItem(category_id: 0, name: 'All'),
-            ...list.map((e) => CategoryItem.fromJson(e)).toList(),
-          ];
-          _isLoading = false;
-        });
-
-        // Fetch quizzes for "All" category by default
-        await fetchQuizData(0);
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      print('Error fetching study levels: $e');
-    }
-  }
-
-  Future<void> fetchQuizData(int category_id) async {
+  Future<void> fetchQuizData() async {
     setState(() {
       _isFetchingQuizzes = true;
     });
 
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {'category_id': category_id.toString(), 'user_id': _user!.id.toString()};
-
-      final responseFuture = await authRepository.fetch_Quiz_List(data);
+      final data = {'subscription_id': widget.pageId, 'user_id': _user!.id.toString()};
+      print(data);
+      final responseFuture = await authRepository.get_paid_quizes_api(data);
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
@@ -105,11 +77,13 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
         setState(() {
           _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
           _isFetchingQuizzes = false;
+          _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
         _isFetchingQuizzes = false;
+        _isLoading = false;
       });
       print('Error fetching quizzes: $e');
     }
@@ -133,7 +107,6 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
       body: CustomScrollView(
         slivers: [
           _buildAppBar(),
-          SliverToBoxAdapter(child: _buildCategoriesSection()),
           SliverToBoxAdapter(child: SizedBox(height: 10)),
 
           // Loading or Content
@@ -333,7 +306,7 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
               setState(() {
                 _selectedCategoryId = category.category_id;
               });
-              await fetchQuizData(category.category_id);
+              await fetchQuizData();
             },
             child: Container(
               margin: EdgeInsets.only(right: 10),
@@ -401,7 +374,7 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: false)),
+          MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: true)),
         );
       },
       child: Container(
@@ -524,7 +497,7 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: false)),
+          MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: true)),
         );
       },
       child: Container(
