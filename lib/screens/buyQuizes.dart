@@ -71,8 +71,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
 
           setState(() {
             _isPurchased = _currentQuiz!.isPurchased;
-            print(_currentQuiz!.isPurchased);
-            _isAccessible =widget.is_subscribed == true ? true : _currentQuiz!.isAccessible;
+
+            _isAccessible = widget.is_subscribed == true ? true : _currentQuiz!.isAccessible;
             _attempted = _currentQuiz!.is_attempted;
             _isFree = _currentQuiz!.price == 0 || !_currentQuiz!.isPaid;
             _isLive = _currentQuiz!.isLive;
@@ -134,6 +134,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
   void _handleStartQuiz() {
     if (_currentQuiz == null) return;
 
+    print('Navigating to live test with Quiz ID: ${_currentQuiz!.quizId}');
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -141,7 +143,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
             (context) => LiveTestScreen(
               testTitle: _currentQuiz!.title.toString(),
               subject: _currentQuiz!.difficultyLevel.toString(),
-              Quiz_id: _currentQuiz!.quizId.toString(),
+              Quiz_id: widget.quizId.toString(),
             ),
       ),
     );

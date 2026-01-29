@@ -1,10 +1,15 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
+
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 
+/// Background handler (Android / iOS / Web only)
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
@@ -19,30 +24,36 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+bool isPushSupported() {
+  return kIsWeb || Platform.isAndroid || Platform.isIOS;
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
 
-  FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
+  /// 🔥 Firebase ONLY for supported platforms
+  if (isPushSupported()) {
+    await Firebase.initializeApp();
 
-  await NotificationService.initialize();
-  NotificationService.listenForegroundMessages();
+    FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
 
-  await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
+    await NotificationService.initialize();
+    NotificationService.listenForegroundMessages();
+
+    await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
+  } else {
+    debugPrint("🔥 Firebase & Push disabled on Windows");
+  }
+
   Api_Client.init();
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({super.key});
+  const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TazaQuiz',
-      debugShowCheckedModeBanner: false,
-      home: SplashScreen(), //OtpLoginPage(), //LoginPage(),
-    );
+    return MaterialApp(title: 'TazaQuiz', debugShowCheckedModeBanner: false, home: SplashScreen());
   }
 }
