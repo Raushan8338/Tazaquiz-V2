@@ -1,17 +1,16 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/authentication/AuthRepository.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/login_response_model.dart';
-import 'package:tazaquiznew/screens/course_selection.dart';
-import 'package:tazaquiznew/screens/homeSceen.dart';
-import 'package:tazaquiznew/screens/singup.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/authentication/AuthRepository.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/login_response_model.dart';
+import 'package:tazaquiz/screens/course_selection.dart';
+import 'package:tazaquiz/screens/homeSceen.dart';
+import 'package:tazaquiz/screens/singup.dart';
 import 'dart:async';
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/utils/session_manager.dart';
-import 'package:tazaquiznew/widgets/custom_button.dart';
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/utils/session_manager.dart';
+import 'package:tazaquiz/widgets/custom_button.dart';
 
 class OTPBasedVerificationPage extends StatefulWidget {
   final String phoneNumber, name, email;
@@ -24,7 +23,7 @@ class OTPBasedVerificationPage extends StatefulWidget {
     required this.name,
     required this.email,
     this.referalCode,
-    required this.pageId
+    required this.pageId,
   });
 
   @override
@@ -123,7 +122,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
 
   void _verifyOTP() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    String? fcmToken = '';
     String otp = _otpControllers.map((controller) => controller.text).join();
     if (otp.length == 6) {
       setState(() => _isLoading = true);
@@ -144,14 +143,11 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         final userJson = responseFuture.data['series'];
         final user = UserModel.fromJson(userJson);
         await SessionManager.saveUser(user);
-         if(widget.pageId == 0){
-             Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId:1)));
-         }
-         else {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
-
-         }
-        
+        if (widget.pageId == 0) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId: 1)));
+        } else {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
+        }
       } else {
         setState(() => _isLoading = false);
 

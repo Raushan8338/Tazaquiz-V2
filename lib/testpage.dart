@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/utils/richText.dart';
 
 class ContactUsPage extends StatefulWidget {
   @override

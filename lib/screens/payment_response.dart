@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/utils/richText.dart';
 
 enum PaymentStatus { success, failed, pending }
 

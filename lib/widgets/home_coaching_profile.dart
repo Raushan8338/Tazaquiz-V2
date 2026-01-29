@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/coaching_item_modal.dart';
-import 'package:tazaquiznew/models/home_page_modal.dart';
-import 'package:tazaquiznew/screens/coching_profile_page.dart';
-import 'package:tazaquiznew/utils/htmlText.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/coaching_item_modal.dart';
+import 'package:tazaquiz/models/home_page_modal.dart';
+import 'package:tazaquiz/screens/coching_profile_page.dart';
+import 'package:tazaquiz/utils/htmlText.dart';
+import 'package:tazaquiz/utils/richText.dart';
 
 class CoachingProfileWidget extends StatelessWidget {
   final List<CoachingItem> coachingProfiles;

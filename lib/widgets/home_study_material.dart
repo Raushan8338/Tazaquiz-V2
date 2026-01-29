@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/home_page_modal.dart';
-import 'package:tazaquiznew/models/studyMaterial_modal.dart';
-import 'package:tazaquiznew/screens/buyStudyM.dart';
-import 'package:tazaquiznew/screens/studyMaterial.dart';
-import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/home_page_modal.dart';
+import 'package:tazaquiz/models/studyMaterial_modal.dart';
+import 'package:tazaquiz/screens/buyStudyM.dart';
+import 'package:tazaquiz/screens/studyMaterial.dart';
+import 'package:tazaquiz/screens/subjectWiseDetails.dart';
+import 'package:tazaquiz/utils/richText.dart';
 
 class HomeStudyMaterials extends StatefulWidget {
   final List<StudyMaterialItem> studyMaterials;

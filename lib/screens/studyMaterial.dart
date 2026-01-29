@@ -2,15 +2,15 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/authentication/AuthRepository.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/authentication/AuthRepository.dart';
 import 'dart:async';
 
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/studyMaterial_modal.dart';
-import 'package:tazaquiznew/models/study_category_item.dart';
-import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/studyMaterial_modal.dart';
+import 'package:tazaquiz/models/study_category_item.dart';
+import 'package:tazaquiz/screens/subjectWiseDetails.dart';
+import 'package:tazaquiz/utils/richText.dart';
 
 class StudyMaterialScreen extends StatefulWidget {
   String pageId;

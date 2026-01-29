@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiz/models/login_response_model.dart';
 
 class SessionManager {
   static const _isLoginKey = 'is_logged_in';

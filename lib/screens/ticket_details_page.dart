@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/widgets/custom_button.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/widgets/custom_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Ticket_Details_Page extends StatefulWidget {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/screens/referal_list.dart';
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/widgets/custom_button.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/screens/referal_list.dart';
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/widgets/custom_button.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:tazaquiz/utils/session_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ReferEarnPage extends StatefulWidget {

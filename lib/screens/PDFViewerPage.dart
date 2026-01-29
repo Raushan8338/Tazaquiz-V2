@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
-import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
 
 class PDFViewerPage extends StatefulWidget {
   final String pdfUrl;

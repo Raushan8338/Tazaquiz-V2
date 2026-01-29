@@ -1,21 +1,21 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/authentication/AuthRepository.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/authentication/AuthRepository.dart';
 import 'dart:async';
 
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/login_response_model.dart';
-import 'package:tazaquiznew/models/studyMaterial_modal.dart';
-import 'package:tazaquiznew/models/study_category_item.dart';
-import 'package:tazaquiznew/models/study_material_details_item.dart';
-import 'package:tazaquiznew/screens/PDFViewerPage.dart';
-import 'package:tazaquiznew/screens/buyStudyM.dart';
-import 'package:tazaquiznew/screens/checkout.dart';
-import 'package:tazaquiznew/screens/studyMaterial.dart';
-import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/login_response_model.dart';
+import 'package:tazaquiz/models/studyMaterial_modal.dart';
+import 'package:tazaquiz/models/study_category_item.dart';
+import 'package:tazaquiz/models/study_material_details_item.dart';
+import 'package:tazaquiz/screens/PDFViewerPage.dart';
+import 'package:tazaquiz/screens/buyStudyM.dart';
+import 'package:tazaquiz/screens/checkout.dart';
+import 'package:tazaquiz/screens/studyMaterial.dart';
+import 'package:tazaquiz/screens/subjectWiseDetails.dart';
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/utils/session_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SubjectContentPage extends StatefulWidget {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/utils/htmlText.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/utils/htmlText.dart';
+import 'package:tazaquiz/utils/richText.dart';
 
 // ========== SIMPLE COACHING PROFILE CARD WIDGET ==========
 class CoachingProfileCard extends StatefulWidget {

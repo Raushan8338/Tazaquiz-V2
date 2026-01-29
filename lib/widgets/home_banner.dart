@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiz/API/api_client.dart';
 
 class HomeBanner extends StatefulWidget {
   const HomeBanner({super.key, required this.imgLists});

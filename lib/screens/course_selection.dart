@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/authentication/AuthRepository.dart';
-import 'package:tazaquiznew/models/login_response_model.dart';
-import 'package:tazaquiznew/models/selected_courses_item.dart';
-import 'package:tazaquiznew/screens/homeSceen.dart';
-import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/authentication/AuthRepository.dart';
+import 'package:tazaquiz/models/login_response_model.dart';
+import 'package:tazaquiz/models/selected_courses_item.dart';
+import 'package:tazaquiz/screens/homeSceen.dart';
+import 'package:tazaquiz/utils/session_manager.dart';
 
 class MyCoursesSelection extends StatefulWidget {
   int pageId;

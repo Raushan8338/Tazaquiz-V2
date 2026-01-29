@@ -1,8 +1,8 @@
 // Main Response Model
-import 'package:tazaquiznew/models/coaching_item_modal.dart';
-import 'package:tazaquiznew/models/course_item_modal.dart';
-import 'package:tazaquiznew/models/quizItem_modal.dart';
-import 'package:tazaquiznew/models/studyMaterial_modal.dart';
+import 'package:tazaquiz/models/coaching_item_modal.dart';
+import 'package:tazaquiz/models/course_item_modal.dart';
+import 'package:tazaquiz/models/quizItem_modal.dart';
+import 'package:tazaquiz/models/studyMaterial_modal.dart';
 
 class HomeDataResponse {
   final bool status;

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/home_page_modal.dart';
-import 'package:tazaquiznew/models/quizItem_modal.dart';
-import 'package:tazaquiznew/screens/buyQuizes.dart';
-import 'package:tazaquiznew/screens/livetest.dart';
-import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
-import 'package:tazaquiznew/screens/testSeries.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/home_page_modal.dart';
+import 'package:tazaquiz/models/quizItem_modal.dart';
+import 'package:tazaquiz/screens/buyQuizes.dart';
+import 'package:tazaquiz/screens/livetest.dart';
+import 'package:tazaquiz/screens/quizListDetailsPage.dart';
+import 'package:tazaquiz/screens/testSeries.dart';
+import 'package:tazaquiz/utils/richText.dart';
 
 class Home_live_test extends StatelessWidget {
   final List<QuizItem> liveTests;

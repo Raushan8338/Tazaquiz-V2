@@ -1,22 +1,21 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:dio/dio.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/API/api_endpoint.dart';
-import 'package:tazaquiznew/authentication/AuthRepository.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/login_response_model.dart';
-import 'package:tazaquiznew/screens/homeSceen.dart';
-import 'package:tazaquiznew/screens/otpVerificationPage.dart';
-import 'package:tazaquiznew/screens/singup.dart';
-import 'package:tazaquiznew/testpage.dart';
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/utils/session_manager.dart';
-import 'package:tazaquiznew/widgets/custom_button.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/API/api_endpoint.dart';
+import 'package:tazaquiz/authentication/AuthRepository.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/login_response_model.dart';
+import 'package:tazaquiz/screens/homeSceen.dart';
+import 'package:tazaquiz/screens/otpVerificationPage.dart';
+import 'package:tazaquiz/screens/singup.dart';
+import 'package:tazaquiz/testpage.dart';
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/utils/session_manager.dart';
+import 'package:tazaquiz/widgets/custom_button.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class OtpLoginPage extends StatefulWidget {
@@ -55,7 +54,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
     //final GoogleData = await GoogleSignInApi.login();
     setState(() => _isLoading = true);
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    String? fcmToken = '';
     try {
       final String phone = _phoneController.text.trim();
       final String? finalEmail = phone.isNotEmpty ? null : email;

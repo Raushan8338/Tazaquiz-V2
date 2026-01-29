@@ -1,15 +1,14 @@
 import 'dart:convert';
 
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/authentication/AuthRepository.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/screens/login.dart';
-import 'package:tazaquiznew/screens/otpVerificationPage.dart';
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/widgets/custom_button.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/authentication/AuthRepository.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/screens/login.dart';
+import 'package:tazaquiz/screens/otpVerificationPage.dart';
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/widgets/custom_button.dart';
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -39,7 +38,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      String? fcmToken = await FirebaseMessaging.instance.getToken();
+      String? fcmToken = '';
       setState(() => _isLoading = true);
       final data = {
         'mobile': _phoneController.text.trim(),

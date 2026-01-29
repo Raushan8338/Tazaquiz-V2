@@ -2,25 +2,25 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/authentication/AuthRepository.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/coaching_item_modal.dart';
-import 'package:tazaquiznew/models/course_item_modal.dart';
-import 'package:tazaquiznew/models/home_page_modal.dart';
-import 'package:tazaquiznew/models/login_response_model.dart';
-import 'package:tazaquiznew/models/quizItem_modal.dart';
-import 'package:tazaquiznew/models/studyMaterial_modal.dart';
-import 'package:tazaquiznew/screens/notificationPage.dart';
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/utils/session_manager.dart';
-import 'package:tazaquiznew/widgets/WeeklyProgressWidget.dart';
-import 'package:tazaquiznew/widgets/homePage_shimmer_progress.dart';
-import 'package:tazaquiznew/widgets/home_banner.dart';
-import 'package:tazaquiznew/widgets/home_coaching_profile.dart';
-import 'package:tazaquiznew/widgets/home_courses.dart';
-import 'package:tazaquiznew/widgets/home_live_test.dart';
-import 'package:tazaquiznew/widgets/home_study_material.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/authentication/AuthRepository.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/coaching_item_modal.dart';
+import 'package:tazaquiz/models/course_item_modal.dart';
+import 'package:tazaquiz/models/home_page_modal.dart';
+import 'package:tazaquiz/models/login_response_model.dart';
+import 'package:tazaquiz/models/quizItem_modal.dart';
+import 'package:tazaquiz/models/studyMaterial_modal.dart';
+import 'package:tazaquiz/screens/notificationPage.dart';
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/utils/session_manager.dart';
+import 'package:tazaquiz/widgets/WeeklyProgressWidget.dart';
+import 'package:tazaquiz/widgets/homePage_shimmer_progress.dart';
+import 'package:tazaquiz/widgets/home_banner.dart';
+import 'package:tazaquiz/widgets/home_coaching_profile.dart';
+import 'package:tazaquiz/widgets/home_courses.dart';
+import 'package:tazaquiz/widgets/home_live_test.dart';
+import 'package:tazaquiz/widgets/home_study_material.dart';
 
 class HomePage extends StatefulWidget {
   @override

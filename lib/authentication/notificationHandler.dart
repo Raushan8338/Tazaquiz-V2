@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:tazaquiznew/screens/buyQuizes.dart';
+import 'package:tazaquiz/screens/buyQuizes.dart';
 
 // Notification click handler example
 

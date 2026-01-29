@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
-import 'package:tazaquiznew/API/api_endpoint.dart';
+import 'package:tazaquiz/API/api_endpoint.dart';
 
 class Api_Client {
   // Implementation of API client using Dio package

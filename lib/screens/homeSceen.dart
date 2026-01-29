@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/screens/home.dart';
-import 'package:tazaquiznew/screens/profileScreen.dart';
-import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
-import 'package:tazaquiznew/screens/studyMaterial.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/screens/home.dart';
+import 'package:tazaquiz/screens/profileScreen.dart';
+import 'package:tazaquiz/screens/quizListDetailsPage.dart';
+import 'package:tazaquiz/screens/studyMaterial.dart';
 
 class HomeScreen extends StatefulWidget {
   @override

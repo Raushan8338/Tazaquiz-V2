@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 
 class NotificationService {
@@ -189,41 +188,41 @@ class NotificationService {
 
   // Listen foreground messages
   static void listenForegroundMessages() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Foreground message received');
-      print('Title: ${message.notification?.title}');
-      print('Body: ${message.notification?.body}');
-      print('Data: ${message.data}');
+    // FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    //   print('Foreground message received');
+    //   print('Title: ${message.notification?.title}');
+    //   print('Body: ${message.notification?.body}');
+    //   print('Data: ${message.data}');
 
-      // Check notification type from data
-      final String type = message.data['type'] ?? 'default';
-      final String? imageUrl = message.data['image_url'];
-      final String? quizId = message.data['quiz_id'];
+    //   // Check notification type from data
+    //   final String type = message.data['type'] ?? 'default';
+    //   final String? imageUrl = message.data['image_url'];
+    //   final String? quizId = message.data['quiz_id'];
 
-      if (type == 'live_quiz') {
-        // Live quiz notification with Join button
-        showLiveQuizNotification(
-          title: message.notification?.title ?? '🔴 Live Quiz!',
-          body: message.notification?.body ?? 'Join now to play!',
-          imageUrl: imageUrl,
-          quizId: quizId,
-        );
-      } else if (imageUrl != null) {
-        // Banner notification with image
-        showBannerNotification(
-          title: message.notification?.title ?? 'TazaQuiz',
-          body: message.notification?.body ?? '',
-          imageUrl: imageUrl,
-          payload: quizId,
-        );
-      } else {
-        // Simple notification
-        showNotification(
-          title: message.notification?.title ?? 'TazaQuiz',
-          body: message.notification?.body ?? '',
-          payload: quizId,
-        );
-      }
-    });
+    //   if (type == 'live_quiz') {
+    //     // Live quiz notification with Join button
+    //     showLiveQuizNotification(
+    //       title: message.notification?.title ?? '🔴 Live Quiz!',
+    //       body: message.notification?.body ?? 'Join now to play!',
+    //       imageUrl: imageUrl,
+    //       quizId: quizId,
+    //     );
+    //   } else if (imageUrl != null) {
+    //     // Banner notification with image
+    //     showBannerNotification(
+    //       title: message.notification?.title ?? 'TazaQuiz',
+    //       body: message.notification?.body ?? '',
+    //       imageUrl: imageUrl,
+    //       payload: quizId,
+    //     );
+    //   } else {
+    //     // Simple notification
+    //     showNotification(
+    //       title: message.notification?.title ?? 'TazaQuiz',
+    //       body: message.notification?.body ?? '',
+    //       payload: quizId,
+    //     );
+    //   }
+    // });
   }
 }

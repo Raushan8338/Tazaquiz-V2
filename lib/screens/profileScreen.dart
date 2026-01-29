@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/login_response_model.dart';
-import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
-import 'package:tazaquiznew/screens/course_selection.dart';
-import 'package:tazaquiznew/screens/help&SupportPage.dart';
-import 'package:tazaquiznew/screens/paymentHistory.dart';
-import 'package:tazaquiznew/screens/refer_earn_page.dart';
-import 'package:tazaquiznew/screens/splash.dart';
-import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
-import 'package:tazaquiznew/testpage.dart' hide ContactUsPage;
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/login_response_model.dart';
+import 'package:tazaquiz/screens/attempedQuizHistory.dart';
+import 'package:tazaquiz/screens/course_selection.dart';
+import 'package:tazaquiz/screens/help&SupportPage.dart';
+import 'package:tazaquiz/screens/paymentHistory.dart';
+import 'package:tazaquiz/screens/refer_earn_page.dart';
+import 'package:tazaquiz/screens/splash.dart';
+import 'package:tazaquiz/screens/studyMaterialPurchaseHistory.dart';
+import 'package:tazaquiz/testpage.dart' hide ContactUsPage;
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/utils/session_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StudentProfilePage extends StatefulWidget {

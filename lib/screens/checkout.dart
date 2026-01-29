@@ -9,17 +9,17 @@ import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfupipayment.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
-import 'package:tazaquiznew/API/api_client.dart';
-import 'package:tazaquiznew/authentication/AuthRepository.dart';
+import 'package:tazaquiz/API/api_client.dart';
+import 'package:tazaquiz/authentication/AuthRepository.dart';
 import 'dart:async';
 
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/checkout_model.dart';
-import 'package:tazaquiznew/models/coupon_apply_model.dart';
-import 'package:tazaquiznew/models/login_response_model.dart';
-import 'package:tazaquiznew/screens/payment_response.dart';
-import 'package:tazaquiznew/utils/richText.dart';
-import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/checkout_model.dart';
+import 'package:tazaquiz/models/coupon_apply_model.dart';
+import 'package:tazaquiz/models/login_response_model.dart';
+import 'package:tazaquiz/screens/payment_response.dart';
+import 'package:tazaquiz/utils/richText.dart';
+import 'package:tazaquiz/utils/session_manager.dart';
 
 class CheckoutPage extends StatefulWidget {
   final String contentType;

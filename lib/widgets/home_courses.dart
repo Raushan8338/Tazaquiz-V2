@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/models/course_item_modal.dart';
-import 'package:tazaquiznew/models/home_page_modal.dart';
-import 'package:tazaquiznew/screens/buyStudyM.dart';
-import 'package:tazaquiznew/screens/studyMaterial.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiz/constants/app_colors.dart';
+import 'package:tazaquiz/models/course_item_modal.dart';
+import 'package:tazaquiz/models/home_page_modal.dart';
+import 'package:tazaquiz/screens/buyStudyM.dart';
+import 'package:tazaquiz/screens/studyMaterial.dart';
+import 'package:tazaquiz/utils/richText.dart';
 
 class Home_courses extends StatelessWidget {
   final List<CourseItem> popularCourses;
