@@ -51,6 +51,7 @@ dependencies:
  # firebase_messaging: ^16.1.0
   flutter_local_notifications: ^19.5.0
   persistent_bottom_nav_bar: ^6.2.1
+  msix: ^3.16.13
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +66,17 @@ flutter_icons:
   windows:
     generate: true
     image_path: "assets/images/logo.png"
+
+msix_config:
+  display_name: TazaQuiz
+  publisher_display_name: TazaQuiz   # 👈 THIS fixes your error
+  publisher: CN=9C023F81-45C0-48BF-BD3E-9AB9F8C160B9
+  identity_name: TazaQuiz.TazaQuiz
+  msix_version: 1.0.2.0
+  logo_path: assets/images/logo.png
+  capabilities: internetClient
+
+
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
