@@ -11,6 +11,7 @@ import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
+import 'package:tazaquiznew/screens/blog_Page.dart';
 import 'package:tazaquiznew/screens/notificationPage.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
@@ -251,27 +252,82 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       actions: [
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage()));
-              },
+  // 📰 NEWS BUTTON
+  Container(
+    margin: const EdgeInsets.only(top: 8, right: 4),
+    child: Stack(
+      children: [
+        TextButton(
+          style: TextButton.styleFrom(
+            backgroundColor: Colors.red.shade50,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
-            if (notificationCount > 0)
-              Positioned(
-                right: 6,
-                top: 6,
-                child: CircleAvatar(
-                  radius: 9,
-                  backgroundColor: AppColors.tealGreen,
-                  child: Text(notificationCount.toString(), style: const TextStyle(fontSize: 10, color: Colors.white)),
-                ),
-              ),
-          ],
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => NewsPage()),
+            );
+           // launchUrl(Uri.parse('https://yourwebsite.com/blog'));
+            // OR: Navigator.push(context, MaterialPageRoute(builder: (_) => NewsPage()));
+          },
+          child: const Text(
+            'NEWS',
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
+        if (notificationCount > 0)
+          Positioned(
+            right: 0,
+            top: 0,
+            child: CircleAvatar(
+              radius: 7,
+              backgroundColor: Colors.red,
+              child: Text(
+                notificationCount.toString(),
+                style: const TextStyle(fontSize: 8, color: Colors.white),
+              ),
+            ),
+          ),
       ],
+    ),
+  ),
+
+  // 🔔 NOTIFICATION BUTTON
+  Stack(
+    children: [
+      IconButton(
+        icon: const Icon(Icons.notifications_outlined),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => NotificationsPage()),
+          );
+        },
+      ),
+      if (notificationCount > 0)
+        Positioned(
+          right: 6,
+          top: 6,
+          child: CircleAvatar(
+            radius: 9,
+            backgroundColor: AppColors.tealGreen,
+            child: Text(
+              notificationCount.toString(),
+              style: const TextStyle(fontSize: 10, color: Colors.white),
+            ),
+          ),
+        ),
+    ],
+  ),
+],
     );
   }
 
