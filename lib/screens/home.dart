@@ -278,7 +278,6 @@ class _HomePageState extends State<HomePage> {
   Widget _buildStatsSection() {
     return Container(child: WeeklyProgressWidget());
   }
-  
 
   /// 🏆 ACHIEVEMENTS
   Widget _buildAchievementsSection() {

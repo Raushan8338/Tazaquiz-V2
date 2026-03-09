@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
 
@@ -24,6 +26,8 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   late TabController _tabController;
   List<CategoryItem> _categoryItems = [];
   int _selectedCategoryId = 0;
+  final BannerAdService bannerService = BannerAdService();
+  bool isBannerLoaded = false;
 
   bool _isLoading = true;
   List<StudyMaterialItem> _studyMaterials = [];
@@ -32,6 +36,9 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    bannerService.loadAd(() {
+      setState(() => isBannerLoaded = true);
+    });
     getdata();
   }
 
@@ -81,6 +88,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
   @override
   void dispose() {
     _tabController.dispose();
+    bannerService.dispose();
     super.dispose();
   }
 
@@ -92,8 +100,19 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
         slivers: [
           _buildAppBar(),
           SliverToBoxAdapter(child: _buildCategoriesSection()),
+
+          // ✅ Banner Ad (safe)
+          if (isBannerLoaded && bannerService.bannerAd != null)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: bannerService.bannerAd!.size.height.toDouble(),
+                width: bannerService.bannerAd!.size.width.toDouble(),
+                child: AdWidget(ad: bannerService.bannerAd!),
+              ),
+            ),
+
           _buildMaterialsList(),
-          SliverToBoxAdapter(child: SizedBox(height: 20)),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
       ),
     );

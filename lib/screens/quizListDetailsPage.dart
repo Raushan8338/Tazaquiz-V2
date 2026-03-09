@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
@@ -22,6 +24,8 @@ class QuizListScreen extends StatefulWidget {
 class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProviderStateMixin {
   bool _isGridView = true;
   String _selectedFilter = 'all'; // 'all', 'live', 'upcoming'
+  final BannerAdService bannerService = BannerAdService();
+  bool isBannerLoaded = false;
 
   late TabController _tabController;
   List<CategoryItem> _categories = [];
@@ -43,6 +47,9 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
+    bannerService.loadAd(() {
+      setState(() => isBannerLoaded = true);
+    });
     _getUserData();
     _tabController = TabController(length: 3, vsync: this);
   }
@@ -50,6 +57,7 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
   @override
   void dispose() {
     _tabController.dispose();
+    bannerService.dispose();
     super.dispose();
   }
 
@@ -134,6 +142,16 @@ class _QuizListScreenState extends State<QuizListScreen> with SingleTickerProvid
         slivers: [
           _buildAppBar(),
           SliverToBoxAdapter(child: _buildCategoriesSection()),
+          SliverToBoxAdapter(child: SizedBox(height: 3)),
+          // ✅ Banner Ad (safe)
+          if (isBannerLoaded && bannerService.bannerAd != null)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: bannerService.bannerAd!.size.height.toDouble(),
+                width: bannerService.bannerAd!.size.width.toDouble(),
+                child: AdWidget(ad: bannerService.bannerAd!),
+              ),
+            ),
           SliverToBoxAdapter(child: SizedBox(height: 10)),
 
           // Loading or Content

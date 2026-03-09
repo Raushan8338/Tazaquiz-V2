@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/ads/banner_ads_helper.dart';
+import 'package:tazaquiznew/ads/rewarded_ad_service.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
 
@@ -22,6 +25,9 @@ class QuizDetailPage extends StatefulWidget {
 }
 
 class _QuizDetailPageState extends State<QuizDetailPage> {
+  final RewardedAdService rewardedAdService = RewardedAdService();
+  final BannerAdService bannerService = BannerAdService();
+  bool isBannerLoaded = false;
   UserModel? _user;
   bool _isLoading = true;
   bool _isPurchased = false;
@@ -38,12 +44,17 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
   @override
   void initState() {
     super.initState();
+    rewardedAdService.loadAd();
+    bannerService.loadAd(() {
+      setState(() => isBannerLoaded = true);
+    });
     _getUserData();
   }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    bannerService.dispose();
     super.dispose();
   }
 
@@ -201,29 +212,48 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
       body: CustomScrollView(
         slivers: [
           _buildAppBar(_currentQuiz!.title.toString()),
+
           SliverToBoxAdapter(
             child: Column(
               children: [
-                SizedBox(height: 12),
-                if (canStartQuiz) _buildStatusBanner(),
-                if (canStartQuiz) SizedBox(height: 12),
-                if (_isLive && canStartQuiz) _buildLiveBanner(),
-                if (_isLive && canStartQuiz) SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-                // Course/Package Info (if part of a course)
+                if (canStartQuiz) _buildStatusBanner(),
+                if (canStartQuiz) const SizedBox(height: 12),
+
+                if (_isLive && canStartQuiz) _buildLiveBanner(),
+                if (_isLive && canStartQuiz) const SizedBox(height: 12),
+
+                // 🔥 BANNER AD (safe placement)
+                if (isBannerLoaded && bannerService.bannerAd != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: SizedBox(
+                      height: bannerService.bannerAd!.size.height.toDouble(),
+                      width: bannerService.bannerAd!.size.width.toDouble(),
+                      child: AdWidget(ad: bannerService.bannerAd!),
+                    ),
+                  ),
+
+                // Course/Package Info
                 _buildCourseInfo(),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
 
                 _buildQuizHeader(),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
+
                 if (!canStartQuiz) _buildSubscriptionSection() else _buildQuizDetailsSection(),
-                SizedBox(height: 12),
+
+                const SizedBox(height: 12),
+
                 if (_currentQuiz!.description.isNotEmpty) _buildDescriptionCard(),
-                if (_currentQuiz!.description.isNotEmpty) SizedBox(height: 12),
+                if (_currentQuiz!.description.isNotEmpty) const SizedBox(height: 12),
+
                 if (_currentQuiz!.instruction.isNotEmpty) _buildInstructionsCard(),
-                if (_currentQuiz!.instruction.isNotEmpty) SizedBox(height: 12),
+                if (_currentQuiz!.instruction.isNotEmpty) const SizedBox(height: 12),
+
                 _buildInfoCard(),
-                SizedBox(height: 90),
+                const SizedBox(height: 90),
               ],
             ),
           ),
@@ -1009,7 +1039,17 @@ class _QuizDetailPageState extends State<QuizDetailPage> {
               }
 
               if (isAvailable) {
-                _handleStartQuiz();
+                if (_isFree) {
+
+                  rewardedAdService.showAd(() {
+                    print("🎁 User rewarded");
+                    _handleStartQuiz();
+                    // coins / unlock quiz / extra attempt
+                  });
+                  
+                } else {
+                  _handleStartQuiz();
+                }
               } else if (canStartQuiz) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Quiz will start at scheduled time'), backgroundColor: Colors.orange),

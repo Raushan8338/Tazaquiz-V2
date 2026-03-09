@@ -208,12 +208,13 @@ class Home_courses extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
+                                //₹ ${course.price}
                                 AppRichText.setTextPoppinsStyle(
                                   context,
-                                  int.parse('${course.price}') < 1 ? 'Free' : '₹ ${course.price}',
-                                  16,
+                                  int.parse('${course.price}') < 1 ? 'Free' : 'Subscribe Now',
+                                  13,
                                   AppColors.tealGreen,
-                                  FontWeight.w900,
+                                  FontWeight.normal,
                                   1,
                                   TextAlign.left,
                                   0.0,

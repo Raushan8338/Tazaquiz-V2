@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
 import 'dart:async';
@@ -24,6 +26,8 @@ class BuyCoursePage extends StatefulWidget {
 }
 
 class _BuyCoursePageState extends State<BuyCoursePage> {
+  final BannerAdService bannerService = BannerAdService();
+  bool isBannerLoaded = false;
   UserModel? _user;
   List<StudyMaterialDetailsItem> _studyMaterials_new = [];
   bool _isLoading = true;
@@ -37,6 +41,9 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
   @override
   void initState() {
     super.initState();
+    bannerService.loadAd(() {
+      setState(() => isBannerLoaded = true);
+    });
     _getUserData();
   }
 
@@ -95,6 +102,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
       });
       return [];
     }
+  }
+
+  @override
+  void dispose() {
+    bannerService.dispose();
+    super.dispose();
   }
 
   void _handleStartLearning() {
@@ -175,9 +188,19 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
                 _buildCourseInfo(),
                 SizedBox(height: 12),
 
+                // 🔥 BANNER AD (safe placement)
                 _buildCourseCard(),
                 SizedBox(height: 12),
-
+                if (isBannerLoaded && bannerService.bannerAd != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: SizedBox(
+                      height: bannerService.bannerAd!.size.height.toDouble(),
+                      width: bannerService.bannerAd!.size.width.toDouble(),
+                      child: AdWidget(ad: bannerService.bannerAd!),
+                    ),
+                  ),
+                SizedBox(height: 12),
                 // Subscription Benefits or Course Details
                 if (!canStartLearning) _buildSubscriptionSection() else _buildCourseDetailsSection(),
 
