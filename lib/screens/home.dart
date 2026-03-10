@@ -12,6 +12,8 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/screens/blog_Page.dart';
+import 'package:tazaquiznew/screens/home_daily_current_affairs.dart';
+import 'package:tazaquiznew/screens/home_streak_widget.dart';
 import 'package:tazaquiznew/screens/notificationPage.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
@@ -39,6 +41,9 @@ class _HomePageState extends State<HomePage> {
 
   UserModel? _user;
   int notificationCount = 0;
+
+  // ✅ Streak ke liye – baad me API se fetch karo
+  int userStreakDays = 3;
 
   List<HomeSection> homePageItemData = [];
 
@@ -84,7 +89,6 @@ class _HomePageState extends State<HomePage> {
     final data = {'user_id': _user?.id};
     final response = await authRepository.fetchNotificationCount(data);
     final jsonResponses = jsonDecode(response.data);
-
     setState(() {
       notificationCount = jsonResponses['count'] ?? 0;
     });
@@ -117,21 +121,21 @@ class _HomePageState extends State<HomePage> {
             coachingSection = section;
             coachingProfiles = section.items.cast<CoachingItem>();
             break;
-          case 'study_material':
-            studySection = section;
-            studyMaterials = section.items.cast<StudyMaterialItem>();
-            break;
+          // case 'study_material':
+          //   studySection = section;
+          //   studyMaterials = section.items.cast<StudyMaterialItem>();
+          //   break;
         }
       }
       setState(() {});
     }
   }
 
+  /// ⏰ Time-based greeting widget
   Widget greetingWidget(BuildContext context) {
-    // Determine greeting
     final hour = DateTime.now().hour;
     String greeting = 'Hello';
-    IconData icon = Icons.wb_sunny; // Default sun
+    IconData icon = Icons.wb_sunny;
 
     if (hour >= 5 && hour < 12) {
       greeting = 'Good Morning';
@@ -151,17 +155,13 @@ class _HomePageState extends State<HomePage> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(
-          icon,
-          color: Colors.orangeAccent, // Stylish color
-          size: 16,
-        ),
+        Icon(icon, color: Colors.orangeAccent, size: 16),
         const SizedBox(width: 6),
         AppRichText.setTextPoppinsStyle(
           context,
           greeting,
-          12, // Font size
-          Colors.grey.shade600, // Text color
+          12,
+          Colors.grey.shade600,
           FontWeight.w500,
           1,
           TextAlign.left,
@@ -195,25 +195,60 @@ class _HomePageState extends State<HomePage> {
               SliverToBoxAdapter(
                 child: Column(
                   children: [
+                    /// 🖼️ Banner
                     HomeBanner(imgLists: _banners),
+
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       child: Column(
                         children: [
+
+                          /// 📊 Weekly Progress
                           _buildStatsSection(),
 
+                          /// 🔥 Daily Streak + Aaj Ka Quiz
+                          HomeStreakWidget(
+                            streakDays: userStreakDays,
+                            todayChallengeName: 'Aaj Ka Quiz',
+                            totalQuestions: 10,
+                            durationMinutes: 5,
+                            onStartQuiz: () {
+                              // TODO: Navigate to daily quiz screen
+                            },
+                          ),
+
+                          /// 📰 Daily Current Affairs
+                           HomeDailyCurrentAffairs(),
+
+                          /// 🔴 Live Tests
                           if (quizSection != null && liveTests.isNotEmpty)
-                            Home_live_test(liveTests: liveTests, homeSections: quizSection!),
+                            Home_live_test(
+                              liveTests: liveTests,
+                              homeSections: quizSection!,
+                            ),
 
+                          /// 📚 Popular Courses
                           if (courseSection != null && popularCourses.isNotEmpty)
-                            Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
+                            Home_courses(
+                              popularCourses: popularCourses,
+                              homeSections: courseSection!,
+                            ),
 
+                          /// 🏫 Coaching Profiles
                           if (coachingSection != null && coachingProfiles.isNotEmpty)
-                            CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
+                            CoachingProfileWidget(
+                              coachingProfiles: coachingProfiles,
+                              homeSections: coachingSection!,
+                            ),
 
-                          if (studySection != null && studyMaterials.isNotEmpty)
-                            HomeStudyMaterials(studyMaterials: studyMaterials, homeSections: studySection!),
+                          /// 📖 Study Materials
+                          // if (studySection != null && studyMaterials.isNotEmpty)
+                          //   HomeStudyMaterials(
+                          //     studyMaterials: studyMaterials,
+                          //     homeSections: studySection!,
+                          //   ),
 
+                          /// 🏆 Achievements
                           _buildAchievementsSection(),
                         ],
                       ),
@@ -228,13 +263,18 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // ─────────────────────────────────────────────
   /// 🔹 APP BAR
+  // ─────────────────────────────────────────────
   Widget _buildAppBar() {
     return SliverAppBar(
       floating: true,
       backgroundColor: AppColors.white,
       elevation: 0,
-      leading: Padding(padding: const EdgeInsets.all(6), child: Image.asset('assets/images/logo.png')),
+      leading: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Image.asset('assets/images/logo.png'),
+      ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -252,90 +292,93 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       actions: [
-  // 📰 NEWS BUTTON
-  Container(
-    margin: const EdgeInsets.only(top: 8, right: 4),
-    child: Stack(
-      children: [
-        TextButton(
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.red.shade50,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => NewsPage()),
-            );
-           // launchUrl(Uri.parse('https://yourwebsite.com/blog'));
-            // OR: Navigator.push(context, MaterialPageRoute(builder: (_) => NewsPage()));
-          },
-          child: const Text(
-            'NEWS',
-            style: TextStyle(
-              color: Colors.red,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-            ),
+        /// 📰 NEWS Button
+        Container(
+          margin: const EdgeInsets.only(top: 8, right: 4),
+          child: Stack(
+            children: [
+              // TextButton(
+              //   style: TextButton.styleFrom(
+              //     backgroundColor: Colors.red.shade50,
+              //     shape: RoundedRectangleBorder(
+              //       borderRadius: BorderRadius.circular(8),
+              //     ),
+              //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              //   ),
+              //   onPressed: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (_) => NewsPage()),
+              //     );
+              //   },
+              //   child: const Text(
+              //     'NEWS',
+              //     style: TextStyle(
+              //       color: Colors.red,
+              //       fontSize: 11,
+              //       fontWeight: FontWeight.w900,
+              //       letterSpacing: 0.5,
+              //     ),
+              //   ),
+              // ),
+              if (notificationCount > 0)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: CircleAvatar(
+                    radius: 7,
+                    backgroundColor: Colors.red,
+                    child: Text(
+                      notificationCount.toString(),
+                      style: const TextStyle(fontSize: 8, color: Colors.white),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
-        if (notificationCount > 0)
-          Positioned(
-            right: 0,
-            top: 0,
-            child: CircleAvatar(
-              radius: 7,
-              backgroundColor: Colors.red,
-              child: Text(
-                notificationCount.toString(),
-                style: const TextStyle(fontSize: 8, color: Colors.white),
-              ),
-            ),
-          ),
-      ],
-    ),
-  ),
 
-  // 🔔 NOTIFICATION BUTTON
-  Stack(
-    children: [
-      IconButton(
-        icon: const Icon(Icons.notifications_outlined),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => NotificationsPage()),
-          );
-        },
-      ),
-      if (notificationCount > 0)
-        Positioned(
-          right: 6,
-          top: 6,
-          child: CircleAvatar(
-            radius: 9,
-            backgroundColor: AppColors.tealGreen,
-            child: Text(
-              notificationCount.toString(),
-              style: const TextStyle(fontSize: 10, color: Colors.white),
+        /// 🔔 Notification Button
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => NotificationsPage()),
+                );
+              },
             ),
-          ),
+            if (notificationCount > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: CircleAvatar(
+                  radius: 9,
+                  backgroundColor: AppColors.tealGreen,
+                  child: Text(
+                    notificationCount.toString(),
+                    style: const TextStyle(fontSize: 10, color: Colors.white),
+                  ),
+                ),
+              ),
+          ],
         ),
-    ],
-  ),
-],
+      ],
     );
   }
 
+  // ─────────────────────────────────────────────
+  /// 📊 Weekly Progress
+  // ─────────────────────────────────────────────
   Widget _buildStatsSection() {
     return Container(child: WeeklyProgressWidget());
   }
 
-  /// 🏆 ACHIEVEMENTS
+  // ─────────────────────────────────────────────
+  /// 🏆 Achievements
+  // ─────────────────────────────────────────────
   Widget _buildAchievementsSection() {
     return Container(
       margin: const EdgeInsets.only(top: 16, bottom: 20),
@@ -343,7 +386,13 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,7 +402,9 @@ class _HomePageState extends State<HomePage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.lightGold, Color(0xFFFDD835)]),
+                  gradient: LinearGradient(
+                    colors: [AppColors.lightGold, const Color(0xFFFDD835)],
+                  ),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.emoji_events, size: 18, color: AppColors.darkNavy),
@@ -386,21 +437,37 @@ class _HomePageState extends State<HomePage> {
             color: Colors.orange,
           ),
           const SizedBox(height: 12),
-          _achievementItem(title: 'Top 10% Scorer', time: 'Pending', icon: Icons.star, color: AppColors.lightGold),
+          _achievementItem(
+            title: 'Top 10% Scorer',
+            time: 'Pending',
+            icon: Icons.star,
+            color: AppColors.lightGold,
+          ),
         ],
       ),
     );
   }
 
-  Widget _achievementItem({required String title, required String time, required IconData icon, required Color color}) {
+  Widget _achievementItem({
+    required String title,
+    required String time,
+    required IconData icon,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: AppColors.greyS1,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
@@ -409,25 +476,11 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppRichText.setTextPoppinsStyle(
-                  context,
-                  title,
-                  13,
-                  AppColors.darkNavy,
-                  FontWeight.w700,
-                  1,
-                  TextAlign.left,
-                  0,
+                  context, title, 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0,
                 ),
                 const SizedBox(height: 2),
                 AppRichText.setTextPoppinsStyle(
-                  context,
-                  time,
-                  11,
-                  AppColors.greyS600,
-                  FontWeight.w500,
-                  1,
-                  TextAlign.left,
-                  0,
+                  context, time, 11, AppColors.greyS600, FontWeight.w500, 1, TextAlign.left, 0,
                 ),
               ],
             ),

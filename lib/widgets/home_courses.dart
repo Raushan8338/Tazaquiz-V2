@@ -12,73 +12,75 @@ class Home_courses extends StatelessWidget {
 
   Home_courses({required this.popularCourses, required this.homeSections});
 
+  static const List<List<Color>> _gradients = [
+    [Color(0xFF0D6E6E), Color(0xFF14A3A3)],
+    [Color(0xFF1A2340), Color(0xFF2D5F8A)],
+    [Color(0xFF6B21A8), Color(0xFF9333EA)],
+    [Color(0xFF991B1B), Color(0xFFDC2626)],
+    [Color(0xFF065F46), Color(0xFF059669)],
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        /// ── Section Header ──
         Padding(
-          padding: EdgeInsets.fromLTRB(8, 20, 10, 10),
+          padding: const EdgeInsets.fromLTRB(4, 20, 4, 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        '${homeSections.title}🔥',
-                        15,
-                        AppColors.darkNavy,
-                        FontWeight.w800,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                      SizedBox(height: 2),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        homeSections.subtitle ?? '',
-                        11,
-                        AppColors.greyS600,
-                        FontWeight.w500,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                    ],
+                  Text(
+                    '${homeSections.title} 🔥',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.darkNavy,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '📚 Exam crack karo, aaj hi shuru karo!',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.tealGreen,
+                    ),
                   ),
                 ],
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialScreen('1')));
+                  Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (context) => StudyMaterialScreen('1')));
                 },
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.tealGreen.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1),
+                    border: Border.all(
+                        color: AppColors.tealGreen.withOpacity(0.3), width: 1),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'View All',
-                        11,
-                        AppColors.tealGreen,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.right,
-                        0.0,
-                      ),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_rounded, size: 13, color: AppColors.tealGreen),
+                      Text('View All',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.tealGreen,
+                            fontWeight: FontWeight.w700,
+                          )),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_rounded,
+                          size: 13, color: AppColors.tealGreen),
                     ],
                   ),
                 ),
@@ -86,169 +88,216 @@ class Home_courses extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          height: 245,
+
+        /// ── Cards ──
+        SizedBox(
+          height: 220,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 5),
+            padding: const EdgeInsets.only(left: 2),
             itemCount: popularCourses.length,
             itemBuilder: (context, index) {
               final course = popularCourses[index];
-              return InkWell(
+              final gradientColors = _gradients[index % _gradients.length];
+              final hasImage = course.courseImage != null && course.courseImage!.isNotEmpty;
+              final isFree = int.tryParse('${course.price}') != null &&
+                  int.parse('${course.price}') < 1;
+
+              return GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
+                  Navigator.push(context,
                     MaterialPageRoute(
-                      builder: (context) => BuyCoursePage(contentId: course.id, page_API_call: 'STUDY'),
-                    ),
-                  );
+                      builder: (context) => BuyCoursePage(
+                          contentId: course.id, page_API_call: 'STUDY'),
+                    ));
                 },
                 child: Container(
-                  width: 220,
-                  margin: EdgeInsets.only(right: 16, bottom: 8),
+                  width: 195,
+                  margin: const EdgeInsets.only(right: 14, bottom: 8, top: 4),
                   decoration: BoxDecoration(
                     color: AppColors.white,
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.darkNavy.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: Offset(0, 8),
-                        spreadRadius: 0,
+                        color: gradientColors[0].withOpacity(0.2),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
                       ),
                     ],
-                    border: Border.all(color: AppColors.black.withOpacity(0.06), width: 1),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Image/Icon Header with Badge
-                      Stack(
-                        children: [
-                          Container(
-                            height: 110,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [AppColors.tealGreen, AppColors.darkNavy],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        /// ── Image / Gradient Header ──
+                        SizedBox(
+                          height: 110,
+                          child: Stack(
+                            children: [
+                              /// Background
+                              Positioned.fill(
+                                child: hasImage
+                                    ? Image.network(
+                                        course.courseImage!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            _gradientBox(gradientColors),
+                                      )
+                                    : _gradientBox(gradientColors),
                               ),
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-                            ),
-                            child: Center(
-                              child: Container(
-                                padding: EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.school_rounded, size: 40, color: AppColors.lightGold),
-                              ),
-                            ),
-                          ),
-                          // Best Seller Badge
-                          Positioned(
-                            top: 10,
-                            right: 10,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.lightGold,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.black.withOpacity(0.2),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: AppRichText.setTextPoppinsStyle(
-                                context,
-                                'BESTSELLER',
-                                8,
-                                AppColors.darkNavy,
-                                FontWeight.w900,
-                                1,
-                                TextAlign.center,
-                                0.0,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Content
-                      Padding(
-                        padding: EdgeInsets.all(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppRichText.setTextPoppinsStyle(
-                              context,
-                              course.courseName,
-                              14,
-                              AppColors.darkNavy,
-                              FontWeight.w800,
-                              2,
-                              TextAlign.left,
-                              1.2,
-                            ),
-                            SizedBox(height: 4),
-                            AppRichText.setTextPoppinsStyle(
-                              context,
-                              course.description,
-                              11,
-                              AppColors.greyS600,
-                              FontWeight.w500,
-                              1,
-                              TextAlign.left,
-                              1.1,
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                //₹ ${course.price}
-                                AppRichText.setTextPoppinsStyle(
-                                  context,
-                                  int.parse('${course.price}') < 1 ? 'Free' : 'Subscribe Now',
-                                  13,
-                                  AppColors.tealGreen,
-                                  FontWeight.normal,
-                                  1,
-                                  TextAlign.left,
-                                  0.0,
-                                ),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+
+                              /// Dark overlay
+                              Positioned.fill(
+                                child: Container(
                                   decoration: BoxDecoration(
-                                    color: AppColors.darkNavy.withOpacity(0.08),
-                                    borderRadius: BorderRadius.circular(6),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.black.withOpacity(0.05),
+                                        Colors.black.withOpacity(0.35),
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                ),
+                              ),
+
+                              /// Center icon (no image)
+                              if (!hasImage)
+                                Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.school_rounded,
+                                        size: 32, color: Colors.white),
+                                  ),
+                                ),
+
+                              /// BESTSELLER badge — top right
+                              Positioned(
+                                top: 9, right: 9,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.lightGold,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text('BESTSELLER',
+                                    style: TextStyle(
+                                      fontSize: 7,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.darkNavy,
+                                    )),
+                                ),
+                              ),
+
+                              /// FREE / PAID badge — top left
+                              Positioned(
+                                top: 9, left: 9,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: isFree
+                                        ? Colors.green.shade500
+                                        : Colors.orange.shade600,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    isFree ? '🎁 FREE' : 'PAID',
+                                    style: const TextStyle(
+                                      fontSize: 7,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        /// ── Card Body — sirf info, no button ──
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              /// Course name
+                              Text(
+                                course.courseName,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.darkNavy,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+
+                              /// Description
+                              Text(
+                                course.description,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.greyS600,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 10),
+
+                              /// Duration + arrow
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
                                     children: [
-                                      Icon(Icons.access_time_rounded, size: 11, color: AppColors.darkNavy),
-                                      SizedBox(width: 3),
-                                      AppRichText.setTextPoppinsStyle(
-                                        context,
+                                      Icon(Icons.access_time_rounded,
+                                          size: 11, color: AppColors.greyS600),
+                                      const SizedBox(width: 4),
+                                      Text(
                                         course.duration,
-                                        9,
-                                        AppColors.darkNavy,
-                                        FontWeight.w600,
-                                        1,
-                                        TextAlign.left,
-                                        0.0,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.greyS600,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Details',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: gradientColors[0],
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Icon(Icons.arrow_forward_ios_rounded,
+                                          size: 10, color: gradientColors[0]),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -256,6 +305,18 @@ class Home_courses extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _gradientBox(List<Color> colors) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: colors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
     );
   }
 }
