@@ -35,4 +35,6 @@ class BaseUrl {
   static String getUserSelectedCourses = "getUserSelectedCourses.php";
   static String save_update_user_courses = "update_user_courses.php";
   static String fetch_paid_quizes_api = "paid_quizes_api.php";
+  static String fetch_news_point_api = "news_point_api.php";
+  static String fetch_blog_posts_api = "blog_fetch_api.php?action=list";
 }

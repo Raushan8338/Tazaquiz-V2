@@ -2,73 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/API/api_endpoint.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
+import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/blog_post_modal.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 
-// ─────────────────────────────────────────────
-//  CONFIG
-// ─────────────────────────────────────────────
-const String kApiUrl = 'https://tazaquiz.com/TZApi/blog_fetch_api.php?action=list';
-
-// ─────────────────────────────────────────────
-//  MODEL
-// ─────────────────────────────────────────────
-class BlogPost {
-  final int id;
-  final String title;
-  final String excerpt;
-  final String url;
-  final String author;
-  final String category;
-  final String? featuredImage;
-  final String publishedAt;
-  final String readTime;
-
-  BlogPost({
-    required this.id,
-    required this.title,
-    required this.excerpt,
-    required this.url,
-    required this.author,
-    required this.category,
-    this.featuredImage,
-    required this.publishedAt,
-    required this.readTime,
-  });
-
-  factory BlogPost.fromJson(Map<String, dynamic> j) => BlogPost(
-        id:            j['id'] ?? 0,
-        title:         j['title']?.toString() ?? '',
-        excerpt:       j['excerpt']?.toString().trim() ?? '',
-        url:           j['url']?.toString() ?? '',
-        author:        j['author']?.toString() ?? 'TazaQuiz',
-        category:      j['category']?.toString() ?? 'General',
-        featuredImage: j['featured_image']?.toString(),
-        publishedAt:   j['published_at']?.toString() ?? '',
-        readTime:      j['read_time']?.toString() ?? '1 min read',
-      );
-
-  String get formattedDate {
-    try {
-      return DateFormat('dd MMM yyyy').format(DateTime.parse(publishedAt));
-    } catch (_) {
-      return publishedAt;
-    }
-  }
-
-  Color get categoryColor {
-    switch (category.toLowerCase()) {
-      case 'defence jobs': return const Color(0xFF1B4F72);
-      case 'education':    return const Color(0xFF1A6B3C);
-      case 'results':      return const Color(0xFF7D3C98);
-      default:             return const Color(0xFF1A5276);
-    }
-  }
-}
-
-// ─────────────────────────────────────────────
-//  NEWS PAGE
-// ─────────────────────────────────────────────
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});
   @override
@@ -77,7 +18,7 @@ class NewsPage extends StatefulWidget {
 
 class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   List<BlogPost> _posts = [];
-  bool _loading         = true;
+  bool _loading = true;
   String? _error;
   late AnimationController _fadeCtrl;
 
@@ -89,24 +30,40 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   }
 
   @override
-  void dispose() { _fadeCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _fetch() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      final res = await http.get(Uri.parse(kApiUrl)).timeout(const Duration(seconds: 20));
-      final data = jsonDecode(res.body);
+      final authRepository = Authrepository(Api_Client.dio);
+
+      final response = await authRepository.fetchBlogPosts();
+      print('Blog posts response: ${response.data}');
+      final data = response.data;
+
       if (data['success'] == true) {
         setState(() {
-          _posts   = (data['data'] as List).map((e) => BlogPost.fromJson(e)).toList();
+          _posts = (data['data'] as List).map((e) => BlogPost.fromJson(e)).toList();
           _loading = false;
         });
         _fadeCtrl.forward(from: 0);
       } else {
-        setState(() { _error = data['error'] ?? 'Unknown error'; _loading = false; });
+        setState(() {
+          _error = data['error'] ?? 'Unknown error';
+          _loading = false;
+        });
       }
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
     }
   }
 
@@ -134,15 +91,48 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
         ),
       ),
     );
-  }
+  } // ── BLOG PAGE APP BAR ────────────────────────
 
-  // ── APP BAR ──────────────────────────────────
+  // ── BLOG PAGE APP BAR ────────────────────────
   SliverAppBar _appBar() => SliverAppBar(
     expandedHeight: 115,
     pinned: true,
     stretch: true,
-    backgroundColor: const Color(0xFF0D1B2A),
+    elevation: 0,
+    backgroundColor: const Color(0xFF0D6E6E),
+    foregroundColor: Colors.white,
     systemOverlayStyle: SystemUiOverlayStyle.light,
+
+    // Collapsed title — sirf text
+    title: const Text('News & Blog', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+    centerTitle: false,
+
+    // View All — scroll ke baad bhi dikhega
+    actions: [
+      Padding(
+        padding: const EdgeInsets.only(right: 16),
+        child: GestureDetector(
+          onTap: () => launchUrl(Uri.parse('https://tazaquiz.com/blogs'), mode: LaunchMode.externalApplication),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('View All', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ],
+
     flexibleSpace: FlexibleSpaceBar(
       stretchModes: const [StretchMode.zoomBackground],
       background: Container(
@@ -150,57 +140,92 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF0D1B2A), Color(0xFF1A3A5C)],
+            colors: [Color(0xFF0A2A2A), Color(0xFF0D6E6E)],
           ),
         ),
-        child: Stack(children: [
-          Positioned(right: -30, top: -20,
-            child: Container(width: 140, height: 140,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.04)))),
-          SafeArea(child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                // LIVE badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(6)),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.circle, color: Colors.white, size: 7),
-                    SizedBox(width: 5),
-                    Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                  ]),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () => launchUrl(Uri.parse('https://tazaquiz.com/blogs'), mode: LaunchMode.externalApplication),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+        child: Stack(
+          children: [
+            // Decorative circles
+            Positioned(
+              right: -40,
+              top: -40,
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.05)),
+              ),
+            ),
+            Positioned(
+              left: -20,
+              bottom: -30,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.04)),
+              ),
+            ),
+
+            // Content
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 45, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top row — sirf badge, View All actions mein hai
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white.withOpacity(0.15)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.auto_stories_rounded, color: Colors.white, size: 11),
+                              SizedBox(width: 5),
+                              Text(
+                                'CURRENT AFFAIRS',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text('View All', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
-                    ]),
-                  ),
+
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(color: Color(0xFF4ECDC4), shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${_posts.length} articles • Updated daily',
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ]),
-              const SizedBox(height: 10),
-              const Text('News & Blog', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5, height: 1)),
-              const SizedBox(height: 4),
-              Text('${_posts.length} articles • Updated daily',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
-            ]),
-          )),
-        ]),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
-
   // ── FEATURED (first post big card) ───────────
   Widget _featured() {
     if (_posts.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -216,12 +241,17 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   Widget _sectionHeader(String label) => SliverToBoxAdapter(
     child: Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-      child: Row(children: [
-        Container(width: 4, height: 20,
-          decoration: BoxDecoration(color: const Color(0xFF0D1B2A), borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0D1B2A))),
-      ]),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(color: const Color(0xFF0D1B2A), borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0D1B2A))),
+        ],
+      ),
     ),
   );
 
@@ -229,26 +259,22 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   Widget _postsList() {
     final rest = _posts.length > 1 ? _posts.sublist(1) : <BlogPost>[];
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (ctx, i) {
-          final delay = (i * 0.12).clamp(0.0, 0.8);
-          final anim = CurvedAnimation(parent: _fadeCtrl,
-            curve: Interval(delay, 1.0, curve: Curves.easeOut));
-          return AnimatedBuilder(
-            animation: _fadeCtrl,
-            builder: (_, child) => FadeTransition(opacity: anim,
-              child: SlideTransition(
-                position: Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero).animate(anim),
-                child: child,
-              )),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: _SmallCard(post: rest[i]),
-            ),
-          );
-        },
-        childCount: rest.length,
-      ),
+      delegate: SliverChildBuilderDelegate((ctx, i) {
+        final delay = (i * 0.12).clamp(0.0, 0.8);
+        final anim = CurvedAnimation(parent: _fadeCtrl, curve: Interval(delay, 1.0, curve: Curves.easeOut));
+        return AnimatedBuilder(
+          animation: _fadeCtrl,
+          builder:
+              (_, child) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero).animate(anim),
+                  child: child,
+                ),
+              ),
+          child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: _SmallCard(post: rest[i])),
+        );
+      }, childCount: rest.length),
     );
   }
 }
@@ -272,70 +298,111 @@ class _FeaturedCard extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Stack(fit: StackFit.expand, children: [
-            // Background image
-            if (post.featuredImage != null)
-              Image.network(post.featuredImage!, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1A3A5C)))
-            else
-              Container(color: const Color(0xFF1A3A5C)),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Background image
+              if (post.featuredImage != null)
+                Image.network(
+                  post.featuredImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(color: const Color(0xFF1A3A5C)),
+                )
+              else
+                Container(color: const Color(0xFF1A3A5C)),
 
-            // Dark gradient
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black87], stops: [0.3, 1.0],
+              // Dark gradient
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black87],
+                    stops: [0.3, 1.0],
+                  ),
                 ),
               ),
-            ),
 
-            // FEATURED badge
-            Positioned(
-              top: 14, left: 14,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: Colors.amber.shade600, borderRadius: BorderRadius.circular(8)),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.star_rounded, color: Colors.white, size: 11),
-                  SizedBox(width: 4),
-                  Text('FEATURED', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                ]),
-              ),
-            ),
-
-            // Bottom content
-            Positioned(
-              bottom: 0, left: 0, right: 0,
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: post.categoryColor, borderRadius: BorderRadius.circular(6)),
-                    child: Text(post.category, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+              // FEATURED badge
+              Positioned(
+                top: 14,
+                left: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(color: Colors.amber.shade600, borderRadius: BorderRadius.circular(8)),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.star_rounded, color: Colors.white, size: 11),
+                      SizedBox(width: 4),
+                      Text(
+                        'FEATURED',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(post.title,
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, height: 1.3,
-                      shadows: [Shadow(color: Colors.black54, blurRadius: 4)]),
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    const Icon(Icons.person_outline, color: Colors.white70, size: 13),
-                    const SizedBox(width: 4),
-                    Text(post.author, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.access_time_outlined, color: Colors.white70, size: 12),
-                    const SizedBox(width: 4),
-                    Text(post.readTime, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                    const Spacer(),
-                    Text(post.formattedDate, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  ]),
-                ]),
+                ),
               ),
-            ),
-          ]),
+
+              // Bottom content
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: post.categoryColor, borderRadius: BorderRadius.circular(6)),
+                        child: Text(
+                          post.category,
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        post.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          height: 1.3,
+                          shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(Icons.person_outline, color: Colors.white70, size: 13),
+                          const SizedBox(width: 4),
+                          Text(
+                            post.author,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 12),
+                          const Icon(Icons.access_time_outlined, color: Colors.white70, size: 12),
+                          const SizedBox(width: 4),
+                          Text(post.readTime, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                          const Spacer(),
+                          Text(post.formattedDate, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -359,58 +426,89 @@ class _SmallCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
         ),
-        child: Row(children: [
-          // Image
-          ClipRRect(
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-            child: SizedBox(
-              width: 110, height: 110,
-              child: post.featuredImage != null
-                  ? Image.network(post.featuredImage!, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: post.categoryColor.withOpacity(0.15),
-                        child: Icon(Icons.article_outlined, color: post.categoryColor, size: 32)))
-                  : Container(
-                      color: post.categoryColor.withOpacity(0.15),
-                      child: Icon(Icons.article_outlined, color: post.categoryColor, size: 32)),
+        child: Row(
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+              child: SizedBox(
+                width: 110,
+                height: 110,
+                child:
+                    post.featuredImage != null
+                        ? Image.network(
+                          post.featuredImage!,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => Container(
+                                color: post.categoryColor.withOpacity(0.15),
+                                child: Icon(Icons.article_outlined, color: post.categoryColor, size: 32),
+                              ),
+                        )
+                        : Container(
+                          color: post.categoryColor.withOpacity(0.15),
+                          child: Icon(Icons.article_outlined, color: post.categoryColor, size: 32),
+                        ),
+              ),
             ),
-          ),
-          // Content
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: post.categoryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(post.category,
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: post.categoryColor)),
+            // Content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: post.categoryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        post.category,
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: post.categoryColor),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      post.title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.access_time_outlined, size: 11, color: Colors.grey.shade400),
+                        const SizedBox(width: 3),
+                        Text(post.readTime, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                        const Spacer(),
+                        Text(post.formattedDate, style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Read More',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: post.categoryColor),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(Icons.arrow_forward_rounded, size: 13, color: post.categoryColor),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                Text(post.title,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), height: 1.3),
-                  maxLines: 2, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Icon(Icons.access_time_outlined, size: 11, color: Colors.grey.shade400),
-                  const SizedBox(width: 3),
-                  Text(post.readTime, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-                  const Spacer(),
-                  Text(post.formattedDate, style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
-                ]),
-                const SizedBox(height: 8),
-                Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  Text('Read More', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: post.categoryColor)),
-                  const SizedBox(width: 2),
-                  Icon(Icons.arrow_forward_rounded, size: 13, color: post.categoryColor),
-                ]),
-              ]),
+              ),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }
@@ -444,101 +542,151 @@ class NewsDetailPage extends StatelessWidget {
             backgroundColor: const Color(0xFF0D1B2A),
             foregroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
-              background: Stack(fit: StackFit.expand, children: [
-                if (post.featuredImage != null)
-                  Image.network(post.featuredImage!, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0D1B2A)))
-                else
-                  Container(color: const Color(0xFF0D1B2A)),
-                Container(decoration: const BoxDecoration(
-                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    colors: [Colors.black26, Colors.black87]))),
-              ]),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (post.featuredImage != null)
+                    Image.network(
+                      post.featuredImage!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0D1B2A)),
+                    )
+                  else
+                    Container(color: const Color(0xFF0D1B2A)),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.black26, Colors.black87],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            actions: [
-              IconButton(icon: const Icon(Icons.open_in_browser_rounded), onPressed: () => _open(context)),
-            ],
+            actions: [IconButton(icon: const Icon(Icons.open_in_browser_rounded), onPressed: () => _open(context))],
           ),
 
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                // Category
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(color: post.categoryColor, borderRadius: BorderRadius.circular(8)),
-                  child: Text(post.category, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
-                ),
-                const SizedBox(height: 14),
-
-                // Title
-                Text(post.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1.35)),
-                const SizedBox(height: 16),
-
-                // Author row
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: const Color(0xFFF4F6FA), borderRadius: BorderRadius.circular(12)),
-                  child: Row(children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: post.categoryColor,
-                      child: Text(post.author.isNotEmpty ? post.author[0].toUpperCase() : 'T',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(post.author, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-                      Text('${post.formattedDate}  •  ${post.readTime}',
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                    ]),
-                  ]),
-                ),
-                const SizedBox(height: 20),
-
-                Container(height: 1, color: const Color(0xFFEEF0F4)),
-                const SizedBox(height: 20),
-
-                // Excerpt
-                if (post.excerpt.isNotEmpty)
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Category
                   Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: post.categoryColor.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border(left: BorderSide(color: post.categoryColor, width: 3)),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(color: post.categoryColor, borderRadius: BorderRadius.circular(8)),
                     child: Text(
-                      post.excerpt.length > 300 ? '${post.excerpt.substring(0, 300)}...' : post.excerpt,
-                      style: const TextStyle(fontSize: 14, color: Color(0xFF334155), height: 1.7, fontStyle: FontStyle.italic),
+                      post.category,
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
                     ),
                   ),
+                  const SizedBox(height: 14),
 
-                const SizedBox(height: 32),
-
-                // Read Full Article
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => _open(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D1B2A),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 4,
-                      shadowColor: const Color(0xFF0D1B2A).withOpacity(0.4),
+                  // Title
+                  Text(
+                    post.title,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                      height: 1.35,
                     ),
-                    child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.open_in_browser_rounded, size: 18),
-                      SizedBox(width: 8),
-                      Text('Website pe Poora Article Padho',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
-                    ]),
                   ),
-                ),
-              ]),
+                  const SizedBox(height: 16),
+
+                  // Author row
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(color: const Color(0xFFF4F6FA), borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: post.categoryColor,
+                          child: Text(
+                            post.author.isNotEmpty ? post.author[0].toUpperCase() : 'T',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              post.author,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            Text(
+                              '${post.formattedDate}  •  ${post.readTime}',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Container(height: 1, color: const Color(0xFFEEF0F4)),
+                  const SizedBox(height: 20),
+
+                  // Excerpt
+                  if (post.excerpt.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: post.categoryColor.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border(left: BorderSide(color: post.categoryColor, width: 3)),
+                      ),
+                      child: Text(
+                        post.excerpt.length > 300 ? '${post.excerpt.substring(0, 300)}...' : post.excerpt,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF334155),
+                          height: 1.7,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 32),
+
+                  // Read Full Article
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _open(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D1B2A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 4,
+                        shadowColor: const Color(0xFF0D1B2A).withOpacity(0.4),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.open_in_browser_rounded, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Website pe Poora Article Padho',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -555,12 +703,16 @@ class _LoadingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.all(16),
-    child: Column(children: [
-      const SizedBox(height: 20),
-      _Skeleton(height: 280), const SizedBox(height: 12),
-      _Skeleton(height: 110), const SizedBox(height: 12),
-      _Skeleton(height: 110),
-    ]),
+    child: Column(
+      children: [
+        const SizedBox(height: 20),
+        _Skeleton(height: 280),
+        const SizedBox(height: 12),
+        _Skeleton(height: 110),
+        const SizedBox(height: 12),
+        _Skeleton(height: 110),
+      ],
+    ),
   );
 }
 
@@ -578,13 +730,20 @@ class _SkeletonState extends State<_Skeleton> with SingleTickerProviderStateMixi
     super.initState();
     _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
   }
+
   @override
-  void dispose() { _c.dispose(); super.dispose(); }
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => FadeTransition(
     opacity: Tween(begin: 0.4, end: 1.0).animate(_c),
-    child: Container(height: widget.height,
-      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(16))),
+    child: Container(
+      height: widget.height,
+      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(16)),
+    ),
   );
 }
 
@@ -599,29 +758,35 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: Padding(
       padding: const EdgeInsets.all(30),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),
-          child: Icon(Icons.wifi_off_rounded, color: Colors.red.shade400, size: 48),
-        ),
-        const SizedBox(height: 20),
-        const Text('Oops! Kuch problem aayi',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-        const SizedBox(height: 8),
-        Text(error, style: TextStyle(fontSize: 12, color: Colors.grey.shade500), textAlign: TextAlign.center),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          onPressed: onRetry,
-          icon: const Icon(Icons.refresh_rounded, size: 18),
-          label: const Text('Dobara Try Karo', style: TextStyle(fontWeight: FontWeight.w700)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0D1B2A), foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),
+            child: Icon(Icons.wifi_off_rounded, color: Colors.red.shade400, size: 48),
           ),
-        ),
-      ]),
+          const SizedBox(height: 20),
+          const Text(
+            'Oops! Kuch problem aayi',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 8),
+          Text(error, style: TextStyle(fontSize: 12, color: Colors.grey.shade500), textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Dobara Try Karo', style: TextStyle(fontWeight: FontWeight.w700)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0D1B2A),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
