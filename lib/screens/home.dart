@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -11,11 +12,9 @@ import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
-import 'package:tazaquiznew/screens/blog_Page.dart';
 import 'package:tazaquiznew/screens/home_daily_current_affairs.dart';
 import 'package:tazaquiznew/screens/home_streak_widget.dart';
 import 'package:tazaquiznew/screens/notificationPage.dart';
-import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:tazaquiznew/widgets/WeeklyProgressWidget.dart';
 import 'package:tazaquiznew/widgets/homePage_shimmer_progress.dart';
@@ -23,7 +22,6 @@ import 'package:tazaquiznew/widgets/home_banner.dart';
 import 'package:tazaquiznew/widgets/home_coaching_profile.dart';
 import 'package:tazaquiznew/widgets/home_courses.dart';
 import 'package:tazaquiznew/widgets/home_live_test.dart';
-import 'package:tazaquiznew/widgets/home_study_material.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -31,26 +29,19 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Timer? _bannerTimer;
-
   List _banners = [];
   List<QuizItem> liveTests = [];
   List<CourseItem> popularCourses = [];
   List<CoachingItem> coachingProfiles = [];
-  List<StudyMaterialItem> studyMaterials = [];
 
   UserModel? _user;
   int notificationCount = 0;
-
-  // ✅ Streak ke liye – baad me API se fetch karo
   int userStreakDays = 3;
 
   List<HomeSection> homePageItemData = [];
-
   HomeSection? quizSection;
   HomeSection? courseSection;
   HomeSection? coachingSection;
-  HomeSection? studySection;
 
   @override
   void initState() {
@@ -58,17 +49,13 @@ class _HomePageState extends State<HomePage> {
     _loadHome();
   }
 
-  /// 🔄 Load everything
   Future<void> _loadHome() async {
     await _getUserData();
     await get_home_page_data();
     await getAppBanner();
   }
 
-  /// 🔄 Pull to refresh
-  Future<void> _refreshHome() async {
-    await _loadHome();
-  }
+  Future<void> _refreshHome() async => await _loadHome();
 
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
@@ -105,7 +92,6 @@ class _HomePageState extends State<HomePage> {
       liveTests.clear();
       popularCourses.clear();
       coachingProfiles.clear();
-      studyMaterials.clear();
 
       for (var section in homePageItemData) {
         switch (section.section) {
@@ -121,60 +107,35 @@ class _HomePageState extends State<HomePage> {
             coachingSection = section;
             coachingProfiles = section.items.cast<CoachingItem>();
             break;
-          // case 'study_material':
-          //   studySection = section;
-          //   studyMaterials = section.items.cast<StudyMaterialItem>();
-          //   break;
         }
       }
       setState(() {});
     }
   }
 
-  /// ⏰ Time-based greeting widget
-  Widget greetingWidget(BuildContext context) {
+  /// ⏰ Greeting
+  String _getGreeting() {
     final hour = DateTime.now().hour;
-    String greeting = 'Hello';
-    IconData icon = Icons.wb_sunny;
-
-    if (hour >= 5 && hour < 12) {
-      greeting = 'Good Morning';
-      icon = Icons.wb_sunny;
-    } else if (hour >= 12 && hour < 17) {
-      greeting = 'Good Afternoon';
-      icon = Icons.wb_sunny_outlined;
-    } else if (hour >= 17 && hour < 21) {
-      greeting = 'Good Evening';
-      icon = Icons.nights_stay;
-    } else {
-      greeting = 'Good Night';
-      icon = Icons.nights_stay_outlined;
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(icon, color: Colors.orangeAccent, size: 16),
-        const SizedBox(width: 6),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          greeting,
-          12,
-          Colors.grey.shade600,
-          FontWeight.w500,
-          1,
-          TextAlign.left,
-          0,
-        ),
-      ],
-    );
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 21) return 'Good Evening';
+    return 'Good Night';
   }
 
-  @override
-  void dispose() {
-    _bannerTimer?.cancel();
-    super.dispose();
+  String _getMotivation() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) return 'Subah ka quiz diya kya? 🎯';
+    if (hour >= 12 && hour < 17) return 'Aaj kuch naya seekho! 💡';
+    if (hour >= 17 && hour < 21) return 'Kal ki taiyari aaj karo! 📚';
+    return 'Kal phir milenge! 🌙';
+  }
+
+  IconData _getGreetingIcon() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) return Icons.wb_sunny_rounded;
+    if (hour >= 12 && hour < 17) return Icons.wb_sunny_outlined;
+    if (hour >= 17 && hour < 21) return Icons.nights_stay_rounded;
+    return Icons.nights_stay_outlined;
   }
 
   @override
@@ -183,73 +144,68 @@ class _HomePageState extends State<HomePage> {
       return const Center(child: QuizShimmerUI());
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.greyS1,
-      body: SafeArea(
-        child: RefreshIndicator(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: AppColors.greyS1,
+        body: RefreshIndicator(
           onRefresh: _refreshHome,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              /// ── Gradient AppBar ──
               _buildAppBar(),
+
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    /// 🖼️ Banner
+                    /// Banner
                     HomeBanner(imgLists: _banners),
 
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       child: Column(
                         children: [
+                          /// Weekly Progress
+                          WeeklyProgressWidget(),
 
-                          /// 📊 Weekly Progress
-                          _buildStatsSection(),
-
-                          /// 🔥 Daily Streak + Aaj Ka Quiz
+                          /// Streak
                           HomeStreakWidget(
                             streakDays: userStreakDays,
                             todayChallengeName: 'Aaj Ka Quiz',
                             totalQuestions: 10,
                             durationMinutes: 5,
-                            onStartQuiz: () {
-                              // TODO: Navigate to daily quiz screen
-                            },
+                            onStartQuiz: () {},
                           ),
 
-                          /// 📰 Daily Current Affairs
-                           HomeDailyCurrentAffairs(),
+                          /// Current Affairs
+                          const HomeDailyCurrentAffairs(),
 
-                          /// 🔴 Live Tests
+                          /// Live Tests
                           if (quizSection != null && liveTests.isNotEmpty)
                             Home_live_test(
                               liveTests: liveTests,
                               homeSections: quizSection!,
                             ),
 
-                          /// 📚 Popular Courses
+                          /// Popular Courses
                           if (courseSection != null && popularCourses.isNotEmpty)
                             Home_courses(
                               popularCourses: popularCourses,
                               homeSections: courseSection!,
                             ),
 
-                          /// 🏫 Coaching Profiles
+                          /// Coaching
                           if (coachingSection != null && coachingProfiles.isNotEmpty)
                             CoachingProfileWidget(
                               coachingProfiles: coachingProfiles,
                               homeSections: coachingSection!,
                             ),
 
-                          /// 📖 Study Materials
-                          // if (studySection != null && studyMaterials.isNotEmpty)
-                          //   HomeStudyMaterials(
-                          //     studyMaterials: studyMaterials,
-                          //     homeSections: studySection!,
-                          //   ),
-
                           /// 🏆 Achievements
                           _buildAchievementsSection(),
+
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -263,118 +219,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ─────────────────────────────────────────────
-  /// 🔹 APP BAR
-  // ─────────────────────────────────────────────
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      floating: true,
-      backgroundColor: AppColors.white,
-      elevation: 0,
-      leading: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Image.asset('assets/images/logo.png'),
-      ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
-            _user?.username ?? "👋",
-            15,
-            AppColors.darkNavy,
-            FontWeight.w700,
-            1,
-            TextAlign.left,
-            0,
-          ),
-          greetingWidget(context),
-        ],
-      ),
-      actions: [
-        /// 📰 NEWS Button
-        Container(
-          margin: const EdgeInsets.only(top: 8, right: 4),
-          child: Stack(
-            children: [
-              // TextButton(
-              //   style: TextButton.styleFrom(
-              //     backgroundColor: Colors.red.shade50,
-              //     shape: RoundedRectangleBorder(
-              //       borderRadius: BorderRadius.circular(8),
-              //     ),
-              //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              //   ),
-              //   onPressed: () {
-              //     Navigator.push(
-              //       context,
-              //       MaterialPageRoute(builder: (_) => NewsPage()),
-              //     );
-              //   },
-              //   child: const Text(
-              //     'NEWS',
-              //     style: TextStyle(
-              //       color: Colors.red,
-              //       fontSize: 11,
-              //       fontWeight: FontWeight.w900,
-              //       letterSpacing: 0.5,
-              //     ),
-              //   ),
-              // ),
-              if (notificationCount > 0)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: CircleAvatar(
-                    radius: 7,
-                    backgroundColor: Colors.red,
-                    child: Text(
-                      notificationCount.toString(),
-                      style: const TextStyle(fontSize: 8, color: Colors.white),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-
-        /// 🔔 Notification Button
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => NotificationsPage()),
-                );
-              },
-            ),
-            if (notificationCount > 0)
-              Positioned(
-                right: 6,
-                top: 6,
-                child: CircleAvatar(
-                  radius: 9,
-                  backgroundColor: AppColors.tealGreen,
-                  child: Text(
-                    notificationCount.toString(),
-                    style: const TextStyle(fontSize: 10, color: Colors.white),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  /// 📊 Weekly Progress
-  // ─────────────────────────────────────────────
-  Widget _buildStatsSection() {
-    return Container(child: WeeklyProgressWidget());
-  }
 
   // ─────────────────────────────────────────────
   /// 🏆 Achievements
@@ -410,15 +254,13 @@ class _HomePageState extends State<HomePage> {
                 child: const Icon(Icons.emoji_events, size: 18, color: AppColors.darkNavy),
               ),
               const SizedBox(width: 12),
-              AppRichText.setTextPoppinsStyle(
-                context,
+              Text(
                 'Recent Achievements',
-                15,
-                AppColors.darkNavy,
-                FontWeight.w800,
-                1,
-                TextAlign.left,
-                0,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.darkNavy,
+                ),
               ),
             ],
           ),
@@ -475,18 +317,110 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppRichText.setTextPoppinsStyle(
-                  context, title, 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0,
-                ),
+                Text(title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkNavy,
+                  )),
                 const SizedBox(height: 2),
-                AppRichText.setTextPoppinsStyle(
-                  context, time, 11, AppColors.greyS600, FontWeight.w500, 1, TextAlign.left, 0,
-                ),
+                Text(time,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.greyS600,
+                  )),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  /// 🎨 Gradient AppBar
+  // ─────────────────────────────────────────────
+  Widget _buildAppBar() {
+    return SliverAppBar(
+      floating: true,
+      snap: true,
+      elevation: 0,
+      backgroundColor: AppColors.white,
+      leading: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Image.asset('assets/images/logo.png'),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _user?.username ?? '👋 Hello!',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.darkNavy,
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_getGreetingIcon(), color: Colors.orangeAccent, size: 13),
+              const SizedBox(width: 5),
+              Text(
+                _getGreeting(),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        /// 🔔 Notification
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: Icon(Icons.notifications_outlined,
+                  color: AppColors.darkNavy, size: 24),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => NotificationsPage()),
+                );
+              },
+            ),
+            if (notificationCount > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  width: 17,
+                  height: 17,
+                  decoration: BoxDecoration(
+                    color: AppColors.tealGreen,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      notificationCount > 9 ? '9+' : '$notificationCount',
+                      style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 4),
+      ],
     );
   }
 }
