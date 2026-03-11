@@ -172,4 +172,12 @@ class Authrepository {
   Future<Response> fetchBlogPosts() async {
     return await _dio.get(BaseUrl.fetch_blog_posts_api);
   }
+  Future<Response> fetchDailyQuizCRUD(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_daily_quiz_api_crud, data: formData);
+  }
+  Future<Response> fetchDailyQuizCheckHome(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_fetch_daily_quiz_check_home, data: formData);
+  }
 }

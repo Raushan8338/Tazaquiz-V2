@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/screens/daily_quiz_screen.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
 /// 🔥 Daily Streak Widget
 /// Stateless – streak count bahar se pass karo
 class HomeStreakWidget extends StatelessWidget {
-  final int streakDays;
+  final String streakDays;
   final String todayChallengeName;
   final int totalQuestions;
   final int durationMinutes;
   final VoidCallback? onStartQuiz;
+  final bool checkattempted;
 
   const HomeStreakWidget({
     Key? key,
-    this.streakDays = 0,
+    this.streakDays = "",
     this.todayChallengeName = "Aaj Ka Quiz",
     this.totalQuestions = 10,
     this.durationMinutes = 5,
     this.onStartQuiz,
+    required this.checkattempted
   }) : super(key: key);
 
   @override
@@ -49,7 +52,7 @@ class HomeStreakWidget extends StatelessWidget {
                     const SizedBox(width: 6),
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      '$streakDays Day Streak!',
+                      streakDays,
                       15,
                       AppColors.darkNavy,
                       FontWeight.w800,
@@ -84,7 +87,9 @@ class HomeStreakWidget extends StatelessWidget {
 
           /// Right – Start Button
           GestureDetector(
-            onTap: onStartQuiz,
+            onTap: (){
+              Navigator.push(context, MaterialPageRoute(builder: (context) => DailyQuizScreen()));
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
@@ -102,15 +107,21 @@ class HomeStreakWidget extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Column(
-                children: [
-                  const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
-                  const SizedBox(height: 2),
-                  AppRichText.setTextPoppinsStyle(
-                    context, 'Shuru\nKaro', 10, Colors.white, FontWeight.w700, 1, TextAlign.center, 0,
-                  ),
-                ],
-              ),
+             child: Column(
+  children: [
+    Icon(
+      checkattempted ? Icons.check_circle_rounded : Icons.play_arrow_rounded,
+      color: Colors.white,
+      size: 22,
+    ),
+    const SizedBox(height: 2),
+    AppRichText.setTextPoppinsStyle(
+      context,
+      checkattempted ? 'Done!' : 'Shuru\nKaro',
+      10, Colors.white, FontWeight.w700, 1, TextAlign.center, 0,
+    ),
+  ],
+),
             ),
           ),
         ],

@@ -45,6 +45,11 @@ class _HomePageState extends State<HomePage> {
   HomeSection? courseSection;
   HomeSection? coachingSection;
   DailyNewsModel? dailyNews;
+  String _quizTitle = 'Aaj Ka Quiz';
+String _quizSubtitle = 'Current Affairs + GK + Science';
+int _quizTotalQuestions = 0;
+int _quizTimeMinutes = 0;
+bool _quizAlreadyDone = false;
 
   @override
   void initState() {
@@ -57,6 +62,7 @@ class _HomePageState extends State<HomePage> {
     await get_home_page_data();
     await getAppBanner();
     await getNewsPoints();
+    
   }
 
   Future<void> _refreshHome() async => await _loadHome();
@@ -65,7 +71,26 @@ class _HomePageState extends State<HomePage> {
     _user = await SessionManager.getUser();
     setState(() {});
     getNotificationCount();
+    await getDailyQuizCheckHome();
   }
+Future<void> getDailyQuizCheckHome() async {
+  Authrepository authRepository = Authrepository(Api_Client.dio);
+  final data = {'user_id': _user?.id};
+  final responseFuture = await authRepository.fetchDailyQuizCheckHome(data);
+  final Map<String, dynamic> apiResponse =
+      responseFuture.data is String ? jsonDecode(responseFuture.data) : responseFuture.data;
+
+  if (apiResponse['success'] == true) {
+    final d = apiResponse['data'];
+    setState(() {
+      _quizTitle          = d['title']           ?? 'Aaj Ka Quiz';
+      _quizSubtitle       = d['subtitle']        ?? '';
+      _quizTotalQuestions = d['total_questions'] ?? 0;
+      _quizTimeMinutes    = d['time_minutes']    ?? 0;
+      _quizAlreadyDone    = d['already_done']    ?? false;
+    });
+  }
+}
 
   Future<void> getAppBanner() async {
     final authRepository = Authrepository(Api_Client.dio);
@@ -188,11 +213,13 @@ class _HomePageState extends State<HomePage> {
                           WeeklyProgressWidget(),
 
                           /// Streak
+
                           HomeStreakWidget(
-                            streakDays: userStreakDays,
-                            todayChallengeName: 'Aaj Ka Quiz',
-                            totalQuestions: 10,
-                            durationMinutes: 5,
+                            streakDays: _quizTitle,
+                            todayChallengeName: _quizSubtitle,
+                            totalQuestions: _quizTotalQuestions,
+                            durationMinutes: _quizTimeMinutes,
+                            checkattempted: _quizAlreadyDone,
                             onStartQuiz: () {},
                           ),
 
@@ -384,4 +411,6 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
+  
+
 }
