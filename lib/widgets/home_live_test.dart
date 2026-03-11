@@ -16,8 +16,7 @@ class Home_live_test extends StatefulWidget {
   State<Home_live_test> createState() => _Home_live_testState();
 }
 
-class _Home_live_testState extends State<Home_live_test>
-    with SingleTickerProviderStateMixin {
+class _Home_live_testState extends State<Home_live_test> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
 
@@ -32,13 +31,12 @@ class _Home_live_testState extends State<Home_live_test>
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
+    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat(reverse: true);
+    _pulseAnim = Tween<double>(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
   }
 
   @override
@@ -79,8 +77,7 @@ class _Home_live_testState extends State<Home_live_test>
                             height: 10,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.red.withOpacity(
-                                  0.6 + _pulseAnim.value * 0.4),
+                              color: Colors.red.withOpacity(0.6 + _pulseAnim.value * 0.4),
                             ),
                           ),
                         ),
@@ -102,11 +99,7 @@ class _Home_live_testState extends State<Home_live_test>
                       ),
                       Text(
                         '⚡ Abhi join karo, rank badhao!',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.tealGreen,
-                        ),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.tealGreen),
                       ),
                     ],
                   ),
@@ -116,29 +109,24 @@ class _Home_live_testState extends State<Home_live_test>
               /// View All button
               GestureDetector(
                 onTap: () {
-                  Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => QuizListScreen('1')));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => QuizListScreen('1')));
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.tealGreen.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: AppColors.tealGreen.withOpacity(0.3), width: 1),
+                    border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('View All',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.tealGreen,
-                          fontWeight: FontWeight.w700,
-                        )),
+                      Text(
+                        'View All',
+                        style: TextStyle(fontSize: 11, color: AppColors.tealGreen, fontWeight: FontWeight.w700),
+                      ),
                       const SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_rounded,
-                          size: 13, color: AppColors.tealGreen),
+                      Icon(Icons.arrow_forward_rounded, size: 13, color: AppColors.tealGreen),
                     ],
                   ),
                 ),
@@ -157,17 +145,15 @@ class _Home_live_testState extends State<Home_live_test>
             itemBuilder: (context, index) {
               final quiz = widget.liveTests[index];
               final isLive = quiz.quizStatus == 'live';
-              final gradientColors =
-                  _placeholderGradients[index % _placeholderGradients.length];
+              final gradientColors = _placeholderGradients[index % _placeholderGradients.length];
               final hasImage = quiz.banner != null && quiz.banner!.isNotEmpty;
 
               return GestureDetector(
                 onTap: () {
-                  Navigator.push(context,
-                    MaterialPageRoute(
-                      builder: (context) => QuizDetailPage(
-                          quizId: quiz.quizId, is_subscribed: false),
-                    ));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: false)),
+                  );
                 },
                 child: Container(
                   width: 195,
@@ -175,11 +161,7 @@ class _Home_live_testState extends State<Home_live_test>
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
-                      BoxShadow(
-                        color: gradientColors[0].withOpacity(0.35),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
+                      BoxShadow(color: gradientColors[0].withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 6)),
                     ],
                   ),
                   child: ClipRRect(
@@ -188,11 +170,23 @@ class _Home_live_testState extends State<Home_live_test>
                       children: [
                         /// Background
                         Positioned.fill(
-                          child: hasImage
-                              ? Image.network(
-                                  quiz.banner!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
+                          child:
+                              hasImage
+                                  ? Image.network(
+                                    quiz.banner!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (_, __, ___) => Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: gradientColors,
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                          ),
+                                        ),
+                                  )
+                                  : Container(
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: gradientColors,
@@ -201,16 +195,6 @@ class _Home_live_testState extends State<Home_live_test>
                                       ),
                                     ),
                                   ),
-                                )
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: gradientColors,
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                  ),
-                                ),
                         ),
 
                         /// Dark overlay
@@ -218,10 +202,7 @@ class _Home_live_testState extends State<Home_live_test>
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [
-                                  Colors.black.withOpacity(0.1),
-                                  Colors.black.withOpacity(0.6),
-                                ],
+                                colors: [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.6)],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                               ),
@@ -241,12 +222,9 @@ class _Home_live_testState extends State<Home_live_test>
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: isLive
-                                          ? Colors.red
-                                          : Colors.orange.shade600,
+                                      color: isLive ? Colors.red : Colors.orange.shade600,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Row(
@@ -255,14 +233,15 @@ class _Home_live_testState extends State<Home_live_test>
                                         if (isLive) ...[
                                           AnimatedBuilder(
                                             animation: _pulseAnim,
-                                            builder: (context, _) => Container(
-                                              width: 5, height: 5,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: Colors.white.withOpacity(
-                                                    _pulseAnim.value),
-                                              ),
-                                            ),
+                                            builder:
+                                                (context, _) => Container(
+                                                  width: 5,
+                                                  height: 5,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: Colors.white.withOpacity(_pulseAnim.value),
+                                                  ),
+                                                ),
                                           ),
                                           const SizedBox(width: 4),
                                         ],
@@ -284,8 +263,7 @@ class _Home_live_testState extends State<Home_live_test>
                                       color: Colors.white.withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Icon(Icons.quiz_rounded,
-                                        color: Colors.white, size: 13),
+                                    child: const Icon(Icons.quiz_rounded, color: Colors.white, size: 13),
                                   ),
                                 ],
                               ),
@@ -308,8 +286,7 @@ class _Home_live_testState extends State<Home_live_test>
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      const Icon(Icons.bar_chart_rounded,
-                                          size: 11, color: Colors.white70),
+                                      const Icon(Icons.bar_chart_rounded, size: 11, color: Colors.white70),
                                       const SizedBox(width: 3),
                                       Text(
                                         quiz.difficultyLevel,
@@ -326,18 +303,17 @@ class _Home_live_testState extends State<Home_live_test>
                                     width: double.infinity,
                                     child: ElevatedButton(
                                       onPressed: () {
-                                        Navigator.push(context,
+                                        Navigator.push(
+                                          context,
                                           MaterialPageRoute(
-                                            builder: (context) => QuizDetailPage(
-                                                quizId: quiz.quizId,
-                                                is_subscribed: false),
-                                          ));
+                                            builder:
+                                                (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: false),
+                                          ),
+                                        );
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                         padding: const EdgeInsets.symmetric(vertical: 8),
                                         minimumSize: const Size(0, 32),
                                         elevation: 0,

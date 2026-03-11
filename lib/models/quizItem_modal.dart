@@ -30,6 +30,9 @@ class QuizItem {
   final int startsInSeconds;
   final String startsInText;
 
+  int totalQuestions;
+  int totalMarks;
+
   QuizItem({
     required this.quizId,
     required this.title,
@@ -55,6 +58,8 @@ class QuizItem {
     this.Material_name = '',
     this.subscription_price = 0.0,
     this.subscription_description = '',
+    this.totalQuestions = 0,
+    this.totalMarks = 0,
   });
 
   factory QuizItem.fromJson(Map<String, dynamic> json) {
@@ -87,6 +92,8 @@ class QuizItem {
       Material_name: json['Material_name']?.toString() ?? 'Material Name',
       subscription_price: _toDouble(json['subscription_price']),
       subscription_description: json['subscription_description']?.toString() ?? '',
+      totalQuestions: _toInt(json['total_questions']) ?? 0,
+      totalMarks: _toInt(json['total_marks']) ?? 0,
     );
   }
 
@@ -116,6 +123,8 @@ class QuizItem {
       'Material_name': Material_name,
       'subscription_price': subscription_price,
       'subscription_description': subscription_description,
+      'total_questions': totalQuestions,
+      'total_marks': totalMarks,
     };
   }
 }
