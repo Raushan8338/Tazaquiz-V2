@@ -15,7 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   //hyggtt
   int _selectedNavIndex = 0;
 
-  final List<Widget> _pages = [HomePage(), StudyMaterialScreen('0'), QuizListScreen('0'), StudentProfilePage()];
+  final List<Widget> _pages = [HomePage(), StudyMaterialScreen('0'), QuizListScreen('0', '0'), StudentProfilePage()];
 
   void _onNavItemTapped(int index) {
     setState(() {

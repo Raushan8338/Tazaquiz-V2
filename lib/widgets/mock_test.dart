@@ -3,45 +3,54 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/buyQuizes.dart';
+import 'package:tazaquiznew/screens/mock_test_detail_page.dart';
 import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
-import 'package:tazaquiznew/utils/richText.dart';
 
-class Home_live_test extends StatefulWidget {
-  final List<QuizItem> liveTests;
+class HomeMockTest extends StatefulWidget {
+  final List<QuizItem> mockTests;
   final HomeSection homeSections;
 
-  Home_live_test({super.key, required this.liveTests, required this.homeSections});
+  HomeMockTest({super.key, required this.mockTests, required this.homeSections});
 
   @override
-  State<Home_live_test> createState() => _Home_live_testState();
+  State<HomeMockTest> createState() => _HomeMockTestState();
 }
 
-class _Home_live_testState extends State<Home_live_test> with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnim;
+class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderStateMixin {
+  late AnimationController _shimmerController;
+  late Animation<double> _shimmerAnim;
 
-  static const List<List<Color>> _placeholderGradients = [
-    [Color(0xFF0D6E6E), Color(0xFF14A3A3)],
-    [Color(0xFF1A2340), Color(0xFF2D5F8A)],
-    [Color(0xFF6B21A8), Color(0xFF9333EA)],
-    [Color(0xFF991B1B), Color(0xFFDC2626)],
-    [Color(0xFF065F46), Color(0xFF059669)],
+  // Mock test ke liye alag color palette — professional/study feel
+  static const List<List<Color>> _mockGradients = [
+    [Color(0xFF1a237e), Color(0xFF283593)], // Deep blue
+    [Color(0xFF004D40), Color(0xFF00695C)], // Deep teal
+    [Color(0xFF4A148C), Color(0xFF6A1B9A)], // Deep purple
+    [Color(0xFF1B5E20), Color(0xFF2E7D32)], // Deep green
+    [Color(0xFFBF360C), Color(0xFFD84315)], // Deep orange
+  ];
+
+  static const List<List<Color>> _safeGradients = [
+    [Color(0xFF1a237e), Color(0xFF283593)],
+    [Color(0xFF004D40), Color(0xFF00695C)],
+    [Color(0xFF4A148C), Color(0xFF6A1B9A)],
+    [Color(0xFF1B5E20), Color(0xFF2E7D32)],
+    [Color(0xFF6D1F00), Color(0xFFBF360C)],
   ];
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+    _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
       ..repeat(reverse: true);
-    _pulseAnim = Tween<double>(
-      begin: 0.4,
+    _shimmerAnim = Tween<double>(
+      begin: 0.5,
       end: 1.0,
-    ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+    ).animate(CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut));
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
+    _shimmerController.dispose();
     super.dispose();
   }
 
@@ -51,7 +60,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        /// ── Section Header ──
+        // ── Section Header ──
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 18, 4, 12),
           child: Row(
@@ -60,36 +69,31 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
             children: [
               Row(
                 children: [
-                  /// Pulsing red dot
+                  // Pencil icon with animated glow
                   AnimatedBuilder(
-                    animation: _pulseAnim,
+                    animation: _shimmerAnim,
                     builder: (context, child) {
                       return Container(
-                        width: 28,
-                        height: 28,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.red.withOpacity(_pulseAnim.value * 0.2),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.red.withOpacity(0.6 + _pulseAnim.value * 0.4),
-                            ),
+                          color: const Color(0xFF1a237e).withOpacity(_shimmerAnim.value * 0.15),
+                          border: Border.all(
+                            color: const Color(0xFF1a237e).withOpacity(_shimmerAnim.value * 0.4),
+                            width: 1.5,
                           ),
                         ),
+                        child: Center(child: Text('📝', style: TextStyle(fontSize: 16))),
                       );
                     },
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Live Tests',
+                        'Mock Tests',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
@@ -98,35 +102,41 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                         ),
                       ),
                       Text(
-                        '⚡ Abhi join karo, rank badhao!',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.tealGreen),
+                        '🎯 Practice karo, exam crack karo!',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: const Color(0xFF1a237e)),
                       ),
                     ],
                   ),
                 ],
               ),
 
-              /// View All button
+              // View All button
               GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => QuizListScreen('1', '0')));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      // quiz_type=2 for mock tests — aapke QuizListScreen mein filter pass karo
+                      builder: (context) => QuizListScreen('1', '4'),
+                    ),
+                  );
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.tealGreen.withOpacity(0.1),
+                    color: const Color(0xFF1a237e).withOpacity(0.08),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1),
+                    border: Border.all(color: const Color(0xFF1a237e).withOpacity(0.25), width: 1),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'View All',
-                        style: TextStyle(fontSize: 11, color: AppColors.tealGreen, fontWeight: FontWeight.w700),
+                        style: TextStyle(fontSize: 11, color: const Color(0xFF1a237e), fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_rounded, size: 13, color: AppColors.tealGreen),
+                      Icon(Icons.arrow_forward_rounded, size: 13, color: const Color(0xFF1a237e)),
                     ],
                   ),
                 ),
@@ -135,40 +145,45 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
           ),
         ),
 
-        /// ── Cards ──
+        // ── Cards ──
         SizedBox(
-          height: 190,
+          height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: widget.liveTests.length,
+            itemCount: widget.mockTests.length,
             padding: const EdgeInsets.only(left: 2),
             itemBuilder: (context, index) {
-              final quiz = widget.liveTests[index];
-              final isLive = quiz.quizStatus == 'live';
-              final gradientColors = _placeholderGradients[index % _placeholderGradients.length];
+              final quiz = widget.mockTests[index];
+              final gradientColors = _safeGradients[index % _safeGradients.length];
               final hasImage = quiz.banner != null && quiz.banner!.isNotEmpty;
+
+              // Mock test status
+              final isCompleted = quiz.quizStatus == 'completed';
+              final isAttempted = quiz.is_attempted;
 
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: false)),
+                    MaterialPageRoute(
+                      builder: (context) => MockTestDetailPage(quizId: quiz.quizId, is_subscribed: false),
+                    ),
                   );
                 },
                 child: Container(
-                  width: 195,
+                  width: 200,
                   margin: const EdgeInsets.only(right: 12, top: 4, bottom: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
-                      BoxShadow(color: gradientColors[0].withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 6)),
+                      BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 14, offset: const Offset(0, 6)),
                     ],
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: Stack(
                       children: [
-                        /// Background
+                        // ── Background ──
                         Positioned.fill(
                           child:
                               hasImage
@@ -197,12 +212,15 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                   ),
                         ),
 
-                        /// Dark overlay
+                        // Subtle pattern overlay — mock test feel
+                        Positioned.fill(child: CustomPaint(painter: _DotPatternPainter())),
+
+                        // Dark overlay bottom
                         Positioned.fill(
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.6)],
+                                colors: [Colors.black.withOpacity(0.05), Colors.black.withOpacity(0.65)],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                               ),
@@ -210,43 +228,41 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                           ),
                         ),
 
-                        /// Content
+                        // ── Content ──
                         Padding(
                           padding: const EdgeInsets.all(12),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              /// Top — status + icon
+                              // Top row — status badge + icon
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
+                                  // Status badge
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: isLive ? Colors.red : Colors.orange.shade600,
+                                      color:
+                                          isAttempted
+                                              ? Colors.green.shade600
+                                              : isCompleted
+                                              ? Colors.grey.shade600
+                                              : Colors.white.withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (isLive) ...[
-                                          AnimatedBuilder(
-                                            animation: _pulseAnim,
-                                            builder:
-                                                (context, _) => Container(
-                                                  width: 5,
-                                                  height: 5,
-                                                  decoration: BoxDecoration(
-                                                    shape: BoxShape.circle,
-                                                    color: Colors.white.withOpacity(_pulseAnim.value),
-                                                  ),
-                                                ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                        ],
+                                        Icon(
+                                          isAttempted ? Icons.check_circle_rounded : Icons.assignment_outlined,
+                                          color: Colors.white,
+                                          size: 9,
+                                        ),
+                                        const SizedBox(width: 4),
                                         Text(
-                                          isLive ? 'LIVE' : 'UPCOMING',
+                                          isAttempted ? 'DONE' : 'MOCK TEST',
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 9,
@@ -257,21 +273,24 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                       ],
                                     ),
                                   ),
+
+                                  // Quiz info icon
                                   Container(
                                     padding: const EdgeInsets.all(6),
                                     decoration: BoxDecoration(
                                       color: Colors.white.withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Icon(Icons.quiz_rounded, color: Colors.white, size: 13),
+                                    child: const Icon(Icons.description_outlined, color: Colors.white, size: 13),
                                   ),
                                 ],
                               ),
 
-                              /// Bottom — title + level + button
+                              // Bottom — info + button
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  // Title
                                   Text(
                                     quiz.title,
                                     style: const TextStyle(
@@ -283,22 +302,39 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 5),
+
+                                  // Questions + time info row
                                   Row(
                                     children: [
-                                      const Icon(Icons.bar_chart_rounded, size: 11, color: Colors.white70),
+                                      const Icon(Icons.help_outline_rounded, size: 10, color: Colors.white70),
                                       const SizedBox(width: 3),
                                       Text(
-                                        quiz.difficultyLevel,
+                                        quiz.difficultyLevel.isNotEmpty ? quiz.difficultyLevel : 'Standard',
                                         style: const TextStyle(
                                           fontSize: 10,
                                           color: Colors.white70,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
+                                      const SizedBox(width: 8),
+                                      if (quiz.timeLimit.isNotEmpty) ...[
+                                        const Icon(Icons.timer_outlined, size: 10, color: Colors.white60),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          '${quiz.timeLimit} min',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.white60,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                   const SizedBox(height: 10),
+
+                                  // CTA Button
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
@@ -307,7 +343,8 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                           context,
                                           MaterialPageRoute(
                                             builder:
-                                                (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: false),
+                                                (context) =>
+                                                    MockTestDetailPage(quizId: quiz.quizId, is_subscribed: false),
                                           ),
                                         );
                                       },
@@ -319,7 +356,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                         elevation: 0,
                                       ),
                                       child: Text(
-                                        isLive ? '⚡ Join Now' : '🔔 Remind Me',
+                                        isAttempted ? '📊 View Result' : '✏️ Start Test',
                                         style: TextStyle(
                                           color: gradientColors[0],
                                           fontSize: 11,
@@ -344,4 +381,25 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
       ],
     );
   }
+}
+
+// Subtle dot pattern — mock test / exam paper feel
+class _DotPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = Colors.white.withOpacity(0.04)
+          ..strokeWidth = 1;
+
+    const spacing = 18.0;
+    for (double x = 0; x < size.width; x += spacing) {
+      for (double y = 0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), 1.2, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

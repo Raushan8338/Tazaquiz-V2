@@ -28,6 +28,7 @@ class HomeSection {
   final String title;
   final String? subtitle;
   final String viewAllType;
+  final int pageType;
   final List<dynamic> items;
 
   HomeSection({
@@ -35,6 +36,7 @@ class HomeSection {
     required this.title,
     this.subtitle,
     required this.viewAllType,
+    required this.pageType,
     required this.items,
   });
 
@@ -67,6 +69,7 @@ class HomeSection {
       title: json['title'] ?? '',
       subtitle: json['quiz_subtitle'] ?? json['course_subtitle'] ?? json['coach_subtitle'] ?? json['study_subtitle'],
       viewAllType: json['view_all_type'] ?? '',
+      pageType: json['pageType'] ?? 0,
       items: items,
     );
   }
@@ -77,6 +80,7 @@ class HomeSection {
       'title': title,
       if (subtitle != null) _getSubtitleKey(): subtitle,
       'view_all_type': viewAllType,
+      'pageType': pageType,
       'items':
           items.map((item) {
             if (item is QuizItem) return item.toJson();

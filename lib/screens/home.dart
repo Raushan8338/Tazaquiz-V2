@@ -24,6 +24,7 @@ import 'package:tazaquiznew/widgets/home_banner.dart';
 import 'package:tazaquiznew/widgets/home_coaching_profile.dart';
 import 'package:tazaquiznew/widgets/home_courses.dart';
 import 'package:tazaquiznew/widgets/home_live_test.dart';
+import 'package:tazaquiznew/widgets/mock_test.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -39,6 +40,7 @@ class _HomePageState extends State<HomePage> {
   UserModel? _user;
   int notificationCount = 0;
   int userStreakDays = 3;
+  List<QuizItem> mockTests = []; // 👈 add karo
 
   List<HomeSection> homePageItemData = [];
   HomeSection? quizSection;
@@ -46,10 +48,10 @@ class _HomePageState extends State<HomePage> {
   HomeSection? coachingSection;
   DailyNewsModel? dailyNews;
   String _quizTitle = 'Aaj Ka Quiz';
-String _quizSubtitle = 'Current Affairs + GK + Science';
-int _quizTotalQuestions = 0;
-int _quizTimeMinutes = 0;
-bool _quizAlreadyDone = false;
+  String _quizSubtitle = 'Current Affairs + GK + Science';
+  int _quizTotalQuestions = 0;
+  int _quizTimeMinutes = 0;
+  bool _quizAlreadyDone = false;
 
   @override
   void initState() {
@@ -62,7 +64,6 @@ bool _quizAlreadyDone = false;
     await get_home_page_data();
     await getAppBanner();
     await getNewsPoints();
-    
   }
 
   Future<void> _refreshHome() async => await _loadHome();
@@ -73,24 +74,25 @@ bool _quizAlreadyDone = false;
     getNotificationCount();
     await getDailyQuizCheckHome();
   }
-Future<void> getDailyQuizCheckHome() async {
-  Authrepository authRepository = Authrepository(Api_Client.dio);
-  final data = {'user_id': _user?.id};
-  final responseFuture = await authRepository.fetchDailyQuizCheckHome(data);
-  final Map<String, dynamic> apiResponse =
-      responseFuture.data is String ? jsonDecode(responseFuture.data) : responseFuture.data;
 
-  if (apiResponse['success'] == true) {
-    final d = apiResponse['data'];
-    setState(() {
-      _quizTitle          = d['title']           ?? 'Aaj Ka Quiz';
-      _quizSubtitle       = d['subtitle']        ?? '';
-      _quizTotalQuestions = d['total_questions'] ?? 0;
-      _quizTimeMinutes    = d['time_minutes']    ?? 0;
-      _quizAlreadyDone    = d['already_done']    ?? false;
-    });
+  Future<void> getDailyQuizCheckHome() async {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    final data = {'user_id': _user?.id};
+    final responseFuture = await authRepository.fetchDailyQuizCheckHome(data);
+    final Map<String, dynamic> apiResponse =
+        responseFuture.data is String ? jsonDecode(responseFuture.data) : responseFuture.data;
+
+    if (apiResponse['success'] == true) {
+      final d = apiResponse['data'];
+      setState(() {
+        _quizTitle = d['title'] ?? 'Aaj Ka Quiz';
+        _quizSubtitle = d['subtitle'] ?? '';
+        _quizTotalQuestions = d['total_questions'] ?? 0;
+        _quizTimeMinutes = d['time_minutes'] ?? 0;
+        _quizAlreadyDone = d['already_done'] ?? false;
+      });
+    }
   }
-}
 
   Future<void> getAppBanner() async {
     final authRepository = Authrepository(Api_Client.dio);
@@ -133,6 +135,7 @@ Future<void> getDailyQuizCheckHome() async {
       homePageItemData = res.data;
 
       liveTests.clear();
+      mockTests.clear(); // 👈 add karo
       popularCourses.clear();
       coachingProfiles.clear();
 
@@ -140,8 +143,9 @@ Future<void> getDailyQuizCheckHome() async {
         switch (section.section) {
           case 'quiz':
             quizSection = section;
-            liveTests = section.items.cast<QuizItem>();
-            break;
+            final allQuizzes = section.items.cast<QuizItem>();
+            liveTests = allQuizzes.where((q) => q.pageType != 4).toList();
+            mockTests = allQuizzes.where((q) => q.pageType == 4).toList();
           case 'course':
             courseSection = section;
             popularCourses = section.items.cast<CourseItem>();
@@ -213,7 +217,6 @@ Future<void> getDailyQuizCheckHome() async {
                           WeeklyProgressWidget(),
 
                           /// Streak
-
                           HomeStreakWidget(
                             streakDays: _quizTitle,
                             todayChallengeName: _quizSubtitle,
@@ -226,9 +229,15 @@ Future<void> getDailyQuizCheckHome() async {
                           /// Current Affairs
                           HomeDailyCurrentAffairs(dailyNews: dailyNews),
 
-                          /// Live Tests
-                          if (quizSection != null && liveTests.isNotEmpty)
-                            Home_live_test(liveTests: liveTests, homeSections: quizSection!),
+                          // Mock Tests
+                          if (mockTests.isNotEmpty)
+                            HomeMockTest(
+                              mockTests: mockTests,
+                              homeSections: quizSection!, // ya mockSection alag rakhein
+                            ),
+
+                          // Live Tests
+                          if (liveTests.isNotEmpty) Home_live_test(liveTests: liveTests, homeSections: quizSection!),
 
                           /// Popular Courses
                           if (courseSection != null && popularCourses.isNotEmpty)
@@ -411,6 +420,4 @@ Future<void> getDailyQuizCheckHome() async {
       ],
     );
   }
-  
-
 }

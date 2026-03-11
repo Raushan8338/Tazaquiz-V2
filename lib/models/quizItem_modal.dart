@@ -32,6 +32,7 @@ class QuizItem {
 
   int totalQuestions;
   int totalMarks;
+  final int pageType;
 
   QuizItem({
     required this.quizId,
@@ -60,6 +61,7 @@ class QuizItem {
     this.subscription_description = '',
     this.totalQuestions = 0,
     this.totalMarks = 0,
+    this.pageType = 0,
   });
 
   factory QuizItem.fromJson(Map<String, dynamic> json) {
@@ -94,6 +96,7 @@ class QuizItem {
       subscription_description: json['subscription_description']?.toString() ?? '',
       totalQuestions: _toInt(json['total_questions']) ?? 0,
       totalMarks: _toInt(json['total_marks']) ?? 0,
+      pageType: int.tryParse(json['pageType']?.toString() ?? '0') ?? 0,
     );
   }
 
@@ -125,6 +128,7 @@ class QuizItem {
       'subscription_description': subscription_description,
       'total_questions': totalQuestions,
       'total_marks': totalMarks,
+      'pageType': pageType,
     };
   }
 }
