@@ -5,6 +5,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
 import 'package:tazaquiznew/screens/course_selection.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
+import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/paymentHistory.dart';
 import 'package:tazaquiznew/screens/refer_earn_page.dart';
 import 'package:tazaquiznew/screens/splash.dart';
@@ -74,7 +75,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       body: CustomScrollView(
-        slivers: [
+        slivers: [  
           _buildAppBar(),
           SliverToBoxAdapter(
             child: Column(
@@ -194,7 +195,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   context,
                   _user?.email ?? 'Not provided',
                   12,
-                  AppColors.greyS700,
+                  AppColors.greyS1,
                   FontWeight.w500,
                   1,
                   TextAlign.left,
@@ -212,7 +213,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 context,
                 _user?.phone ?? 'Not provided',
                 12,
-                AppColors.greyS700,
+                AppColors.greyS1,
                 FontWeight.w500,
                 1,
                 TextAlign.left,
@@ -394,6 +395,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           SizedBox(height: 16),
           _buildSettingItem(Icons.check_rounded, 'Selected Courses', () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId: 0)));
+          }),
+            SizedBox(height: 16),
+          _buildSettingItem(Icons.check_rounded, 'Plan', () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage()));
           }),
           SizedBox(height: 16),
           _buildSettingItem(Icons.share, 'Refer and Earn', () {
