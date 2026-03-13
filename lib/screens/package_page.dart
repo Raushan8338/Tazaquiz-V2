@@ -1,37 +1,88 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/models/selected_courses_item.dart';
+import 'package:tazaquiznew/screens/checkout.dart';
+import 'package:tazaquiznew/utils/session_manager.dart';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 class _PlanFeature {
-  final String label;
-  final bool included;
-  const _PlanFeature(this.label, {required this.included});
+  final String text;
+  final bool isIncluded;
+  const _PlanFeature({required this.text, required this.isIncluded});
+
+  factory _PlanFeature.fromJson(Map<String, dynamic> json) {
+    return _PlanFeature(
+      text: json['text'] ?? '',
+      isIncluded: json['is_included'] ?? false,
+    );
+  }
 }
 
-class _Course {
-  final String id;
-  final String emoji;
+class _Package {
+  final int id;
   final String name;
-  final String sub;
-  const _Course(this.id, this.emoji, this.name, this.sub);
+  final String slug;
+  final double price;
+  final String billingType;
+  final int validityDays;
+  final List<_PlanFeature> features;
+
+  const _Package({
+    required this.id,
+    required this.name,
+    required this.slug,
+    required this.price,
+    required this.billingType,
+    required this.validityDays,
+    required this.features,
+  });
+
+  factory _Package.fromJson(Map<String, dynamic> json) {
+    return _Package(
+      id: json['id'],
+      name: json['name'] ?? '',
+      slug: json['slug'] ?? '',
+      price: double.tryParse(json['price'].toString()) ?? 0.0,
+      billingType: json['billing_type'] ?? '',
+      validityDays: int.tryParse(json['validity_days'].toString()) ?? 0,
+      features: (json['features'] as List<dynamic>? ?? [])
+          .map((f) => _PlanFeature.fromJson(f as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  bool get isFree => slug == 'free';
+  bool get isBasic => slug == 'basic';
+  bool get isPremium => slug == 'premium';
+
+  String get priceDisplay =>
+      price == 0 ? '₹0' : '₹${price.toInt()}';
+
+  String get billingLabel {
+    switch (billingType) {
+      case 'free':
+        return 'Hamesha ke liye free';
+      case 'quarterly':
+        return 'One-time · $validityDays din';
+      case 'monthly':
+        return 'Per month · $validityDays din';
+      default:
+        return '$validityDays din validity';
+    }
+  }
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const _courses = [
-  _Course('ssc', '📋', 'SSC', 'CGL · CHSL · MTS'),
-  _Course('banking', '🏦', 'Banking', 'IBPS · SBI · RBI'),
-  _Course('upsc', '🏛️', 'UPSC', 'IAS · IPS · IFS'),
-  _Course('railway', '🚆', 'Railway', 'RRB · NTPC · GroupD'),
-  _Course('police', '👮', 'Police', 'SI · Constable · ASI'),
-  _Course('teaching', '📚', 'Teaching', 'CTET · TET · DSSSB'),
-];
 
 // ─── Pricing Page ─────────────────────────────────────────────────────────────
 
 class PricingPage extends StatefulWidget {
-  const PricingPage({super.key});
+  // Pass the user's currently active package slug if any (e.g. 'basic', 'premium', null)
+  final String? activePackageSlug;
+
+  const PricingPage({super.key, this.activePackageSlug});
 
   @override
   State<PricingPage> createState() => _PricingPageState();
@@ -41,18 +92,128 @@ class _PricingPageState extends State<PricingPage>
     with TickerProviderStateMixin {
   late AnimationController _shimmerCtrl;
   late Animation<double> _shimmerAnim;
+
+  // ── User
+  UserModel? _user;
+
+  // ── API state
+  List<_Package> _packages = [];
+  bool _isLoading = true;
+  String? _error;
+
+  // ── Active package tracking
+  // Set from widget param; updated on purchase
+  String? _activePlanSlug;
+
+  // For basic plan: which course was selected
   String? _activatedCourse;
-  bool _premiumActivated = false;
+
+  // ── User's selected courses (from MyCoursesSelection API)
+  // Only these will show in Basic plan course bottom sheet
+  List<SelectedCourseItem> _userSelectedCourses = [];
 
   @override
   void initState() {
     super.initState();
+    _activePlanSlug = widget.activePackageSlug;
+
     _shimmerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
     _shimmerAnim =
         CurvedAnimation(parent: _shimmerCtrl, curve: Curves.easeInOut);
+
+    _init();
+  }
+
+  Future<void> _init() async {
+    _user = await SessionManager.getUser();
+    // Run both fetches in parallel
+    await Future.wait([
+      _fetchPackages(),
+      _fetchUserSelectedCourses(),
+    ]);
+  }
+
+  // ─── Fetch user's selected courses (same as MyCoursesSelection) ──────────────
+
+  Future<void> _fetchUserSelectedCourses() async {
+    if (_user == null) return;
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {'user_id': _user!.id.toString()};
+
+      final response =
+          await authRepository.getUserSelected_non_Courses(data);
+
+      if (response.statusCode == 200) {
+        final List list = response.data['data'] ?? [];
+        final all =
+            list.map((e) => SelectedCourseItem.fromJson(e)).toList();
+
+        if (mounted) {
+          setState(() {
+            // Only keep courses the user has already selected
+            _userSelectedCourses =
+                all.where((c) => c.isSelected).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Selected courses fetch error: $e');
+    }
+  }
+
+  // ─── API Call ────────────────────────────────────────────────────────────────
+
+  Future<void> _fetchPackages() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {
+        'action': 'fetch_packages',
+        if (_user != null) 'user_id': _user!.id.toString(),
+      };
+
+      final response = await authRepository.fetchPackages(data);
+      // Expected: { "status": true, "packages": [...] }
+
+      if (response.statusCode == 200) {
+        final body = response.data as Map<String, dynamic>;
+        final bool status = body['status'] ?? false;
+        final List<dynamic>? raw = body['packages'] as List<dynamic>?;
+
+        if (status && raw != null) {
+          setState(() {
+            _packages = raw
+                .map((p) => _Package.fromJson(p as Map<String, dynamic>))
+                .toList();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _error = 'Packages load nahi hue. Dobara try karo.';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _error = 'Server error (${response.statusCode}). Dobara try karo.';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Network error. Internet check karo aur dobara try karo.';
+        _isLoading = false;
+      });
+      debugPrint('fetchPackages error: $e');
+    }
   }
 
   @override
@@ -61,142 +222,154 @@ class _PricingPageState extends State<PricingPage>
     super.dispose();
   }
 
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  _Package? _getPackage(String slug) {
+    try {
+      return _packages.firstWhere((p) => p.slug == slug);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _isActivePlan(String slug) => _activePlanSlug == slug;
+
   // ─── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 20, 14, 0),
-              child: Column(
-                children: [
-                  _buildFreeCard(),
-                  const SizedBox(height: 12),
-                  _buildBasicCard(),
-                  const SizedBox(height: 12),
-                  _buildPremiumCard(),
-                  const SizedBox(height: 20),
-                  _buildInfoNote(),
-                  const SizedBox(height: 16),
-                  _buildTrustBar(),
-                  const SizedBox(height: 32),
-                ],
-              ),
+      appBar: _buildAppBar(),
+      body: SingleChildScrollView(
+        child: _isLoading
+            ? _buildLoader()
+            : _error != null
+                ? _buildErrorState()
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 20, 14, 0),
+                    child: Column(
+                      children: [
+                        if (_getPackage('free') != null)
+                          _buildFreeCard(_getPackage('free')!),
+                        const SizedBox(height: 12),
+                        if (_getPackage('basic') != null)
+                          _buildBasicCard(_getPackage('basic')!),
+                        const SizedBox(height: 12),
+                        if (_getPackage('premium') != null)
+                          _buildPremiumCard(_getPackage('premium')!),
+                        const SizedBox(height: 20),
+                        _buildInfoNote(),
+                        const SizedBox(height: 16),
+                        _buildTrustBar(),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+      ),
+    );
+  }
+
+  // ─── Loader ─────────────────────────────────────────────────────────────────
+
+  Widget _buildLoader() {
+    return const SizedBox(
+      height: 400,
+      child: Center(
+        child: CircularProgressIndicator(color: AppColors.tealGreen),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return SizedBox(
+      height: 400,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('😕', style: TextStyle(fontSize: 40)),
+            const SizedBox(height: 12),
+            Text(
+              _error ?? 'Kuch gadbad ho gayi',
+              style: TextStyle(
+                  color: AppColors.greyS600, fontSize: 14),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchPackages,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.tealGreen,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text('Dobara Try Karo',
+                  style: TextStyle(color: AppColors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // ─── AppBar ─────────────────────────────────────────────────────────────────
 
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 170,
-      pinned: true,
-      backgroundColor: AppColors.darkNavy,
-      automaticallyImplyLeading: false,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF0C3756), AppColors.darkNavy],
-            ),
+  PreferredSizeWidget _buildAppBar() {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(70),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0C3756), AppColors.darkNavy],
           ),
-          child: Stack(
-            children: [
-              // Decorative circles
-              Positioned(
-                right: -40,
-                top: -40,
-                child: Container(
-                  width: 180,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.04),
-                    shape: BoxShape.circle,
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.arrow_back,
+                        color: AppColors.white, size: 20),
                   ),
                 ),
-              ),
-              Positioned(
-                left: -20,
-                bottom: -20,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.tealGreen.withOpacity(0.08),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                const SizedBox(width: 14),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.white.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.arrow_back,
-                                  color: AppColors.white, size: 20),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Plans & Pricing',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                              Text(
-                                'Apne budget mein best plan chuniye',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.white.withOpacity(0.65),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                      const Text(
+                        'Plans & Pricing',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.white,
+                        ),
                       ),
-                      const SizedBox(height: 18),
-                      // Stats row
-                      Row(
-                        children: [
-                          _statChip('50K+', 'Students'),
-                          const SizedBox(width: 10),
-                          _statChip('6', 'Courses'),
-                          const SizedBox(width: 10),
-                          _statChip('4.8 ★', 'Rating'),
-                        ],
+                      Text(
+                        'Apne budget mein best plan chuniye',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.white.withOpacity(0.65),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                _statChip('4.8 ★', 'Rating'),
+              ],
+            ),
           ),
         ),
       ),
@@ -209,27 +382,22 @@ class _PricingPageState extends State<PricingPage>
       decoration: BoxDecoration(
         color: AppColors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.white.withOpacity(0.15)),
+        border:
+            Border.all(color: AppColors.white.withOpacity(0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            num,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: AppColors.white,
-            ),
-          ),
+          Text(num,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.white)),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: AppColors.white.withOpacity(0.7),
-            ),
-          ),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.white.withOpacity(0.7))),
         ],
       ),
     );
@@ -237,12 +405,19 @@ class _PricingPageState extends State<PricingPage>
 
   // ─── FREE CARD ──────────────────────────────────────────────────────────────
 
-  Widget _buildFreeCard() {
+  Widget _buildFreeCard(_Package pkg) {
+    final isActive = _isActivePlan(pkg.slug);
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.greyS200),
+        border: Border.all(
+          color: isActive
+              ? AppColors.tealGreen.withOpacity(0.5)
+              : AppColors.greyS200,
+          width: isActive ? 2 : 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.black.withOpacity(0.05),
@@ -256,7 +431,6 @@ class _PricingPageState extends State<PricingPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Row(
               children: [
                 Container(
@@ -265,14 +439,15 @@ class _PricingPageState extends State<PricingPage>
                     color: AppColors.greyS1,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text('🎁', style: TextStyle(fontSize: 22)),
+                  child: const Text('🎁',
+                      style: TextStyle(fontSize: 22)),
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Free',
+                      pkg.name,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -280,56 +455,106 @@ class _PricingPageState extends State<PricingPage>
                       ),
                     ),
                     Text(
-                      'Hamesha ke liye free',
+                      pkg.billingLabel,
                       style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.greyS500,
-                      ),
+                          fontSize: 11, color: AppColors.greyS500),
                     ),
                   ],
                 ),
                 const Spacer(),
-                Text(
-                  '₹0',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.darkNavy,
+                // Active badge OR price
+                if (isActive)
+                  _activeBadge()
+                else
+                  Text(
+                    pkg.priceDisplay,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.darkNavy,
+                    ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
             _divider(),
             const SizedBox(height: 14),
-            _featureRow('2 Mock Tests / month', included: true),
-            _featureRow('Daily Quiz (unlimited)', included: true),
-            _featureRow('2 Live Quiz / month', included: true),
-            _featureRow('Basic Score Card', included: true),
-            _featureRow('All Courses Access', included: false),
-            _featureRow('Leaderboard & Certificates', included: false),
+            ...pkg.features.map(
+              (f) => _featureRow(f.text, included: f.isIncluded),
+            ),
             const SizedBox(height: 16),
-            // CTA
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.greyS300),
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'Abhi Use Karo',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.greyS600,
-                  ),
-                ),
-              ),
+              child: isActive
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 10, horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.tealGreen.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: AppColors.tealGreen.withOpacity(0.35)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded,
+                                  color: AppColors.tealGreen, size: 16),
+                              SizedBox(width: 6),
+                              Text(
+                                '✓ Current Plan',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.tealGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.tealGreen.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color:
+                                      AppColors.tealGreen.withOpacity(0.4)),
+                            ),
+                            child: Text(
+                              'Active ✓',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.tealGreen,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.greyS300),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Abhi Use Karo',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.greyS600,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
@@ -339,17 +564,22 @@ class _PricingPageState extends State<PricingPage>
 
   // ─── BASIC CARD ─────────────────────────────────────────────────────────────
 
-  Widget _buildBasicCard() {
-    final isActivated = _activatedCourse != null;
+  Widget _buildBasicCard(_Package pkg) {
+    final isActive = _isActivePlan(pkg.slug);
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [AppColors.darkNavy, AppColors.tealGreen],
         ),
         borderRadius: BorderRadius.circular(20),
+        // Highlight border when active
+        border: isActive
+            ? Border.all(
+                color: AppColors.lightGold.withOpacity(0.6), width: 2)
+            : null,
         boxShadow: [
           BoxShadow(
             color: AppColors.tealGreen.withOpacity(0.3),
@@ -360,7 +590,6 @@ class _PricingPageState extends State<PricingPage>
       ),
       child: Stack(
         children: [
-          // Decorative circles
           Positioned(
             right: -30,
             top: -30,
@@ -385,13 +614,11 @@ class _PricingPageState extends State<PricingPage>
               ),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Badge + Header
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -401,7 +628,8 @@ class _PricingPageState extends State<PricingPage>
                         color: AppColors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text('🚀', style: TextStyle(fontSize: 22)),
+                      child: const Text('🚀',
+                          style: TextStyle(fontSize: 22)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -409,7 +637,7 @@ class _PricingPageState extends State<PricingPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Basic',
+                            pkg.name,
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -417,33 +645,37 @@ class _PricingPageState extends State<PricingPage>
                             ),
                           ),
                           Text(
-                            'One-time · Lifetime access',
+                            pkg.billingLabel,
                             style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.white.withOpacity(0.7),
+                              color:
+                                  AppColors.white.withOpacity(0.7),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // Most Popular badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGold,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '⭐ Most Popular',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.darkNavy,
-                          letterSpacing: 0.3,
+                    // Active indicator OR Most Popular badge
+                    if (isActive)
+                      _activeBadgeDark()
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGold,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          '⭐ Most Popular',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkNavy,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -456,8 +688,8 @@ class _PricingPageState extends State<PricingPage>
                       shaderCallback: (bounds) => LinearGradient(
                         colors: [
                           AppColors.white,
-                          AppColors.white
-                              .withOpacity(0.5 + _shimmerAnim.value * 0.5),
+                          AppColors.white.withOpacity(
+                              0.5 + _shimmerAnim.value * 0.5),
                           AppColors.white,
                         ],
                         stops: const [0.0, 0.5, 1.0],
@@ -466,7 +698,7 @@ class _PricingPageState extends State<PricingPage>
                     );
                   },
                   child: Text(
-                    '₹29',
+                    pkg.priceDisplay,
                     style: TextStyle(
                       fontSize: 42,
                       fontWeight: FontWeight.w900,
@@ -480,69 +712,48 @@ class _PricingPageState extends State<PricingPage>
                 Divider(color: AppColors.white.withOpacity(0.15)),
                 const SizedBox(height: 12),
 
-                _featureRowDark('1 Course Activate (lifetime)', included: true),
-                _featureRowDark('Unlimited Mock Tests', included: true),
-                _featureRowDark('Unlimited Live Quiz', included: true),
-                _featureRowDark('Complete Study Material', included: true),
-                _featureRowDark('Detailed Analytics', included: true),
-                _featureRowDark('Leaderboard & Certificates', included: false),
+                ...pkg.features.map(
+                  (f) => _featureRowDark(f.text,
+                      included: f.isIncluded),
+                ),
 
                 const SizedBox(height: 18),
 
-                // CTA
-                if (isActivated) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: AppColors.white.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.check_circle_rounded,
-                            color: AppColors.lightGold, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_courses.firstWhere((c) => c.id == _activatedCourse).emoji} ${_courses.firstWhere((c) => c.id == _activatedCourse).name} Activated!',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                // CTA — show activated state, or active course, or buy button
+                if (isActive && _activatedCourse != null) ...[
+                  _buildActivatedCourseBadge(),
+                ] else if (isActive) ...[
+                  _buildActiveFullButton(),
                 ] else ...[
                   GestureDetector(
-                    onTap: () => _showCourseBottomSheet(),
+                    onTap: () => _showCourseBottomSheet(pkg),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.black.withOpacity(0.15),
+                            color:
+                                AppColors.black.withOpacity(0.15),
                             blurRadius: 14,
                             offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
                         children: [
-                          Text('🛒', style: TextStyle(fontSize: 16)),
-                          SizedBox(width: 8),
+                          const Text('🛒',
+                              style: TextStyle(fontSize: 14)),
+                          const SizedBox(width: 8),
                           Text(
-                            'Abhi Kharido — ₹29',
+                            'Buy Now — ${pkg.priceDisplay}',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: AppColors.darkNavy,
                             ),
@@ -562,14 +773,18 @@ class _PricingPageState extends State<PricingPage>
 
   // ─── PREMIUM CARD ───────────────────────────────────────────────────────────
 
-  Widget _buildPremiumCard() {
+  Widget _buildPremiumCard(_Package pkg) {
+    final isActive = _isActivePlan(pkg.slug);
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.darkNavy,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.lightGold.withOpacity(0.4),
-          width: 1.5,
+          color: isActive
+              ? AppColors.lightGold.withOpacity(0.8)
+              : AppColors.lightGold.withOpacity(0.4),
+          width: isActive ? 2.5 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
@@ -607,10 +822,11 @@ class _PricingPageState extends State<PricingPage>
                         color: AppColors.lightGold.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: AppColors.lightGold.withOpacity(0.25)),
+                            color: AppColors.lightGold
+                                .withOpacity(0.25)),
                       ),
-                      child:
-                          const Text('👑', style: TextStyle(fontSize: 22)),
+                      child: const Text('👑',
+                          style: TextStyle(fontSize: 22)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -618,7 +834,7 @@ class _PricingPageState extends State<PricingPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Premium',
+                            pkg.name,
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -626,34 +842,38 @@ class _PricingPageState extends State<PricingPage>
                             ),
                           ),
                           Text(
-                            'Sab kuch unlock karo',
+                            pkg.billingLabel,
                             style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.white.withOpacity(0.55),
+                              color:
+                                  AppColors.white.withOpacity(0.55),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    // Best Value badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                            color: AppColors.lightGold.withOpacity(0.6)),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '👑 Best Value',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.lightGold,
-                          letterSpacing: 0.3,
+                    if (isActive)
+                      _activeBadgeGold()
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                              color: AppColors.lightGold
+                                  .withOpacity(0.6)),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          '👑 Best Value',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.lightGold,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -663,7 +883,7 @@ class _PricingPageState extends State<PricingPage>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '₹99',
+                      pkg.priceDisplay,
                       style: TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.w900,
@@ -672,9 +892,12 @@ class _PricingPageState extends State<PricingPage>
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 6, left: 6),
+                      padding: const EdgeInsets.only(
+                          bottom: 6, left: 6),
                       child: Text(
-                        '/ month',
+                        pkg.billingType == 'monthly'
+                            ? '/ month'
+                            : '/ ${pkg.validityDays} din',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.white.withOpacity(0.5),
@@ -689,37 +912,41 @@ class _PricingPageState extends State<PricingPage>
                 Divider(color: AppColors.white.withOpacity(0.1)),
                 const SizedBox(height: 12),
 
-                _featureRowDark('Sab Courses (SSC, Banking, UPSC...)', included: true, accent: AppColors.lightGold),
-                _featureRowDark('Unlimited Mock Tests + Live Quiz', included: true, accent: AppColors.lightGold),
-                _featureRowDark('Complete Study Material', included: true, accent: AppColors.lightGold),
-                _featureRowDark('Leaderboard + AIR Rank', included: true, accent: AppColors.lightGold),
-                _featureRowDark('Certificates Download', included: true, accent: AppColors.lightGold),
-                _featureRowDark('Offline Mode', included: true, accent: AppColors.lightGold),
-                _featureRowDark('Priority Support', included: true, accent: AppColors.lightGold),
+                // Filter out Offline Mode & Certificates Download from display
+                ...pkg.features
+                    .where((f) =>
+                        !f.text.toLowerCase().contains('offline') &&
+                        !f.text.toLowerCase().contains('certificate'))
+                    .map(
+                      (f) => _featureRowDark(f.text,
+                          included: f.isIncluded,
+                          accent: AppColors.lightGold),
+                    ),
 
                 const SizedBox(height: 18),
 
-                // CTA
-                if (_premiumActivated) ...[
+                if (isActive) ...[
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: AppColors.lightGold.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: AppColors.lightGold.withOpacity(0.4)),
+                          color:
+                              AppColors.lightGold.withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.workspace_premium,
-                            color: AppColors.lightGold, size: 18),
-                        SizedBox(width: 8),
+                            color: AppColors.lightGold, size: 16),
+                        SizedBox(width: 6),
                         Text(
-                          'Premium Active! 🎉',
+                          '✓ Current Plan — Active',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: AppColors.lightGold,
                           ),
@@ -729,10 +956,11 @@ class _PricingPageState extends State<PricingPage>
                   ),
                 ] else ...[
                   GestureDetector(
-                    onTap: () => _showPremiumBottomSheet(),
+                    onTap: () => _showPremiumBottomSheet(pkg),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -743,19 +971,22 @@ class _PricingPageState extends State<PricingPage>
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.lightGold.withOpacity(0.3),
+                            color: AppColors.lightGold
+                                .withOpacity(0.3),
                             blurRadius: 14,
                             offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
                         children: [
-                          Text('👑', style: TextStyle(fontSize: 16)),
-                          SizedBox(width: 8),
+                          const Text('👑',
+                              style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 8),
                           Text(
-                            'Premium Shuru Karo',
+                            'Premium Shuru Karo — ${pkg.priceDisplay}',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -775,6 +1006,183 @@ class _PricingPageState extends State<PricingPage>
     );
   }
 
+  // ─── Active state helpers ────────────────────────────────────────────────────
+
+  /// Green "✓ Current Plan" badge for light cards
+  Widget _activeBadge() {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.tealGreen.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: AppColors.tealGreen.withOpacity(0.4)),
+      ),
+      child: const Text(
+        '✓ Current Plan',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          color: AppColors.tealGreen,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+  /// White "✓ Active" badge for dark gradient cards
+  Widget _activeBadgeDark() {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: AppColors.white.withOpacity(0.3)),
+      ),
+      child: const Text(
+        '✓ Active',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          color: AppColors.white,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+  /// Gold "✓ Active" badge for premium card
+  Widget _activeBadgeGold() {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.lightGold.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: AppColors.lightGold.withOpacity(0.7)),
+      ),
+      child: const Text(
+        '✓ Active',
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          color: AppColors.lightGold,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildActiveFullButton() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppColors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.white.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle_rounded,
+                  color: AppColors.lightGold, size: 16),
+              SizedBox(width: 6),
+              Text(
+                '✓ Current Plan',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.white,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.lightGold.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.lightGold.withOpacity(0.5)),
+            ),
+            child: Text(
+              'Active ✓',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppColors.lightGold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivatedCourseBadge() {
+    final course = _userSelectedCourses.isNotEmpty
+        ? _userSelectedCourses.firstWhere(
+            (c) => c.categoryId.toString() == _activatedCourse,
+            orElse: () => _userSelectedCourses.first,
+          )
+        : null;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppColors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.white.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle_rounded,
+                  color: AppColors.lightGold, size: 16),
+              SizedBox(width: 6),
+              Text(
+                course != null
+                    ? '✓ ${course.categoryName}'
+                    : '✓ Current Plan',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.white,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.lightGold.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.lightGold.withOpacity(0.5)),
+            ),
+            child: Text(
+              'Active ✓',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: AppColors.lightGold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─── INFO NOTE ──────────────────────────────────────────────────────────────
 
   Widget _buildInfoNote() {
@@ -783,8 +1191,8 @@ class _PricingPageState extends State<PricingPage>
       decoration: BoxDecoration(
         color: AppColors.tealGreen.withOpacity(0.07),
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: AppColors.tealGreen.withOpacity(0.2)),
+        border: Border.all(
+            color: AppColors.tealGreen.withOpacity(0.2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -795,7 +1203,7 @@ class _PricingPageState extends State<PricingPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Basic Plan kaise kaam karta hai?',
                   style: TextStyle(
                     fontSize: 12,
@@ -824,7 +1232,7 @@ class _PricingPageState extends State<PricingPage>
 
   Widget _buildTrustBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
@@ -837,13 +1245,12 @@ class _PricingPageState extends State<PricingPage>
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _trustItem('🔐', 'Secure', 'Payment'),
+          Expanded(child: _trustItem('🔐', 'Secure', 'Payment')),
           _vDivider(),
-          _trustItem('↩️', 'Easy', 'Refund'),
+          Expanded(child: _trustItem('↩️', 'Easy', 'Refund')),
           _vDivider(),
-          _trustItem('⚡', 'Instant', 'Access'),
+          Expanded(child: _trustItem('⚡', 'Instant', 'Access')),
         ],
       ),
     );
@@ -851,32 +1258,24 @@ class _PricingPageState extends State<PricingPage>
 
   Widget _trustItem(String icon, String title, String sub) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(icon, style: TextStyle(fontSize: 22)),
-        const SizedBox(height: 5),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.darkNavy,
-          ),
-        ),
-        Text(
-          sub,
-          style: TextStyle(fontSize: 10, color: AppColors.greyS500),
-        ),
+        Text(icon, style: TextStyle(fontSize: 20)),
+        const SizedBox(height: 4),
+        Text(title,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.darkNavy)),
+        Text(sub,
+            style: TextStyle(
+                fontSize: 10, color: AppColors.greyS500)),
       ],
     );
   }
 
-  Widget _vDivider() {
-    return Container(
-      width: 1,
-      height: 40,
-      color: AppColors.greyS200,
-    );
-  }
+  Widget _vDivider() =>
+      Container(width: 1, height: 40, color: AppColors.greyS200);
 
   // ─── SHARED FEATURE ROWS ────────────────────────────────────────────────────
 
@@ -900,8 +1299,9 @@ class _PricingPageState extends State<PricingPage>
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  color:
-                      included ? AppColors.tealGreen : AppColors.greyS400,
+                  color: included
+                      ? AppColors.tealGreen
+                      : AppColors.greyS400,
                 ),
               ),
             ),
@@ -911,10 +1311,15 @@ class _PricingPageState extends State<PricingPage>
             label,
             style: TextStyle(
               fontSize: 12.5,
-              color: included ? AppColors.greyS700 : AppColors.greyS400,
-              decoration:
-                  included ? TextDecoration.none : TextDecoration.lineThrough,
-              fontWeight: included ? FontWeight.w500 : FontWeight.w400,
+              color: included
+                  ? AppColors.greyS700
+                  : AppColors.greyS400,
+              decoration: included
+                  ? TextDecoration.none
+                  : TextDecoration.lineThrough,
+              fontWeight: included
+                  ? FontWeight.w500
+                  : FontWeight.w400,
             ),
           ),
         ],
@@ -963,8 +1368,9 @@ class _PricingPageState extends State<PricingPage>
                 decoration: included
                     ? TextDecoration.none
                     : TextDecoration.lineThrough,
-                fontWeight:
-                    included ? FontWeight.w500 : FontWeight.w400,
+                fontWeight: included
+                    ? FontWeight.w500
+                    : FontWeight.w400,
               ),
             ),
           ),
@@ -973,39 +1379,58 @@ class _PricingPageState extends State<PricingPage>
     );
   }
 
-  Widget _divider() {
-    return Container(height: 1, color: AppColors.greyS200);
-  }
+  Widget _divider() =>
+      Container(height: 1, color: AppColors.greyS200);
 
   // ─── BASIC BOTTOM SHEET ─────────────────────────────────────────────────────
 
-  void _showCourseBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CourseSelectionSheet(
-        onActivate: (courseId) {
-          setState(() => _activatedCourse = courseId);
-          Navigator.pop(context);
-          _showSuccessSnackBar(
-            '${_courses.firstWhere((c) => c.id == courseId).emoji} ${_courses.firstWhere((c) => c.id == courseId).name} successfully activate ho gaya! 🎉',
-          );
-        },
-      ),
-    );
-  }
+ void _showCourseBottomSheet(_Package pkg) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) => _CourseSelectionSheet(
+      pkg: pkg,
+      userCourses: _userSelectedCourses,
+      onActivate: (courseId, courseName) {
+
+        // setState(() {
+        //   _activatedCourse = courseId;
+        //   _activePlanSlug = pkg.slug;
+        // });
+
+        String susb_category = 'Subscription';
+        String send_product_id = courseId.toString();
+
+        // BottomSheet close
+        Navigator.pop(sheetContext);
+
+        // Redirect to checkout
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CheckoutPage(
+              contentType: susb_category,
+              contentId: send_product_id,
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
 
   // ─── PREMIUM BOTTOM SHEET ───────────────────────────────────────────────────
 
-  void _showPremiumBottomSheet() {
+  void _showPremiumBottomSheet(_Package pkg) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _PremiumSheet(
+        pkg: pkg,
         onActivate: () {
-          setState(() => _premiumActivated = true);
+          setState(() => _activePlanSlug = pkg.slug);
           Navigator.pop(context);
           _showSuccessSnackBar(
               '👑 Premium active! Sab courses unlock ho gaye 🎉');
@@ -1017,15 +1442,14 @@ class _PricingPageState extends State<PricingPage>
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(
-              fontWeight: FontWeight.w600, color: AppColors.white),
-        ),
+        content: Text(message,
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.white)),
         backgroundColor: AppColors.tealGreen,
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),
       ),
@@ -1036,30 +1460,41 @@ class _PricingPageState extends State<PricingPage>
 // ─── COURSE SELECTION BOTTOM SHEET ───────────────────────────────────────────
 
 class _CourseSelectionSheet extends StatefulWidget {
-  final void Function(String courseId) onActivate;
-  const _CourseSelectionSheet({required this.onActivate});
+  final _Package pkg;
+  final List<SelectedCourseItem> userCourses; // sirf selected courses API se
+  final void Function(String courseId, String courseName) onActivate;
+
+  const _CourseSelectionSheet({
+    required this.pkg,
+    required this.userCourses,
+    required this.onActivate,
+  });
 
   @override
   State<_CourseSelectionSheet> createState() =>
       _CourseSelectionSheetState();
 }
 
-class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
-  String? _selected;
+class _CourseSelectionSheetState
+    extends State<_CourseSelectionSheet> {
+  SelectedCourseItem? _selected;
 
   @override
   Widget build(BuildContext context) {
+    final courses = widget.userCourses;
+
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
+          // Handle bar
           Container(
             margin: const EdgeInsets.only(top: 12),
             width: 40,
@@ -1069,6 +1504,7 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
+
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
@@ -1078,7 +1514,7 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Course Chuniye 📋',
                         style: TextStyle(
                           fontSize: 18,
@@ -1087,11 +1523,10 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                         ),
                       ),
                       Text(
-                        '1 course lifetime ke liye activate hoga',
+                        '1 course — ${widget.pkg.validityDays} din ke liye activate hoga',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.greyS500,
-                        ),
+                            fontSize: 11,
+                            color: AppColors.greyS500),
                       ),
                     ],
                   ),
@@ -1113,102 +1548,149 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
           ),
           const SizedBox(height: 6),
           Divider(color: AppColors.greyS200),
-          // Course Grid
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.7,
-              children: _courses
-                  .map((c) => _CourseCard(
-                        course: c,
-                        isSelected: _selected == c.id,
-                        onTap: () => setState(() => _selected = c.id),
-                      ))
-                  .toList(),
-            ),
-          ),
-          // Activate button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: _selected != null
-                      ? () => widget.onActivate(_selected!)
-                      : null,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      gradient: _selected != null
-                          ? const LinearGradient(
-                              colors: [
-                                AppColors.darkNavy,
-                                AppColors.tealGreen
-                              ],
-                            )
-                          : null,
-                      color: _selected != null ? null : AppColors.greyS200,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: _selected != null
-                          ? [
-                              BoxShadow(
-                                color:
-                                    AppColors.tealGreen.withOpacity(0.3),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              )
-                            ]
-                          : [],
+
+          // Empty state — agar koi course select nahi hai MyCoursesSelection mein
+          if (courses.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                  vertical: 40, horizontal: 24),
+              child: Column(
+                children: [
+                  const Text('😕', style: TextStyle(fontSize: 40)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Koi course select nahi hai',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkNavy,
                     ),
-                    child: Center(
-                      child: Text(
-                        _selected != null
-                            ? '✅ ${_courses.firstWhere((c) => c.id == _selected).name} Activate Karo'
-                            : 'Pehle Course Chuniye',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: _selected != null
-                              ? AppColors.white
-                              : AppColors.greyS500,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Pehle "My Courses" mein jaake apne courses chuniye, phir yahan activate karo.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.greyS500,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            // Course Grid — API se aaye selected courses
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 1.7,
+                ),
+                itemCount: courses.length,
+                itemBuilder: (context, index) {
+                  final course = courses[index];
+                  final isSelected =
+                      _selected?.categoryId == course.categoryId;
+                  return _SelectedCourseCard(
+                    course: course,
+                    isSelected: isSelected,
+                    onTap: () =>
+                        setState(() => _selected = course),
+                  );
+                },
+              ),
+            ),
+
+            // Activate button
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(16, 18, 16, 28),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: _selected != null
+                        ? () => widget.onActivate(
+                              _selected!.categoryId.toString(),
+                              _selected!.categoryName,
+                            )
+                        : null,
+                    child: AnimatedContainer(
+                      duration:
+                          const Duration(milliseconds: 250),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: _selected != null
+                            ? LinearGradient(colors: [
+                                AppColors.darkNavy,
+                                AppColors.tealGreen,
+                              ])
+                            : null,
+                        color: _selected != null
+                            ? null
+                            : AppColors.greyS200,
+                        borderRadius:
+                            BorderRadius.circular(12),
+                        boxShadow: _selected != null
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.tealGreen
+                                      .withOpacity(0.3),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
+                                )
+                              ]
+                            : [],
+                      ),
+                      child: Center(
+                        child: Text(
+                          _selected != null
+                              ? '✅ ${_selected!.categoryName} — ${widget.pkg.priceDisplay} Pay Karo'
+                              : 'Pehle Course Chuniye',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: _selected != null
+                                ? AppColors.white
+                                : AppColors.greyS500,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '⚠️  Ek baar select karne ke baad change nahi hoga',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.greyS400,
+                  const SizedBox(height: 10),
+                  Text(
+                    '⚠️  Ek baar select karne ke baad change nahi hoga',
+                    style: TextStyle(
+                        fontSize: 11, color: AppColors.greyS400),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
-// ─── Course Card ─────────────────────────────────────────────────────────────
+// ─── Selected Course Card (API based) ────────────────────────────────────────
 
-class _CourseCard extends StatelessWidget {
-  final _Course course;
+class _SelectedCourseCard extends StatelessWidget {
+  final SelectedCourseItem course;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _CourseCard({
+  const _SelectedCourseCard({
     required this.course,
     required this.isSelected,
     required this.onTap,
@@ -1222,7 +1704,7 @@ class _CourseCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           gradient: isSelected
-              ? const LinearGradient(
+              ? LinearGradient(
                   colors: [AppColors.darkNavy, AppColors.tealGreen],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -1247,11 +1729,27 @@ class _CourseCard extends StatelessWidget {
               : [],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+              horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              Text(course.emoji,
-                  style: TextStyle(fontSize: 22)),
+              // Course icon container
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.white.withOpacity(0.18)
+                      : AppColors.tealGreen.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.book_outlined,
+                  size: 20,
+                  color: isSelected
+                      ? AppColors.white
+                      : AppColors.tealGreen,
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -1259,30 +1757,37 @@ class _CourseCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      course.name,
+                      course.categoryName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                         color: isSelected
                             ? AppColors.white
                             : AppColors.darkNavy,
+                        height: 1.2,
                       ),
                     ),
-                    Text(
-                      course.sub,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: isSelected
-                            ? AppColors.white.withOpacity(0.7)
-                            : AppColors.greyS500,
+                    if (course.description.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        course.description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: isSelected
+                              ? AppColors.white.withOpacity(0.7)
+                              : AppColors.greyS500,
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    ],
                   ],
                 ),
               ),
               if (isSelected)
-                const Icon(Icons.check_circle_rounded,
+                Icon(Icons.check_circle_rounded,
                     color: AppColors.lightGold, size: 16),
             ],
           ),
@@ -1295,15 +1800,19 @@ class _CourseCard extends StatelessWidget {
 // ─── PREMIUM BOTTOM SHEET ─────────────────────────────────────────────────────
 
 class _PremiumSheet extends StatelessWidget {
+  final _Package pkg;
   final VoidCallback onActivate;
-  const _PremiumSheet({required this.onActivate});
+
+  const _PremiumSheet(
+      {required this.pkg, required this.onActivate});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1326,14 +1835,16 @@ class _PremiumSheet extends StatelessWidget {
               color: AppColors.darkNavy,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                  color: AppColors.lightGold.withOpacity(0.3)),
+                  color:
+                      AppColors.lightGold.withOpacity(0.3)),
             ),
             child: Column(
               children: [
-                Text('👑', style: TextStyle(fontSize: 40)),
+                const Text('👑',
+                    style: TextStyle(fontSize: 40)),
                 const SizedBox(height: 8),
                 Text(
-                  'Premium Plan',
+                  '${pkg.name} Plan',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
@@ -1342,10 +1853,10 @@ class _PremiumSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 RichText(
-                  text: const TextSpan(
+                  text: TextSpan(
                     children: [
                       TextSpan(
-                        text: '₹99',
+                        text: pkg.priceDisplay,
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
@@ -1353,7 +1864,8 @@ class _PremiumSheet extends StatelessWidget {
                         ),
                       ),
                       TextSpan(
-                        text: ' / month',
+                        text:
+                            ' / ${pkg.validityDays} din',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.white54,
@@ -1366,18 +1878,13 @@ class _PremiumSheet extends StatelessWidget {
             ),
           ),
 
-          // Features list
+          // Features list — dynamic from API
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding:
+                const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
-              children: [
-                '✅  Sab 6 Courses — SSC, Banking, UPSC, Railway, Police, Teaching',
-                '✅  Unlimited Mock Tests + Live Quizzes',
-                '✅  Leaderboard mein rank karo',
-                '✅  Certificates download karo',
-                '✅  Offline mode — bina internet ke padho',
-                '✅  Priority customer support',
-              ]
+              children: pkg.features
+                  .where((f) => f.isIncluded)
                   .map(
                     (f) => Container(
                       width: double.infinity,
@@ -1386,11 +1893,13 @@ class _PremiumSheet extends StatelessWidget {
                           horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         color: AppColors.greyS1,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.greyS200),
+                        borderRadius:
+                            BorderRadius.circular(10),
+                        border: Border.all(
+                            color: AppColors.greyS200),
                       ),
                       child: Text(
-                        f,
+                        '✅  ${f.text}',
                         style: TextStyle(
                           fontSize: 12.5,
                           color: AppColors.greyS700,
@@ -1416,30 +1925,32 @@ class _PremiumSheet extends StatelessWidget {
                   onTap: onActivate,
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 14),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          AppColors.lightGold,
-                          AppColors.lightGoldS2
-                        ],
-                      ),
+                      gradient: LinearGradient(colors: [
+                        AppColors.lightGold,
+                        AppColors.lightGoldS2,
+                      ]),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.lightGold.withOpacity(0.3),
+                          color: AppColors.lightGold
+                              .withOpacity(0.3),
                           blurRadius: 14,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
                       children: [
-                        Text('👑', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 8),
+                        const Text('👑',
+                            style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
                         Text(
-                          'Premium Activate Karo — ₹99/mo',
+                          '${pkg.name} Activate Karo — ${pkg.priceDisplay}',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w800,
@@ -1456,9 +1967,8 @@ class _PremiumSheet extends StatelessWidget {
                   child: Text(
                     'Baad mein sochenge',
                     style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.greyS500,
-                    ),
+                        fontSize: 13,
+                        color: AppColors.greyS500),
                   ),
                 ),
               ],

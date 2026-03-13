@@ -39,4 +39,5 @@ class BaseUrl {
   static String fetch_blog_posts_api = "blog_fetch_api.php?action=list";
   static String fetch_daily_quiz_api_crud = "fetch_daily_quiz_api_crud.php";
   static String fetch_fetch_daily_quiz_check_home = "fetch_daily_quiz_check_home.php";
+  static String fetch_get_packages = "get_packages.php";
 }

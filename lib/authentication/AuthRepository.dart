@@ -180,4 +180,8 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.fetch_fetch_daily_quiz_check_home, data: formData);
   }
+  Future<Response> fetchPackages(Map<String, dynamic> data) async {
+     FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_get_packages, data: formData);
+  }
 }
