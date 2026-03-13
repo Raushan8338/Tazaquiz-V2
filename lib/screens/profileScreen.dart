@@ -21,10 +21,10 @@ class StudentProfilePage extends StatefulWidget {
 class _StudentProfilePageState extends State<StudentProfilePage> {
   UserModel? _user;
   final ScrollController _scrollController = ScrollController();
-  bool _isTitleVisible = false;
+  bool _isCollapsed = false;
 
-  // Expanded height - jab tak scroll nahi hoga title hidden rahega
-  final double _expandedHeight = 200.0;
+  // Header expand height (profile banner ka height)
+  final double _headerHeight = 150.0;
 
   @override
   void initState() {
@@ -34,11 +34,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   }
 
   void _onScroll() {
-    // AppBar ki height ~56, jab expand khatam ho tab title show karo
-    final collapsed =
-        _scrollController.hasClients && _scrollController.offset > (_expandedHeight - kToolbarHeight - 20);
-    if (collapsed != _isTitleVisible) {
-      setState(() => _isTitleVisible = collapsed);
+    final collapsed = _scrollController.offset > _headerHeight - 10;
+    if (collapsed != _isCollapsed) {
+      setState(() => _isCollapsed = collapsed);
     }
   }
 
@@ -88,171 +86,167 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          _buildSliverAppBar(),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [_buildContactCard(), _buildQuickActions(), _buildSettings(), const SizedBox(height: 24)],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      expandedHeight: _expandedHeight,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: const Color(0xFF003161),
-
-      // Scroll hone par hi title dikhega
-      title: AnimatedOpacity(
-        opacity: _isTitleVisible ? 1.0 : 0.0,
-        duration: const Duration(milliseconds: 200),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: Center(
-                child: Text(
-                  _getInitials(_user?.username),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _user?.username ?? 'Student',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'Joined • ${formatMemberSince(_user?.createdAt)}',
-                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      flexibleSpace: FlexibleSpaceBar(
-        collapseMode: CollapseMode.pin,
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF003161), Color(0xFF00695C)],
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+      // ── AppBar: collapsed hone par name + joined dikhao ──────
+      appBar: AppBar(
+        elevation: _isCollapsed ? 4 : 0,
+        toolbarHeight: _isCollapsed ? kToolbarHeight : 0,
+        backgroundColor: const Color(0xFF003161),
+        automaticallyImplyLeading: false,
+        titleSpacing: 16,
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child:
+              _isCollapsed
+                  // Collapsed: name + joined
+                  ? Row(
+                    key: const ValueKey('collapsed'),
                     children: [
-                      // Avatar
                       Container(
-                        width: 72,
-                        height: 72,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]),
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.25),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: Center(
                           child: Text(
                             _getInitials(_user?.username),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 26),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               _user?.username ?? 'Student',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(Icons.calendar_today_outlined, size: 11, color: Colors.white.withOpacity(0.7)),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Joined • ${formatMemberSince(_user?.createdAt)}',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.75),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.white.withOpacity(0.3)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: const BoxDecoration(color: Color(0xFF4CAF50), shape: BoxShape.circle),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Text(
-                                    'Active Student',
-                                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
+                            Text(
+                              'Joined • ${formatMemberSince(_user?.createdAt)}',
+                              style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
                             ),
                           ],
                         ),
                       ),
                     ],
-                  ),
-                ],
+                  )
+                  // Expanded: blank / just title text
+                  : const SizedBox.shrink(key: ValueKey('expanded')),
+        ),
+      ),
+
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(
+          children: [
+            // ── Profile Header Banner ────────────────────────────
+            _buildProfileHeader(),
+
+            // ── Content ──────────────────────────────────────────
+            _buildContactCard(),
+            _buildQuickActions(),
+            _buildSettings(),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Profile Header (gradient banner) ──────────────────────────
+  Widget _buildProfileHeader() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF003161), Color(0xFF00695C)],
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Avatar
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]),
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))],
+            ),
+            child: Center(
+              child: Text(
+                _getInitials(_user?.username),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 26),
               ),
             ),
           ),
-        ),
+          const SizedBox(width: 16),
+
+          // Name + joined + badge
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _user?.username ?? 'Student',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today_outlined, size: 11, color: Colors.white.withOpacity(0.7)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Joined • ${formatMemberSince(_user?.createdAt)}',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.75),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(color: Color(0xFF4CAF50), shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Active Student',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -313,7 +307,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               const SizedBox(height: 2),
               Text(
                 value,
-                // Email full dikhao — no truncation
                 maxLines: 2,
                 overflow: TextOverflow.visible,
                 style: const TextStyle(fontSize: 12, color: Color(0xFF003161), fontWeight: FontWeight.w600),
