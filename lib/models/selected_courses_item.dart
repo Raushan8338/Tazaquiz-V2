@@ -3,6 +3,7 @@ class SelectedCourseItem {
   final String categoryName;
   final int? parentCategoryId;
   final String description;
+  final String boardIcon;
   bool isSelected;
 
   SelectedCourseItem({
@@ -10,6 +11,7 @@ class SelectedCourseItem {
     required this.categoryName,
     this.parentCategoryId,
     required this.description,
+    required this.boardIcon,
     required this.isSelected,
   });
 
@@ -19,6 +21,7 @@ class SelectedCourseItem {
       categoryName: json['category_name'] ?? '',
       parentCategoryId: json['parent_category_id'],
       description: json['description'] ?? '',
+      boardIcon: json['boardIcon'] ?? '',
       isSelected: json['is_selected'] == 1,
     );
   }
@@ -29,6 +32,7 @@ class SelectedCourseItem {
       'category_name': categoryName,
       'parent_category_id': parentCategoryId,
       'description': description,
+      'boardIcon': boardIcon,
       'is_selected': isSelected ? 1 : 0,
     };
   }

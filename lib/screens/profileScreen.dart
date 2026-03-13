@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
 import 'package:tazaquiznew/screens/course_selection.dart';
@@ -11,7 +10,6 @@ import 'package:tazaquiznew/screens/refer_earn_page.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 import 'package:tazaquiznew/testpage.dart' hide ContactUsPage;
-import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -22,11 +20,33 @@ class StudentProfilePage extends StatefulWidget {
 
 class _StudentProfilePageState extends State<StudentProfilePage> {
   UserModel? _user;
+  final ScrollController _scrollController = ScrollController();
+  bool _isTitleVisible = false;
+
+  // Expanded height - jab tak scroll nahi hoga title hidden rahega
+  final double _expandedHeight = 200.0;
 
   @override
   void initState() {
     super.initState();
     _getUserData();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    // AppBar ki height ~56, jab expand khatam ho tab title show karo
+    final collapsed =
+        _scrollController.hasClients && _scrollController.offset > (_expandedHeight - kToolbarHeight - 20);
+    if (collapsed != _isTitleVisible) {
+      setState(() => _isTitleVisible = collapsed);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _getUserData() async {
@@ -34,12 +54,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     setState(() {});
   }
 
-  final Map<String, dynamic> _statistics = {'coursesEnrolled': 8, 'testsCompleted': 45, 'totalXP': 12450, 'rank': 42};
-
   Future<void> handleLogout(BuildContext context) async {
     final googleSignIn = GoogleSignIn();
     await SessionManager.logout();
-
     await googleSignIn.signOut();
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => SplashScreen()), (route) => false);
@@ -48,19 +65,16 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   String _getInitials(String? name) {
     if (name == null || name.isEmpty) return 'U';
     final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     return name[0].toUpperCase();
   }
 
   String formatMemberSince(String? date) {
     if (date == null || date.isEmpty) return 'N/A';
-
     try {
       final dt = DateTime.parse(date);
       return '${_monthName(dt.month)} ${dt.year}';
-    } catch (e) {
+    } catch (_) {
       return date;
     }
   }
@@ -73,19 +87,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.greyS1,
+      backgroundColor: const Color(0xFFF0F4F8),
       body: CustomScrollView(
-        slivers: [  
-          _buildAppBar(),
+        controller: _scrollController,
+        slivers: [
+          _buildSliverAppBar(),
           SliverToBoxAdapter(
             child: Column(
-              children: [
-                _buildRegisteredInfo(),
-                // _buildStatsCards(),
-                _buildQuickActions(),
-                _buildAccountSettings(),
-                SizedBox(height: 20),
-              ],
+              children: [_buildContactCard(), _buildQuickActions(), _buildSettings(), const SizedBox(height: 24)],
             ),
           ),
         ],
@@ -93,82 +102,152 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildSliverAppBar() {
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: _expandedHeight,
       pinned: true,
-      backgroundColor: AppColors.darkNavy,
+      elevation: 0,
+      backgroundColor: const Color(0xFF003161),
+
+      // Scroll hone par hi title dikhega
+      title: AnimatedOpacity(
+        opacity: _isTitleVisible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  _getInitials(_user?.username),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _user?.username ?? 'Student',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Joined • ${formatMemberSince(_user?.createdAt)}',
+                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+
       flexibleSpace: FlexibleSpaceBar(
+        collapseMode: CollapseMode.pin,
         background: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.darkNavy, AppColors.tealGreen],
+              colors: [Color(0xFF003161), Color(0xFF00695C)],
             ),
           ),
           child: SafeArea(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Avatar
                       Container(
-                        width: 64,
-                        height: 64,
+                        width: 72,
+                        height: 72,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.orange]),
-                          border: Border.all(color: AppColors.white, width: 3),
+                          gradient: const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]),
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.25),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Center(
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
+                          child: Text(
                             _getInitials(_user?.username),
-                            24,
-                            AppColors.white,
-                            FontWeight.w900,
-                            1,
-                            TextAlign.center,
-                            0.0,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 26),
                           ),
                         ),
                       ),
-                      SizedBox(width: 16),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            AppRichText.setTextPoppinsStyle(
-                              context,
+                            Text(
                               _user?.username ?? 'Student',
-                              18,
-                              AppColors.white,
-                              FontWeight.w700,
-                              1,
-                              TextAlign.left,
-                              0.0,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
                             ),
-                            SizedBox(height: 4),
-                            AppRichText.setTextPoppinsStyle(
-                              context,
-                              'Joined • ${formatMemberSince(_user?.createdAt)}',
-                              11,
-                              AppColors.white.withOpacity(0.75),
-                              FontWeight.w500,
-                              1,
-                              TextAlign.left,
-                              0.0,
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_today_outlined, size: 11, color: Colors.white.withOpacity(0.7)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Joined • ${formatMemberSince(_user?.createdAt)}',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.75),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: const BoxDecoration(color: Color(0xFF4CAF50), shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'Active Student',
+                                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
                 ],
               ),
             ),
@@ -178,95 +257,68 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  Widget _buildRegisteredInfo() {
+  Widget _buildContactCard() {
     return Container(
-      margin: EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: AppColors.greyS200, borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.email_outlined, size: 14, color: AppColors.greyS600),
-              SizedBox(width: 8),
-              Expanded(
-                child: AppRichText.setTextPoppinsStyle(
-                  context,
-                  _user?.email ?? 'Not provided',
-                  12,
-                  AppColors.greyS1,
-                  FontWeight.w500,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(Icons.phone_outlined, size: 14, color: AppColors.greyS600),
-              SizedBox(width: 8),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                _user?.phone ?? 'Not provided',
-                12,
-                AppColors.greyS1,
-                FontWeight.w500,
-                1,
-                TextAlign.left,
-                0.0,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileHeader() {
-    return Container(
-      margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
-      padding: EdgeInsets.all(18),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 15, offset: Offset(0, 3))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
       ),
-      child: Column(
+      child: Row(
         children: [
-          _buildInfoRow(Icons.email_outlined, _user?.email ?? 'Not provided'),
-          SizedBox(height: 12),
-          _buildInfoRow(Icons.phone_outlined, _user?.phone ?? 'Not provided'),
-          SizedBox(height: 12),
-          _buildInfoRow(Icons.calendar_today_outlined, 'Joined ${_user?.createdAt ?? 'N/A'}'),
+          Expanded(
+            child: _buildContactItem(
+              Icons.email_outlined,
+              'Email',
+              _user?.email ?? 'Not provided',
+              const Color(0xFF2196F3),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 40,
+            color: Colors.grey.shade200,
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+          ),
+          Expanded(
+            child: _buildContactItem(
+              Icons.phone_outlined,
+              'Phone',
+              _user?.phone ?? 'Not provided',
+              const Color(0xFF4CAF50),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
+  Widget _buildContactItem(IconData icon, String label, String value, Color color) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(icon, size: 18, color: AppColors.tealGreen),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, size: 18, color: color),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
-          child: AppRichText.setTextPoppinsStyle(
-            context,
-            text,
-            13,
-            AppColors.darkNavy,
-            FontWeight.w600,
-            2,
-            TextAlign.left,
-            0.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                // Email full dikhao — no truncation
+                maxLines: 2,
+                overflow: TextOverflow.visible,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF003161), fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
         ),
       ],
@@ -275,59 +327,59 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
   Widget _buildQuickActions() {
     return Container(
-      margin: EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
-            'Quick Actions',
-            18,
-            AppColors.darkNavy,
-            FontWeight.w800,
-            1,
-            TextAlign.left,
-            0.0,
-          ),
-          SizedBox(height: 16),
+          _buildSectionTitle('Quick Actions'),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: _buildActionButton('Quiz History', Icons.history, AppColors.tealGreen, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => QuizHistoryPage()));
-                }),
+                child: _buildActionButton(
+                  'Quiz History',
+                  Icons.history_rounded,
+                  const Color(0xFF00695C),
+                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage())),
+                ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
-                child: _buildActionButton('My Courses', Icons.book, AppColors.orange, () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()),
-                  );
-                }),
+                child: _buildActionButton(
+                  'My Courses',
+                  Icons.menu_book_rounded,
+                  const Color(0xFFFF9800),
+                  () =>
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen())),
+                ),
               ),
             ],
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: _buildActionButton('All Payments', Icons.payment, AppColors.darkNavy, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentHistoryPage()));
-                }),
+                child: _buildActionButton(
+                  'All Payments',
+                  Icons.receipt_long_rounded,
+                  const Color(0xFF003161),
+                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentHistoryPage())),
+                ),
               ),
-
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
-                child: _buildActionButton('Need Help', Icons.help, AppColors.oxfordBlue, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => ContactUsPage()));
-                }),
+                child: _buildActionButton(
+                  'Need Help',
+                  Icons.support_agent_rounded,
+                  const Color(0xFF7B1FA2),
+                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => ContactUsPage())),
+                ),
               ),
             ],
           ),
@@ -339,30 +391,26 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   Widget _buildActionButton(String title, IconData icon, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+          color: color.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.2), width: 1.5),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
           children: [
-            Icon(icon, color: color, size: 22),
-            SizedBox(width: 8),
-            Flexible(
-              child: AppRichText.setTextPoppinsStyle(
-                context,
-                title,
-                13,
-                color,
-                FontWeight.w700,
-                1,
-                TextAlign.center,
-                0.0,
-              ),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -370,51 +418,131 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  Widget _buildAccountSettings() {
+  Widget _buildSettings() {
     return Container(
-      margin: EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
-            'Settings',
-            18,
-            AppColors.darkNavy,
-            FontWeight.w800,
-            1,
-            TextAlign.left,
-            0.0,
+          _buildSectionTitle('Settings'),
+          const SizedBox(height: 12),
+          _buildSettingItem(
+            Icons.school_rounded,
+            'Selected Courses',
+            'Manage your enrolled courses',
+            const Color(0xFF00695C),
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
           ),
-          SizedBox(height: 16),
-          _buildSettingItem(Icons.check_rounded, 'Selected Courses', () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId: 0)));
-          }),
-            SizedBox(height: 16),
-          _buildSettingItem(Icons.check_rounded, 'Plan', () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage()));
-          }),
-          SizedBox(height: 16),
-          _buildSettingItem(Icons.share, 'Refer and Earn', () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ReferEarnPage()));
-          }),
-          Divider(height: 28, color: AppColors.greyS300),
-          _buildSettingItem(Icons.policy, 'Privacy Policy', () {
-            launchUrl(Uri.parse('https://tazaquiz.com/privacy_policy.html'), mode: LaunchMode.externalApplication);
-          }),
-          Divider(height: 28, color: AppColors.greyS300),
-          _buildSettingItem(Icons.book, 'Refund Policy', () {
-            launchUrl(Uri.parse('https://tazaquiz.com/refund_policy.html'), mode: LaunchMode.externalApplication);
-          }),
-          Divider(height: 28, color: AppColors.greyS300),
-          _buildSettingItem(Icons.logout, 'Logout', () => _showLogoutDialog(context), isLogout: true),
+          _buildDivider(),
+          _buildSettingItem(
+            Icons.workspace_premium_rounded,
+            'Plan',
+            'View & upgrade your plan',
+            const Color(0xFFFF9800),
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage())),
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            Icons.card_giftcard_rounded,
+            'Refer and Earn',
+            'Invite friends & get rewards',
+            const Color(0xFF2196F3),
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReferEarnPage())),
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            Icons.policy_rounded,
+            'Privacy Policy',
+            'Read our privacy policy',
+            const Color(0xFF607D8B),
+            () =>
+                launchUrl(Uri.parse('https://tazaquiz.com/privacy_policy.html'), mode: LaunchMode.externalApplication),
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            Icons.assignment_return_rounded,
+            'Refund Policy',
+            'Read our refund policy',
+            const Color(0xFF607D8B),
+            () => launchUrl(Uri.parse('https://tazaquiz.com/refund_policy.html'), mode: LaunchMode.externalApplication),
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            Icons.logout_rounded,
+            'Logout',
+            'Sign out of your account',
+            const Color(0xFFE53935),
+            () => _showLogoutDialog(context),
+            isLogout: true,
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(color: const Color(0xFF00695C), borderRadius: BorderRadius.circular(2)),
+        ),
+        const SizedBox(width: 8),
+        Text(title, style: const TextStyle(fontSize: 17, color: Color(0xFF003161), fontWeight: FontWeight.w800)),
+      ],
+    );
+  }
+
+  Widget _buildDivider() =>
+      Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Divider(height: 1, color: Colors.grey.shade100));
+
+  Widget _buildSettingItem(
+    IconData icon,
+    String title,
+    String subtitle,
+    Color color,
+    VoidCallback onTap, {
+    bool isLogout = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, size: 20, color: color),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isLogout ? const Color(0xFFE53935) : const Color(0xFF003161),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade400),
+          ],
+        ),
       ),
     );
   }
@@ -423,126 +551,78 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: const Color(0xFF3498db).withOpacity(0.1), shape: BoxShape.circle),
-                  child: const Icon(Icons.logout_rounded, size: 48, color: Color(0xFF3498db)),
-                ),
-                const SizedBox(height: 20),
-
-                // Title
-                const Text(
-                  'Logout',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF003161)),
-                ),
-                const SizedBox(height: 12),
-
-                // Message
-                Text(
-                  'Are you sure you want to logout from your account?',
-                  style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-
-                // Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: Colors.grey[300]!),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 5)),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: const Color(0xFFE53935).withOpacity(0.1), shape: BoxShape.circle),
+                    child: const Icon(Icons.logout_rounded, size: 40, color: Color(0xFFE53935)),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Logout',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF003161)),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Are you sure you want to logout from your account?',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey.shade700),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(true);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          backgroundColor: const Color(0xFF3498db),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Logout',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            backgroundColor: const Color(0xFFE53935),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Logout',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        );
-      },
     );
-
-    if (confirmed == true) {
-      handleLogout(context);
-    }
-  }
-
-  Widget _buildSettingItem(IconData icon, String title, VoidCallback onTap, {bool isLogout = false}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isLogout ? AppColors.red.withOpacity(0.1) : AppColors.tealGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 22, color: isLogout ? AppColors.red : AppColors.tealGreen),
-            ),
-            SizedBox(width: 14),
-            Expanded(
-              child: AppRichText.setTextPoppinsStyle(
-                context,
-                title,
-                15,
-                isLogout ? AppColors.red : AppColors.darkNavy,
-                FontWeight.w600,
-                1,
-                TextAlign.left,
-                0.0,
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.greyS400),
-          ],
-        ),
-      ),
-    );
+    if (confirmed == true) handleLogout(context);
   }
 }

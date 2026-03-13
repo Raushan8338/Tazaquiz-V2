@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/API/api_endpoint.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/selected_courses_item.dart';
@@ -19,12 +21,13 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
   UserModel? _user;
   bool _isLoading = true;
   bool _isUpdating = false;
+
   List<SelectedCourseItem> _coursesItem = [];
   List<SelectedCourseItem> _filteredCourses = [];
+  final Set<int> _selectedIds = {};
 
   final TextEditingController _searchController = TextEditingController();
 
-  // Your app colors
   final Color primaryTeal = const Color(0xFF00695C);
   final Color accentOrange = const Color(0xFFFF9800);
   final Color lightBg = const Color(0xFFF5F5F5);
@@ -45,35 +48,28 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
   Future<void> _init() async {
     _user = await SessionManager.getUser();
     if (_user == null) return;
-
     await _fetchCourses();
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _fetchCourses() async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'user_id': _user!.id.toString()};
-
       final response = await authRepository.getUserSelected_non_Courses(data);
+      print("Course fetch response: ${response.data}");
 
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
-
         _coursesItem = list.map((e) => SelectedCourseItem.fromJson(e)).toList();
 
-        // Debug: Check isSelected values
+        _selectedIds.clear();
         for (var course in _coursesItem) {
-          print("Course: ${course.categoryName}, isSelected: ${course.isSelected}");
+          final sel = course.isSelected;
+          if (sel == true || sel == 1 || sel == '1') {
+            _selectedIds.add(course.categoryId);
+          }
         }
-
-        // Sort: selected courses first
-        _coursesItem.sort((a, b) => b.isSelected.toString().compareTo(a.isSelected.toString()));
 
         _filteredCourses = List.from(_coursesItem);
       }
@@ -83,50 +79,40 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
   }
 
   void _filterCourses() {
-    String query = _searchController.text.toLowerCase();
-
+    final query = _searchController.text.toLowerCase();
     setState(() {
-      if (query.isEmpty) {
-        _filteredCourses = List.from(_coursesItem);
+      _filteredCourses =
+          query.isEmpty
+              ? List.from(_coursesItem)
+              : _coursesItem.where((c) => c.categoryName.toLowerCase().contains(query)).toList();
+    });
+  }
+
+  void _onCourseToggle(int categoryId) {
+    setState(() {
+      if (_selectedIds.contains(categoryId)) {
+        _selectedIds.remove(categoryId);
       } else {
-        _filteredCourses =
-            _coursesItem.where((course) {
-              return course.categoryName.toLowerCase().contains(query);
-            }).toList();
+        _selectedIds.add(categoryId);
       }
     });
   }
 
-  void _onCourseToggle(SelectedCourseItem course) {
-    setState(() {
-      final originalIndex = _coursesItem.indexWhere((c) => c.categoryId == course.categoryId);
-
-      if (originalIndex != -1) {
-        _coursesItem[originalIndex].isSelected = !_coursesItem[originalIndex].isSelected;
-      }
-
-      // Re-sort both lists
-      _coursesItem.sort((a, b) => b.isSelected.toString().compareTo(a.isSelected.toString()));
-      _filterCourses();
-    });
-  }
-
-  Future<void> _updateCourses() async {  
+  Future<void> _updateCourses() async {
     setState(() => _isUpdating = true);
-
     try {
-      final selectedIds = _coursesItem.where((c) => c.isSelected).map((c) => c.categoryId).toList();
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      List<int> categoryIds = selectedIds;
-      for (var id in categoryIds) {
-        final data = {'user_id': _user!.id.toString(), 'category_id': id.toString()};
 
+      // FormData manually banao array ke liye
+      FormData formData = FormData();
+      formData.fields.add(MapEntry('user_id', _user!.id.toString()));
 
-        await authRepository.Saveupdate_user_courses(data);
-     
+      for (final id in _selectedIds) {
+        formData.fields.add(MapEntry('category_ids[]', id.toString()));
       }
 
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await Api_Client.dio.post(BaseUrl.save_update_user_courses, data: formData);
+      print("RESPONSE: ${response.data}");
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,28 +122,22 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        widget.pageId == 0 ?
-        Navigator.pop(context):
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
-
-
+        widget.pageId == 0
+            ? Navigator.pop(context)
+            : Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     } finally {
-      if (mounted) {
-        setState(() => _isUpdating = false);
-      }
+      if (mounted) setState(() => _isUpdating = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedCount = _coursesItem.where((c) => c.isSelected).length;
+    final selectedCount = _selectedIds.length;
 
     return Scaffold(
       backgroundColor: lightBg,
@@ -210,7 +190,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                   // Selected count
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
@@ -227,14 +207,14 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '$selectedCount Courses Selected',
+                          '$selectedCount Course${selectedCount != 1 ? 's' : ''} Selected',
                           style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w600, fontSize: 14),
                         ),
                       ],
                     ),
                   ),
 
-                  // Grid view
+                  // Grid
                   Expanded(
                     child:
                         _filteredCourses.isEmpty
@@ -255,121 +235,118 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                               padding: const EdgeInsets.all(12),
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                childAspectRatio: 1.50,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
+                                childAspectRatio: 0.85,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
                               ),
                               itemCount: _filteredCourses.length,
                               itemBuilder: (context, index) {
                                 final course = _filteredCourses[index];
+                                final isSelected = _selectedIds.contains(course.categoryId);
+                                final hasImage = course.boardIcon != null && course.boardIcon!.isNotEmpty;
 
                                 return GestureDetector(
-                                  onTap: () => _onCourseToggle(course),
-                                  child: Container(
+                                  onTap: () => _onCourseToggle(course.categoryId),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 180),
                                     decoration: BoxDecoration(
                                       color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(14),
                                       border: Border.all(
-                                        color: course.isSelected ? primaryTeal : Colors.grey.shade200,
-                                        width: course.isSelected ? 2 : 1,
+                                        color: isSelected ? primaryTeal : Colors.grey.shade200,
+                                        width: isSelected ? 2.5 : 1,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
                                           color:
-                                              course.isSelected
+                                              isSelected
                                                   ? primaryTeal.withOpacity(0.15)
-                                                  : Colors.grey.withOpacity(0.08),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
+                                                  : Colors.black.withOpacity(0.05),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
                                         ),
                                       ],
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Column(
-                                        children: [
-                                          // Icon
-                                          Container(
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  course.isSelected
-                                                      ? primaryTeal.withOpacity(0.1)
-                                                      : accentOrange.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        // ── TOP: Banner image ──────────
+                                        Expanded(
+                                          flex: 5,
+                                          child: ClipRRect(
+                                            borderRadius: const BorderRadius.only(
+                                              topLeft: Radius.circular(13),
+                                              topRight: Radius.circular(13),
                                             ),
-                                            child: Icon(
-                                              Icons.book_outlined,
-                                              color: course.isSelected ? primaryTeal : accentOrange,
-                                              size: 28,
+                                            child:
+                                                hasImage
+                                                    ? CachedNetworkImage(
+                                                      imageUrl: course.boardIcon!,
+                                                      fit: BoxFit.cover,
+                                                      placeholder:
+                                                          (ctx, url) => Container(
+                                                            color: accentOrange.withOpacity(0.07),
+                                                            child: Center(
+                                                              child: CircularProgressIndicator(
+                                                                strokeWidth: 2,
+                                                                color: accentOrange,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                      errorWidget: (ctx, url, err) => _fallbackBanner(isSelected),
+                                                    )
+                                                    : _fallbackBanner(isSelected),
+                                          ),
+                                        ),
+
+                                        // ── BOTTOM: Name + Checkbox ────
+                                        Expanded(
+                                          flex: 3,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.center,
+                                              children: [
+                                                // Course name
+                                                Expanded(
+                                                  child: Text(
+                                                    course.categoryName,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 12,
+                                                      height: 1.3,
+                                                      color: isSelected ? primaryTeal : Colors.grey.shade800,
+                                                    ),
+                                                  ),
+                                                ),
+
+                                                const SizedBox(width: 6),
+
+                                                // Checkbox
+                                                AnimatedContainer(
+                                                  duration: const Duration(milliseconds: 180),
+                                                  width: 20,
+                                                  height: 20,
+                                                  decoration: BoxDecoration(
+                                                    color: isSelected ? primaryTeal : Colors.white,
+                                                    borderRadius: BorderRadius.circular(5),
+                                                    border: Border.all(
+                                                      color: isSelected ? primaryTeal : Colors.grey.shade400,
+                                                      width: 2,
+                                                    ),
+                                                  ),
+                                                  child:
+                                                      isSelected
+                                                          ? const Icon(Icons.check, color: Colors.white, size: 13)
+                                                          : null,
+                                                ),
+                                              ],
                                             ),
                                           ),
-
-                                          const SizedBox(height: 8),
-
-                                          // Course name
-                                          Text(
-                                            course.categoryName,
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                              height: 1.2,
-                                              color: course.isSelected ? Colors.grey.shade900 : Colors.grey.shade700,
-                                            ),
-                                          ),
-
-                                          const Spacer(),
-
-                                          // Bottom row: Checkbox (left) + Description (right)
-                                        Row(
-  crossAxisAlignment: CrossAxisAlignment.center,
-  children: [
-    // Description - always center aligned
-    Expanded(
-      child: Center(
-        child: course.description.isNotEmpty
-            ? Text(
-                course.description,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey.shade500,
-                  height: 1.1,
-                ),
-              )
-            : const SizedBox.shrink(),
-      ),
-    ),
-
-    const SizedBox(width: 6),
-
-    // Checkbox - always on right
-    Container(
-      decoration: BoxDecoration(
-        color: course.isSelected ? primaryTeal : Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: course.isSelected
-              ? primaryTeal
-              : Colors.grey.shade400,
-          width: 2,
-        ),
-      ),
-      width: 18,
-      height: 18,
-      child: course.isSelected
-          ? const Icon(Icons.check, color: Colors.white, size: 14)
-          : null,
-    ),
-  ],
-)
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 );
@@ -379,7 +356,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                 ],
               ),
 
-      // Bottom update button
+      // Bottom button
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -423,6 +400,13 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _fallbackBanner(bool isSelected) {
+    return Container(
+      color: isSelected ? primaryTeal.withOpacity(0.08) : accentOrange.withOpacity(0.08),
+      child: Center(child: Icon(Icons.menu_book_rounded, size: 40, color: isSelected ? primaryTeal : accentOrange)),
     );
   }
 }
