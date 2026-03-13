@@ -5,6 +5,7 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
+import 'package:tazaquiznew/screens/package_page.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -133,18 +134,18 @@ class _BuyCoursePageState extends State<BuyCoursePage> {
     String susb_category;
     String send_product_id;
 
-    if (_isPremium == 1) {
-      susb_category = 'STUDY';
-      send_product_id = widget.contentId;
-    } else {
-      susb_category = 'Subscription';
-      send_product_id = _product_sub_id.toString();
-    }
-    print('susb_category: $susb_category');
+    // if (_isPremium == 1) {
+    //   susb_category = 'STUDY';
+    //   send_product_id = widget.contentId;
+    // } else {
+    //   susb_category = 'Subscription';
+    //   send_product_id = _product_sub_id.toString();
+    // }
+    // print('susb_category: $susb_category');
 
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => CheckoutPage(contentType: susb_category, contentId: send_product_id)),
+      MaterialPageRoute(builder: (context) => PricingPage()),
     ).then((value) {
       if (value == true) {
         _getUserData();

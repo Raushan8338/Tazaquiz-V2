@@ -24,8 +24,9 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 class CheckoutPage extends StatefulWidget {
   final String contentType;
   final String contentId;
+  final String package_id; 
 
-  const CheckoutPage({Key? key, required this.contentType, required this.contentId}) : super(key: key);
+  const CheckoutPage({Key? key, required this.contentType, required this.contentId, required this.package_id}) : super(key: key);
 
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
@@ -72,8 +73,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       setState(() => _isLoadingCheckout = true);
 
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {'user_id': _user?.id, 'content_type': widget.contentType, 'content_id': widget.contentId};
-
+      final data = {'user_id': _user?.id, 'content_type': widget.contentType, 'content_id': widget.contentId,'package_id': widget.package_id};
+       print('Fetching checkout details with data: $data');
       final response = await authRepository.fetchCheckoutDetails(data);
 
       if (response.statusCode == 200) {
@@ -534,11 +535,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         ),
                         child: AppRichText.setTextPoppinsStyle(
                           context,
-                          checkoutData!.contentType,
+                          checkoutData!.description,
                           11,
                           AppColors.darkNavy,
                           FontWeight.w700,
-                          1,
+                          3,
                           TextAlign.left,
                           0.0,
                         ),

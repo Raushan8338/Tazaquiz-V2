@@ -11,6 +11,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/checkout.dart';
 import 'package:tazaquiznew/screens/livetest.dart';
+import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
@@ -154,18 +155,18 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
   void _handleSubscribe() {
     if (_currentQuiz == null) return;
-    String susb_category;
-    String send_product_id;
-    if (_isPremium == 1) {
-      susb_category = 'QUIZ';
-      send_product_id = widget.quizId;
-    } else {
-      susb_category = 'Subscription';
-      send_product_id = _product_sub_id.toString();
-    }
+    // String susb_category;
+    // String send_product_id;
+    // if (_isPremium == 1) {
+    //   susb_category = 'QUIZ';
+    //   send_product_id = widget.quizId;
+    // } else {
+    //   susb_category = 'Subscription';
+    //   send_product_id = _product_sub_id.toString();
+    // }
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => CheckoutPage(contentType: susb_category, contentId: send_product_id)),
+      MaterialPageRoute(builder: (context) => PricingPage()),
     ).then((value) {
       if (value == true) _getUserData();
     });

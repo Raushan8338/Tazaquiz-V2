@@ -1401,6 +1401,7 @@ class _PricingPageState extends State<PricingPage>
 
         String susb_category = 'Subscription';
         String send_product_id = courseId.toString();
+        String package_id = pkg.id.toString();
 
         // BottomSheet close
         Navigator.pop(sheetContext);
@@ -1412,6 +1413,7 @@ class _PricingPageState extends State<PricingPage>
             builder: (context) => CheckoutPage(
               contentType: susb_category,
               contentId: send_product_id,
+              package_id:package_id
             ),
           ),
         );
@@ -1431,9 +1433,27 @@ class _PricingPageState extends State<PricingPage>
         pkg: pkg,
         onActivate: () {
           setState(() => _activePlanSlug = pkg.slug);
-          Navigator.pop(context);
-          _showSuccessSnackBar(
-              '👑 Premium active! Sab courses unlock ho gaye 🎉');
+           String susb_category = 'Subscription';
+        String send_product_id = 'All';
+        String package_id = pkg.id.toString();
+
+        // BottomSheet close
+        Navigator.pop(context);
+
+        // Redirect to checkout
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CheckoutPage(
+              contentType: susb_category,
+              contentId: send_product_id,
+              package_id:package_id
+            ),
+          ),
+        );
+          // Navigator.pop(context);
+          // _showSuccessSnackBar(
+          //     '👑 Premium active! Sab courses unlock ho gaye 🎉');
         },
       ),
     );
