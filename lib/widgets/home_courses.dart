@@ -47,40 +47,30 @@ class Home_courses extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     '📚 Exam crack karo, aaj hi shuru karo!',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.tealGreen,
-                    ),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.tealGreen),
                   ),
                 ],
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(context,
-                    MaterialPageRoute(
-                        builder: (context) => StudyMaterialScreen('1')));
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialScreen('1')));
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.tealGreen.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: AppColors.tealGreen.withOpacity(0.3), width: 1),
+                    border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('View All',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.tealGreen,
-                            fontWeight: FontWeight.w700,
-                          )),
+                      Text(
+                        'View All',
+                        style: TextStyle(fontSize: 11, color: AppColors.tealGreen, fontWeight: FontWeight.w700),
+                      ),
                       const SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_rounded,
-                          size: 13, color: AppColors.tealGreen),
+                      Icon(Icons.arrow_forward_rounded, size: 13, color: AppColors.tealGreen),
                     ],
                   ),
                 ),
@@ -100,16 +90,16 @@ class Home_courses extends StatelessWidget {
               final course = popularCourses[index];
               final gradientColors = _gradients[index % _gradients.length];
               final hasImage = course.courseImage != null && course.courseImage!.isNotEmpty;
-              final isFree = int.tryParse('${course.price}') != null &&
-                  int.parse('${course.price}') < 1;
+              final isFree = int.tryParse('${course.price}') != null && int.parse('${course.price}') < 1;
 
               return GestureDetector(
                 onTap: () {
-                  Navigator.push(context,
+                  Navigator.push(
+                    context,
                     MaterialPageRoute(
-                      builder: (context) => BuyCoursePage(
-                          contentId: course.id, page_API_call: 'STUDY'),
-                    ));
+                      builder: (context) => BuyCoursePage(contentId: course.id, page_API_call: 'SUBSCRIPTION'),
+                    ),
+                  );
                 },
                 child: Container(
                   width: 195,
@@ -118,11 +108,7 @@ class Home_courses extends StatelessWidget {
                     color: AppColors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
-                      BoxShadow(
-                        color: gradientColors[0].withOpacity(0.2),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
+                      BoxShadow(color: gradientColors[0].withOpacity(0.2), blurRadius: 14, offset: const Offset(0, 6)),
                     ],
                   ),
                   child: ClipRRect(
@@ -130,7 +116,6 @@ class Home_courses extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         /// ── Image / Gradient Header ──
                         SizedBox(
                           height: 110,
@@ -138,14 +123,14 @@ class Home_courses extends StatelessWidget {
                             children: [
                               /// Background
                               Positioned.fill(
-                                child: hasImage
-                                    ? Image.network(
-                                        course.courseImage!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            _gradientBox(gradientColors),
-                                      )
-                                    : _gradientBox(gradientColors),
+                                child:
+                                    hasImage
+                                        ? Image.network(
+                                          course.courseImage!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => _gradientBox(gradientColors),
+                                        )
+                                        : _gradientBox(gradientColors),
                               ),
 
                               /// Dark overlay
@@ -153,10 +138,7 @@ class Home_courses extends StatelessWidget {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
-                                      colors: [
-                                        Colors.black.withOpacity(0.05),
-                                        Colors.black.withOpacity(0.35),
-                                      ],
+                                      colors: [Colors.black.withOpacity(0.05), Colors.black.withOpacity(0.35)],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
                                     ),
@@ -173,40 +155,39 @@ class Home_courses extends StatelessWidget {
                                       color: Colors.white.withOpacity(0.2),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.school_rounded,
-                                        size: 32, color: Colors.white),
+                                    child: const Icon(Icons.school_rounded, size: 32, color: Colors.white),
                                   ),
                                 ),
 
                               /// BESTSELLER badge — top right
                               Positioned(
-                                top: 9, right: 9,
+                                top: 9,
+                                right: 9,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 7, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: AppColors.lightGold,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Text('BESTSELLER',
+                                  child: Text(
+                                    'BESTSELLER',
                                     style: TextStyle(
                                       fontSize: 7,
                                       fontWeight: FontWeight.w900,
                                       color: AppColors.darkNavy,
-                                    )),
+                                    ),
+                                  ),
                                 ),
                               ),
 
                               /// FREE / PAID badge — top left
                               Positioned(
-                                top: 9, left: 9,
+                                top: 9,
+                                left: 9,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 7, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: isFree
-                                        ? Colors.green.shade500
-                                        : Colors.orange.shade600,
+                                    color: isFree ? Colors.green.shade500 : Colors.orange.shade600,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
@@ -263,8 +244,7 @@ class Home_courses extends StatelessWidget {
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.access_time_rounded,
-                                          size: 11, color: AppColors.greyS600),
+                                      Icon(Icons.access_time_rounded, size: 11, color: AppColors.greyS600),
                                       const SizedBox(width: 4),
                                       Text(
                                         course.duration,
@@ -287,8 +267,7 @@ class Home_courses extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(width: 2),
-                                      Icon(Icons.arrow_forward_ios_rounded,
-                                          size: 10, color: gradientColors[0]),
+                                      Icon(Icons.arrow_forward_ios_rounded, size: 10, color: gradientColors[0]),
                                     ],
                                   ),
                                 ],
@@ -311,11 +290,7 @@ class Home_courses extends StatelessWidget {
   Widget _gradientBox(List<Color> colors) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
       ),
     );
   }

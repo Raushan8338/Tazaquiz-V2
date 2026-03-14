@@ -4,24 +4,16 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/ads/rewarded_ad_service.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
-import 'dart:async';
-
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'dart:async';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
-import 'package:tazaquiznew/screens/checkout.dart';
 import 'package:tazaquiznew/screens/mockTestScreen.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
-// ─── MOCK TEST COLORS ─────────────────────────────────────────────────────────
-// Deep Blue / Indigo theme — professional exam feel
-const _mockPrimary = Color(0xFF1a237e); // Deep Indigo
-const _mockSecondary = Color(0xFF283593); // Medium Indigo
-const _mockAccent = Color(0xFF5C6BC0); // Lighter Indigo
-const _mockGold = Color(0xFFFFC107); // Amber
-const _mockBg = Color(0xFFF0F2FF); // Light indigo tint bg
+// ✅ Ye sahi hai
 
 class MockTestDetailPage extends StatefulWidget {
   final String quizId;
@@ -37,6 +29,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
   final RewardedAdService rewardedAdService = RewardedAdService();
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
+  Color get _mockPrimary => AppColors.darkNavy;
+  Color get _mockSecondary => AppColors.darkNavy.withOpacity(0.85);
+  Color get _mockAccent => AppColors.tealGreen;
+  Color get _mockGold => AppColors.lightGold;
+  static Color _mockBg = Color(0xFFF0F2F8);
   UserModel? _user;
   bool _isLoading = true;
   bool _isPurchased = false;
@@ -53,7 +50,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeController = AnimationController(vsync: this, duration: Duration(milliseconds: 600));
     _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
     rewardedAdService.loadAd();
     bannerService.loadAd(() {
@@ -90,7 +87,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
           _currentQuiz = QuizItem.fromJson(responseData['data']);
           setState(() {
             _isPurchased = _currentQuiz!.isPurchased;
-            _isAccessible = widget.is_subscribed == true ? true : _currentQuiz!.isAccessible;
+            _isAccessible = _currentQuiz!.accessStatus; // ← change
             _attempted = _currentQuiz!.is_attempted;
             _isFree = _currentQuiz!.price == 0 || !_currentQuiz!.isPaid;
             _isPremium = _currentQuiz!.is_premium;
@@ -107,10 +104,24 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     }
   }
 
-  // ─── HANDLERS ────────────────────────────────────────────────────────────────
+  // ─── HANDLERS ────────────────────────────────────────────────────────────
 
   void _handleStartMockTest() {
     if (_currentQuiz == null) return;
+
+    if (!_currentQuiz!.accessStatus) {
+      _showAccessDialog();
+      return;
+    }
+
+    if (_isFree) {
+      rewardedAdService.showAd(() => _navigateToMockTest());
+    } else {
+      _navigateToMockTest();
+    }
+  }
+
+  void _navigateToMockTest() {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -124,44 +135,89 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
+  void _showAccessDialog() {
+    String message;
+    String buttonText;
+    bool showResume = false;
+
+    switch (_currentQuiz!.accessError) {
+      case 'attempt_pending':
+        message = 'Aapka ek attempt pending hai. Pehle use complete karo.';
+        buttonText = 'Resume Attempt';
+        showResume = true;
+        break;
+      case 'course_mismatch':
+        message = 'Sirf apne course ka mock test access kar sakte ho. Upgrade karo!';
+        buttonText = 'Upgrade Plan';
+        break;
+      case 'upgrade_required':
+        message = 'Is mahine ka attempt limit khatam ho gaya. Upgrade karo!';
+        buttonText = 'Activate Now';
+        break;
+      case 'plan_expired':
+        message = 'Aapka plan expire ho gaya. Renew karo!';
+        buttonText = 'Renew Plan';
+        break;
+      default:
+        message = _currentQuiz!.accessMessage ?? 'Access nahi hai.';
+        buttonText = 'Upgrade Plan';
+    }
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('Access Required', style: TextStyle(fontWeight: FontWeight.w800)),
+            content: Text(message, style: TextStyle(fontSize: 13)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _mockPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  if (showResume) {
+                    _navigateToMockTest();
+                  } else {
+                    _handleSubscribe();
+                  }
+                },
+                child: Text(buttonText),
+              ),
+            ],
+          ),
+    );
+  }
+
   void _handleSubscribe() {
     if (_currentQuiz == null) return;
-    // String subsCategory;
-    // String sendProductId;
-    // if (_isPremium == 1) {
-    //   subsCategory = 'QUIZ';
-    //   sendProductId = widget.quizId;
-    // } else {
-    //   subsCategory = 'Subscription';
-    //   sendProductId = _product_sub_id.toString();
-    // }
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => PricingPage()),
-    ).then((value) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
       if (value == true) _getUserData();
     });
   }
 
   // ─── DIFFICULTY COLOR ─────────────────────────────────────────────────────
+
   Color _getDifficultyColor() {
     switch (_currentQuiz?.difficultyLevel.toLowerCase()) {
       case 'easy':
-        return const Color(0xFF2E7D32);
+        return Color(0xFF2E7D32);
       case 'medium':
-        return const Color(0xFFF9A825);
+        return Color(0xFFF9A825);
       case 'hard':
-        return const Color(0xFFC62828);
+        return Color(0xFFC62828);
       default:
         return _mockAccent;
     }
   }
 
-  // ─── FORMAT DATE ──────────────────────────────────────────────────────────
   String _formatDateTime(String raw) {
     try {
       final dt = DateTime.parse(raw.trim().replaceAll(' ', 'T'));
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
       final m = dt.minute.toString().padLeft(2, '0');
       final ap = dt.hour >= 12 ? 'PM' : 'AM';
@@ -175,7 +231,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   @override
   Widget build(BuildContext context) {
-    // Loading state
     if (_isLoading) {
       return Scaffold(
         backgroundColor: _mockBg,
@@ -184,7 +239,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_mockPrimary), strokeWidth: 3),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Text(
                 'Loading mock test...',
                 style: TextStyle(color: _mockPrimary.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500),
@@ -195,66 +250,56 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       );
     }
 
-    // Error state
     if (_currentQuiz == null) {
       return Scaffold(
         backgroundColor: _mockBg,
-        appBar: AppBar(backgroundColor: _mockPrimary, title: const Text('Error')),
-        body: const Center(child: Text('Test not found')),
+        appBar: AppBar(backgroundColor: _mockPrimary, title: Text('Error')),
+        body: Center(child: Text('Test not found')),
       );
     }
 
-    final bool canStart = _isPurchased || _isAccessible || _isFree;
+    // ── canStart ab accessStatus se ──
+    final bool canStart = _currentQuiz!.accessStatus;
 
     return Scaffold(
       backgroundColor: _mockBg,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: BouncingScrollPhysics(),
           slivers: [
             _buildAppBar(),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 100),
+                padding: EdgeInsets.only(bottom: 100),
                 child: Column(
                   children: [
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
 
-                    // ── Access Banner ──
                     if (canStart) _buildAccessBanner(),
-                    if (canStart) const SizedBox(height: 10),
+                    if (canStart) SizedBox(height: 10),
 
-                    // ── Course/Material Info ──
                     _buildCourseInfo(),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
-                    // ── Mock Header Card ──
                     _buildMockHeader(),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
-                    // ── Stats Row ──
                     _buildStatsRow(),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
-                    // ── What to Expect ──
                     _buildExpectSection(),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
-                    // ── Banner Ad ──
                     if (isBannerLoaded && bannerService.bannerAd != null) _buildBannerAd(),
 
-                    // ── Main Section ──
                     if (!canStart) _buildSubscriptionSection() else _buildTestInfoSection(),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
 
-                    // ── Description ──
-                    if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 10)],
+                    if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), SizedBox(height: 10)],
 
-                    // ── Instructions ──
-                    if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), const SizedBox(height: 10)],
+                    if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), SizedBox(height: 10)],
 
-                    // ── Important Info ──
                     _buildImportantInfo(),
                   ],
                 ),
@@ -267,7 +312,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── APP BAR ─────────────────────────────────────────────────────────────────
+  // ─── APP BAR ──────────────────────────────────────────────────────────────
 
   Widget _buildAppBar() {
     return SliverAppBar(
@@ -277,9 +322,9 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       elevation: 0,
       leading: IconButton(
         icon: Container(
-          padding: const EdgeInsets.all(6),
+          padding: EdgeInsets.all(6),
           decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-          child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -295,19 +340,13 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [_mockPrimary, _mockSecondary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+          decoration: BoxDecoration(gradient: LinearGradient(colors: [_mockPrimary, _mockSecondary])),
         ),
       ),
     );
   }
 
-  // ─── ACCESS BANNER ───────────────────────────────────────────────────────────
+  // ─── ACCESS BANNER ────────────────────────────────────────────────────────
 
   Widget _buildAccessBanner() {
     String message;
@@ -329,21 +368,21 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [_mockPrimary, _mockSecondary]),
+        gradient: LinearGradient(colors: [_mockPrimary, _mockSecondary]),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.35), blurRadius: 14, offset: Offset(0, 5))],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: Colors.white, size: 18),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,7 +397,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   TextAlign.left,
                   0,
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 AppRichText.setTextPoppinsStyle(
                   context,
                   subtitle,
@@ -377,29 +416,29 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── COURSE INFO ─────────────────────────────────────────────────────────────
+  // ─── COURSE INFO ──────────────────────────────────────────────────────────
 
   Widget _buildCourseInfo() {
     final materialName = _currentQuiz?.Material_name ?? '';
-    if (materialName.isEmpty) return const SizedBox.shrink();
+    if (materialName.isEmpty) return SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      margin: EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _mockPrimary.withOpacity(0.2)),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.06), blurRadius: 8, offset: Offset(0, 2))],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             decoration: BoxDecoration(color: _mockPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(9)),
-            child: const Icon(Icons.library_books_outlined, color: _mockPrimary, size: 17),
+            child: Icon(Icons.library_books_outlined, color: _mockPrimary, size: 17),
           ),
-          const SizedBox(width: 11),
+          SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +452,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     letterSpacing: 0.8,
                   ),
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 AppRichText.setTextPoppinsStyle(
                   context,
                   materialName,
@@ -428,9 +467,9 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(color: _mockPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-            child: const Text(
+            child: Text(
               '📚 MOCK',
               style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: _mockPrimary, letterSpacing: 0.3),
             ),
@@ -440,24 +479,23 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── MOCK HEADER CARD ────────────────────────────────────────────────────────
+  // ─── MOCK HEADER CARD ─────────────────────────────────────────────────────
 
   Widget _buildMockHeader() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
+      margin: EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.1), blurRadius: 18, offset: const Offset(0, 5))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.1), blurRadius: 18, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Colored top strip ──
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [_mockPrimary, _mockSecondary],
                 begin: Alignment.topLeft,
@@ -468,7 +506,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Tags
                 Wrap(
                   spacing: 7,
                   runSpacing: 6,
@@ -490,8 +527,8 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       _buildTag(
                         icon: Icons.lock_open,
                         label: 'FREE',
-                        color: const Color(0xFF69F0AE),
-                        bgColor: const Color(0xFF69F0AE).withOpacity(0.2),
+                        color: Color(0xFF69F0AE),
+                        bgColor: Color(0xFF69F0AE).withOpacity(0.2),
                       )
                     else
                       _buildTag(
@@ -502,8 +539,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                // Title
+                SizedBox(height: 10),
                 AppRichText.setTextPoppinsStyle(
                   context,
                   _currentQuiz!.Category_name,
@@ -517,19 +553,16 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
               ],
             ),
           ),
-
-          // ── Bottom section of header card ──
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Series / Course
                 if (_currentQuiz!.subscription_description.isNotEmpty) ...[
                   Row(
                     children: [
                       Icon(Icons.folder_open_outlined, size: 12, color: AppColors.greyS600),
-                      const SizedBox(width: 5),
+                      SizedBox(width: 5),
                       AppRichText.setTextPoppinsStyle(
                         context,
                         'Series / Course',
@@ -542,10 +575,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       ),
                     ],
                   ),
-                  const SizedBox(height: 5),
+                  SizedBox(height: 5),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
                       color: _mockPrimary.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(9),
@@ -553,8 +586,8 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.menu_book_rounded, size: 13, color: _mockAccent),
-                        const SizedBox(width: 7),
+                        Icon(Icons.menu_book_rounded, size: 13, color: _mockAccent),
+                        SizedBox(width: 7),
                         Expanded(
                           child: AppRichText.setTextPoppinsStyle(
                             context,
@@ -570,27 +603,25 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                 ],
-
-                // Attempted badge
                 if (_attempted)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8F5E9),
+                      color: Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF43A047).withOpacity(0.4)),
+                      border: Border.all(color: Color(0xFF43A047).withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 16),
-                        const SizedBox(width: 8),
+                        Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 16),
+                        SizedBox(width: 8),
                         Text(
                           'Aapne yeh test pehle attempt kiya hai',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF2E7D32)),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2E7D32)),
                         ),
                       ],
                     ),
@@ -605,30 +636,30 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   Widget _buildTag({required IconData icon, required String label, required Color color, required Color bgColor}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(7)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 10, color: color),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
           Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.3)),
         ],
       ),
     );
   }
 
-  // ─── STATS ROW ───────────────────────────────────────────────────────────────
+  // ─── STATS ROW ────────────────────────────────────────────────────────────
 
   Widget _buildStatsRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           _buildStatBox('❓', _currentQuiz?.totalQuestions.toString() ?? '—', 'Questions'),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           _buildStatBox('⏱️', _currentQuiz?.timeLimit.isEmpty == false ? _currentQuiz!.timeLimit : '—', 'Minutes'),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           _buildStatBox('🏆', _currentQuiz?.totalMarks.toString() ?? '—', 'Marks'),
         ],
       ),
@@ -638,19 +669,20 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
   Widget _buildStatBox(String emoji, String value, String label) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _mockPrimary.withOpacity(0.1)),
-          boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 10, offset: const Offset(0, 3))],
+          boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 10, offset: Offset(0, 3))],
         ),
         child: Column(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(height: 5),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _mockPrimary)),
-            const SizedBox(height: 2),
+            Text(emoji, style: TextStyle(fontSize: 20)),
+            SizedBox(height: 5),
+            Text('', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _mockPrimary)),
+            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _mockPrimary)),
+            SizedBox(height: 2),
             Text(label, style: TextStyle(fontSize: 9.5, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
           ],
         ),
@@ -658,40 +690,39 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── WHAT TO EXPECT ──────────────────────────────────────────────────────────
-  // Mock test mein kya alag milta hai — yeh section live detail mein nahi tha
+  // ─── EXPECT SECTION ───────────────────────────────────────────────────────
 
   Widget _buildExpectSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _mockPrimary.withOpacity(0.1)),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHead(Icons.featured_play_list_outlined, 'Mock Test Features'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
             children: [
               Expanded(child: _buildFeatureTile('🗂️', 'Question\nPalette', 'Jump to any question')),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(child: _buildFeatureTile('🔖', 'Mark for\nReview', 'Flag & revisit later')),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(child: _buildFeatureTile('⏸️', 'Pause &\nResume', 'Pick up where left')),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             children: [
               Expanded(child: _buildFeatureTile('📊', 'Detailed\nAnalysis', 'Topic-wise breakdown')),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(child: _buildFeatureTile('✏️', 'Change\nAnswers', 'Edit before submit')),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(child: _buildFeatureTile('📈', 'Track\nProgress', 'Compare attempts')),
             ],
           ),
@@ -702,7 +733,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   Widget _buildFeatureTile(String emoji, String title, String subtitle) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
         color: _mockPrimary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(10),
@@ -710,14 +741,14 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       ),
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 18)),
-          const SizedBox(height: 5),
+          Text(emoji, style: TextStyle(fontSize: 18)),
+          SizedBox(height: 5),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _mockPrimary, height: 1.3),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _mockPrimary, height: 1.3),
           ),
-          const SizedBox(height: 3),
+          SizedBox(height: 3),
           Text(
             subtitle,
             textAlign: TextAlign.center,
@@ -728,11 +759,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── BANNER AD ───────────────────────────────────────────────────────────────
+  // ─── BANNER AD ────────────────────────────────────────────────────────────
 
   Widget _buildBannerAd() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: SizedBox(
@@ -744,44 +775,37 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── TEST INFO SECTION (available) ───────────────────────────────────────────
-  // Schedule cards ki jagah yeh — mock test kab available hai
+  // ─── TEST INFO SECTION ────────────────────────────────────────────────────
 
   Widget _buildTestInfoSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHead(Icons.info_outline_rounded, 'Test Details', isGreen: false),
-          const SizedBox(height: 14),
-
-          // Availability
+          SizedBox(height: 14),
           _buildDetailRow(Icons.calendar_today_outlined, 'Available', 'Anytime — apni speed pe lo'),
-
           if (_currentQuiz!.startDateTime.isNotEmpty)
             _buildDetailRow(
               Icons.play_circle_outline,
               'Start Date',
               _formatDateTime(_currentQuiz!.startDateTime).split('  •  ').first,
             ),
-
           if (_currentQuiz!.endDateTime.isNotEmpty)
             _buildDetailRow(
               Icons.stop_circle_outlined,
               'End Date',
               _formatDateTime(_currentQuiz!.endDateTime).split('  •  ').first,
             ),
-
           if (_currentQuiz!.timeLimit.isNotEmpty)
             _buildDetailRow(Icons.timer_outlined, 'Duration', '${_currentQuiz!.timeLimit} Minutes'),
-
           _buildDetailRow(
             Icons.repeat_rounded,
             'Attempts',
@@ -794,169 +818,302 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   Widget _buildDetailRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(7),
+            padding: EdgeInsets.all(7),
             decoration: BoxDecoration(color: _mockPrimary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
             child: Icon(icon, color: _mockPrimary, size: 15),
           ),
-          const SizedBox(width: 11),
+          SizedBox(width: 11),
           Text(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _mockPrimary)),
+          Spacer(),
+          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _mockPrimary)),
         ],
       ),
     );
   }
 
-  // ─── SUBSCRIPTION SECTION ────────────────────────────────────────────────────
-  // Same design as live — sirf text mock-specific hai
+  // ─── SUBSCRIPTION SECTION — dynamic ──────────────────────────────────────
 
   Widget _buildSubscriptionSection() {
+    final error = _currentQuiz?.accessError ?? '';
+    if (error == 'upgrade_required') {
+      return _buildFreeUserSection();
+    } else {
+      return _buildPremiumSection();
+    }
+  }
+
+  // ─── FREE USER SECTION ────────────────────────────────────────────────────
+
+  Widget _buildFreeUserSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.18), blurRadius: 20, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.18), blurRadius: 20, offset: Offset(0, 6))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: Column(
           children: [
-            // Header
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [_mockPrimary, _mockSecondary],
-                ),
-              ),
-              child: Stack(
+              padding: EdgeInsets.all(18),
+              decoration: BoxDecoration(gradient: LinearGradient(colors: [_mockPrimary, _mockSecondary])),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Positioned(
-                    top: -15,
-                    right: -15,
-                    child: Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.07)),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF69F0AE).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Color(0xFF69F0AE).withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.lock_open, color: Color(0xFF69F0AE), size: 15),
+                        SizedBox(width: 6),
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Free Plan',
+                          12,
+                          Color(0xFF69F0AE),
+                          FontWeight.w700,
+                          1,
+                          TextAlign.left,
+                          0,
+                        ),
+                      ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _mockGold.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: _mockGold.withOpacity(0.4)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.workspace_premium, color: _mockGold, size: 15),
-                            const SizedBox(width: 6),
-                            AppRichText.setTextPoppinsStyle(
-                              context,
-                              'Premium Mock Test',
-                              12,
-                              _mockGold,
-                              FontWeight.w700,
-                              1,
-                              TextAlign.left,
-                              0,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Unlock Full Mock Test\nSeries Access',
-                        16,
-                        AppColors.white,
-                        FontWeight.w800,
-                        2,
-                        TextAlign.left,
-                        1.3,
-                      ),
-                      const SizedBox(height: 4),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Real exam pattern, unlimited practice',
-                        11,
-                        AppColors.white.withOpacity(0.7),
-                        FontWeight.w400,
-                        1,
-                        TextAlign.left,
-                        0,
-                      ),
-                    ],
+                  SizedBox(height: 12),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Is Mahine Ki\nLimit Khatam Ho Gayi!',
+                    16,
+                    AppColors.white,
+                    FontWeight.w800,
+                    2,
+                    TextAlign.left,
+                    1.3,
+                  ),
+                  SizedBox(height: 4),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Agle mahine phir 1 free attempt milega',
+                    11,
+                    AppColors.white.withOpacity(0.7),
+                    FontWeight.w400,
+                    1,
+                    TextAlign.left,
+                    0,
                   ),
                 ],
               ),
             ),
-
-            // Price Strip
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF5C6BC0), Color(0xFF3949AB)])),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              color: AppColors.white,
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '₹299',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      Text(
-                        '₹599  •  50% OFF',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white.withOpacity(0.7),
-                          decoration: TextDecoration.lineThrough,
-                          decorationColor: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Is mahine ka usage',
+                    12,
+                    AppColors.darkNavy,
+                    FontWeight.w700,
+                    1,
+                    TextAlign.left,
+                    0,
                   ),
+                  SizedBox(height: 12),
+                  _buildUsageRow(
+                    icon: Icons.assignment_outlined,
+                    label: 'Mock Test',
+                    used: 1,
+                    total: 1,
+                    color: Color(0xFFE53935),
+                  ),
+                  SizedBox(height: 10),
+                  _buildUsageRow(
+                    icon: Icons.quiz_outlined,
+                    label: 'Live Quiz',
+                    used: 1,
+                    total: 1,
+                    color: Color(0xFFE53935),
+                  ),
+                  SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(9),
+                      color: _mockPrimary.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _mockPrimary.withOpacity(0.2)),
                     ),
-                    child: Column(
+                    child: Row(
                       children: [
-                        const Text(
-                          '3 Months',
-                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                        Icon(Icons.workspace_premium, color: _mockPrimary, size: 18),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: AppRichText.setTextPoppinsStyle(
+                            context,
+                            'Basic plan lo — unlimited mock tests milenge apne course mein!',
+                            11,
+                            AppColors.darkNavy,
+                            FontWeight.w500,
+                            2,
+                            TextAlign.left,
+                            1.3,
+                          ),
                         ),
-                        Text('Full Access', style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 9)),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Benefits
+  Widget _buildUsageRow({
+    required IconData icon,
+    required String label,
+    required int used,
+    required int total,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(7),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(label, style: TextStyle(fontSize: 12, color: AppColors.darkNavy, fontWeight: FontWeight.w600)),
+                  Text('$used / $total', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700)),
+                ],
+              ),
+              SizedBox(height: 5),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: used / total,
+                  backgroundColor: color.withOpacity(0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                  minHeight: 6,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── PREMIUM SECTION ──────────────────────────────────────────────────────
+
+  Widget _buildPremiumSection() {
+    final error = _currentQuiz?.accessError ?? '';
+    final message =
+        error == 'plan_expired'
+            ? 'Aapka plan expire ho gaya!\nRenew karo aur access pao.'
+            : 'Ye mock test aapke current\ncourse mein nahi hai.';
+    final subtitle =
+        error == 'plan_expired' ? 'Plan renew karo — access wapas milega' : 'Premium lo — sab courses unlimited access';
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.18), blurRadius: 20, offset: Offset(0, 6))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [_mockPrimary, _mockSecondary],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _mockGold.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _mockGold.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.workspace_premium, color: _mockGold, size: 15),
+                        SizedBox(width: 6),
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Upgrade Required',
+                          12,
+                          _mockGold,
+                          FontWeight.w700,
+                          1,
+                          TextAlign.left,
+                          0,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    message,
+                    16,
+                    AppColors.white,
+                    FontWeight.w800,
+                    2,
+                    TextAlign.left,
+                    1.3,
+                  ),
+                  SizedBox(height: 4),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    subtitle,
+                    11,
+                    AppColors.white.withOpacity(0.7),
+                    FontWeight.w400,
+                    1,
+                    TextAlign.left,
+                    0,
+                  ),
+                ],
+              ),
+            ),
             Container(
               color: AppColors.white,
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(14),
               child: Column(
                 children: [
                   _buildBenefit(
@@ -965,21 +1122,21 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     'Real exam pattern ke saath unlimited practice',
                     _mockPrimary,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   _buildBenefit(
                     Icons.analytics_outlined,
                     'Detailed Performance Analysis',
                     'Topic-wise weak areas identify karo',
                     _mockAccent,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   _buildBenefit(
                     Icons.compare_arrows_rounded,
                     'Answers Compare & Review',
-                    'Galat answers ke solutions dekhो',
+                    'Galat answers ke solutions dekho',
                     _mockPrimary,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   _buildBenefit(
                     Icons.leaderboard_outlined,
                     'All India Rank',
@@ -997,20 +1154,20 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   Widget _buildBenefit(IconData icon, String title, String subtitle, Color color) {
     return Container(
-      padding: const EdgeInsets.all(11),
+      padding: EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F6FF),
+        color: Color(0xFFF5F6FF),
         borderRadius: BorderRadius.circular(11),
         border: Border.all(color: _mockPrimary.withOpacity(0.08)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(9)),
             child: Icon(icon, color: color, size: 16),
           ),
-          const SizedBox(width: 11),
+          SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1025,7 +1182,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   TextAlign.left,
                   0,
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 AppRichText.setTextPoppinsStyle(
                   context,
                   subtitle,
@@ -1045,22 +1202,22 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── DESCRIPTION CARD ────────────────────────────────────────────────────────
+  // ─── DESCRIPTION ──────────────────────────────────────────────────────────
 
   Widget _buildDescriptionCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHead(Icons.description_outlined, 'Description'),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           AppRichText.setTextPoppinsStyle(
             context,
             _currentQuiz!.description,
@@ -1076,24 +1233,24 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── INSTRUCTIONS CARD ────────────────────────────────────────────────────────
+  // ─── INSTRUCTIONS ─────────────────────────────────────────────────────────
 
   Widget _buildInstructionsCard() {
     final lines = _currentQuiz!.instruction.split('\n').where((l) => l.trim().isNotEmpty).toList();
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHead(Icons.format_list_bulleted_outlined, 'Instructions'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (lines.isEmpty)
             AppRichText.setTextPoppinsStyle(
               context,
@@ -1108,23 +1265,23 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
           else
             ...lines.asMap().entries.map(
               (e) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.only(bottom: 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       width: 20,
                       height: 20,
-                      margin: const EdgeInsets.only(top: 1),
+                      margin: EdgeInsets.only(top: 1),
                       decoration: BoxDecoration(color: _mockPrimary, borderRadius: BorderRadius.circular(5)),
                       child: Center(
                         child: Text(
                           '${e.key + 1}',
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: AppRichText.setTextPoppinsStyle(
                         context,
@@ -1146,24 +1303,22 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── IMPORTANT INFO ───────────────────────────────────────────────────────────
-  // Live mein "single attempt, wifi, leaderboard" tha
-  // Mock mein — alag aur zyada useful info
+  // ─── IMPORTANT INFO ───────────────────────────────────────────────────────
 
   Widget _buildImportantInfo() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(15),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.07), blurRadius: 14, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHead(Icons.info_outline_rounded, 'Zaroori Baatein', isGreen: false),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _buildInfoRow(Icons.touch_app_rounded, 'Sirf ek attempt allowed hai — dhyan se attempt karo'),
           _buildInfoRow(Icons.swap_horiz_rounded, 'Koi bhi question pe jaao — koi order nahi'),
           _buildInfoRow(Icons.bookmark_border_rounded, 'Review ke liye mark karo, submit se pehle wapas aao'),
@@ -1177,12 +1332,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   Widget _buildInfoRow(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: EdgeInsets.symmetric(vertical: 5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 14, color: _mockPrimary),
-          const SizedBox(width: 9),
+          SizedBox(width: 9),
           Expanded(
             child: AppRichText.setTextPoppinsStyle(
               context,
@@ -1200,24 +1355,24 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── SECTION HEAD ─────────────────────────────────────────────────────────────
+  // ─── SECTION HEAD ─────────────────────────────────────────────────────────
 
   Widget _buildSectionHead(IconData icon, String label, {bool isGreen = true}) {
     final Color headColor = isGreen ? _mockPrimary : _mockSecondary;
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(7),
+          padding: EdgeInsets.all(7),
           decoration: BoxDecoration(color: headColor.withOpacity(0.1), borderRadius: BorderRadius.circular(9)),
           child: Icon(icon, color: headColor, size: 15),
         ),
-        const SizedBox(width: 9),
+        SizedBox(width: 9),
         AppRichText.setTextPoppinsStyle(context, label, 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0),
       ],
     );
   }
 
-  // ─── BOTTOM BAR ──────────────────────────────────────────────────────────────
+  // ─── BOTTOM BAR ───────────────────────────────────────────────────────────
 
   Widget _buildBottomBar(bool canStart) {
     String btnLabel;
@@ -1232,7 +1387,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       onTap = () {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Aapne yeh test pehle attempt kar liya hai'),
+            content: Text('Aapne yeh test pehle attempt kar liya hai'),
             backgroundColor: Colors.grey.shade600,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1243,40 +1398,53 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       btnLabel = 'Start Mock Test';
       btnIcon = Icons.play_arrow_rounded;
       btnColors = [_mockPrimary, _mockSecondary];
-      onTap = () {
-        if (_isFree) {
-          rewardedAdService.showAd(() => _handleStartMockTest());
-        } else {
-          _handleStartMockTest();
-        }
-      };
+      onTap = _handleStartMockTest;
     } else {
-      btnLabel = 'Subscribe Now';
-      btnIcon = Icons.workspace_premium_rounded;
-      btnColors = [_mockPrimary, _mockAccent];
-      onTap = _handleSubscribe;
+      // access_error se button decide karo
+      final error = _currentQuiz?.accessError ?? '';
+      if (error == 'attempt_pending') {
+        btnLabel = 'Resume Attempt';
+        btnIcon = Icons.play_circle_outline;
+        btnColors = [_mockPrimary, _mockSecondary];
+        onTap = _navigateToMockTest;
+      } else if (error == 'plan_expired') {
+        btnLabel = 'Renew Plan';
+        btnIcon = Icons.refresh_rounded;
+        btnColors = [Colors.orange.shade600, Colors.orange.shade900];
+        onTap = _handleSubscribe;
+      } else if (error == 'upgrade_required') {
+        btnLabel = 'Activate Now';
+        btnIcon = Icons.workspace_premium_rounded;
+        btnColors = [_mockPrimary, _mockSecondary];
+        onTap = _handleSubscribe;
+      } else {
+        // course_mismatch
+        btnLabel = 'Upgrade to Premium';
+        btnIcon = Icons.workspace_premium_rounded;
+        btnColors = [_mockGold, _mockPrimary];
+        onTap = _handleSubscribe;
+      }
     }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.1), blurRadius: 18, offset: const Offset(0, -4))],
+        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.1), blurRadius: 18, offset: Offset(0, -4))],
       ),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Small hint text above button
             if (!_attempted && canStart)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.only(bottom: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.info_outline_rounded, size: 12, color: _mockPrimary.withOpacity(0.5)),
-                    const SizedBox(width: 5),
+                    SizedBox(width: 5),
                     Text(
                       'Timer shuru hoga test start hone ke baad',
                       style: TextStyle(fontSize: 10, color: _mockPrimary.withOpacity(0.6), fontWeight: FontWeight.w500),
@@ -1284,15 +1452,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   ],
                 ),
               ),
-
-            // Main CTA button
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: btnColors),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(color: btnColors.first.withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 5)),
-                ],
+                boxShadow: [BoxShadow(color: btnColors.first.withOpacity(0.35), blurRadius: 14, offset: Offset(0, 5))],
               ),
               child: Material(
                 color: Colors.transparent,
@@ -1300,12 +1464,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   borderRadius: BorderRadius.circular(14),
                   onTap: onTap,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: 16),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(btnIcon, color: Colors.white, size: 21),
-                        const SizedBox(width: 9),
+                        SizedBox(width: 9),
                         AppRichText.setTextPoppinsStyle(
                           context,
                           btnLabel,

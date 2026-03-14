@@ -5,11 +5,9 @@ import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/ads/rewarded_ad_service.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
-
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
-import 'package:tazaquiznew/screens/checkout.dart';
 import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
@@ -86,8 +84,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
-
+      print('Fetching quiz details with data: $data');
       final responseFuture = await authRepository.get_quizId_wise_details(data);
+      print('Quiz details response: ${responseFuture.data}');
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
@@ -95,7 +94,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           _currentQuiz = QuizItem.fromJson(responseData['data']);
           setState(() {
             _isPurchased = _currentQuiz!.isPurchased;
-            _isAccessible = widget.is_subscribed == true ? true : _currentQuiz!.isAccessible;
+            _isAccessible = _currentQuiz!.accessStatus;
             _attempted = _currentQuiz!.is_attempted;
             _isFree = _currentQuiz!.price == 0 || !_currentQuiz!.isPaid;
             _isLive = _currentQuiz!.isLive;
@@ -138,8 +137,24 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     return "${s}s";
   }
 
+  // ─── QUIZ START ───────────────────────────────────────────────────────────
+
   void _handleStartQuiz() {
     if (_currentQuiz == null) return;
+
+    if (!_currentQuiz!.accessStatus) {
+      _showAccessDialog();
+      return;
+    }
+
+    if (_isFree) {
+      rewardedAdService.showAd(() => _navigateToQuiz());
+    } else {
+      _navigateToQuiz();
+    }
+  }
+
+  void _navigateToQuiz() {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -153,26 +168,71 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
+  void _showAccessDialog() {
+    String message;
+    String buttonText;
+    bool showResume = false;
+
+    switch (_currentQuiz!.accessError) {
+      case 'attempt_pending':
+        message = 'Aapka ek attempt pending hai. Pehle use complete karo.';
+        buttonText = 'Resume Attempt';
+        showResume = true;
+        break;
+      case 'course_mismatch':
+        message = 'Sirf apne course ka quiz access kar sakte ho. Upgrade karo!';
+        buttonText = 'Upgrade Plan';
+        break;
+      case 'upgrade_required':
+        message = 'Is mahine ka attempt limit khatam ho gaya. Upgrade karo!';
+        buttonText = 'Activate Now';
+        break;
+      case 'plan_expired':
+        message = 'Aapka plan expire ho gaya. Renew karo!';
+        buttonText = 'Renew Plan';
+        break;
+      default:
+        message = _currentQuiz!.accessMessage ?? 'Access nahi hai.';
+        buttonText = 'Upgrade Plan';
+    }
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('Access Required', style: TextStyle(fontWeight: FontWeight.w800)),
+            content: Text(message, style: const TextStyle(fontSize: 13)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.tealGreen,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  if (showResume) {
+                    _navigateToQuiz();
+                  } else {
+                    _handleSubscribe();
+                  }
+                },
+                child: Text(buttonText),
+              ),
+            ],
+          ),
+    );
+  }
+
   void _handleSubscribe() {
     if (_currentQuiz == null) return;
-    // String susb_category;
-    // String send_product_id;
-    // if (_isPremium == 1) {
-    //   susb_category = 'QUIZ';
-    //   send_product_id = widget.quizId;
-    // } else {
-    //   susb_category = 'Subscription';
-    //   send_product_id = _product_sub_id.toString();
-    // }
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => PricingPage()),
-    ).then((value) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
       if (value == true) _getUserData();
     });
   }
 
-  // ─── STATUS HELPERS ──────────────────────────────────────────────────────────
+  // ─── STATUS HELPERS ───────────────────────────────────────────────────────
 
   Color _getStatusColor() {
     switch (_currentQuiz?.quizStatus.toLowerCase()) {
@@ -200,7 +260,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     }
   }
 
-  // ─── BUILD ───────────────────────────────────────────────────────────────────
+  // ─── BUILD ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -231,7 +291,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       );
     }
 
-    final bool canStartQuiz = _isPurchased || _isAccessible || _isFree;
+    // ── canStartQuiz ab accessStatus se ──
+    final bool canStartQuiz = _currentQuiz!.accessStatus;
     final bool isAvailable = _isLive && canStartQuiz;
 
     return Scaffold(
@@ -249,40 +310,30 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   children: [
                     const SizedBox(height: 14),
 
-                    // ── Status Banner ──
                     if (canStartQuiz) _buildStatusBanner(),
                     if (canStartQuiz) const SizedBox(height: 10),
 
-                    // ── Live Banner ──
                     if (_isLive && canStartQuiz) _buildLiveBanner(),
                     if (_isLive && canStartQuiz) const SizedBox(height: 10),
 
-                    // ── Course Info ──
                     _buildCourseInfo(),
                     const SizedBox(height: 10),
 
-                    // ── Quiz Header ──
                     _buildQuizHeader(),
                     const SizedBox(height: 10),
 
-                    // ── Stats Row ──
                     _buildStatsRow(),
                     const SizedBox(height: 10),
 
-                    // ── Banner Ad ──
                     if (isBannerLoaded && bannerService.bannerAd != null) _buildBannerAd(),
 
-                    // ── Main Section ──
                     if (!canStartQuiz) _buildSubscriptionSection() else _buildScheduleSection(),
                     const SizedBox(height: 10),
 
-                    // ── Description ──
                     if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 10)],
 
-                    // ── Instructions ──
                     if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), const SizedBox(height: 10)],
 
-                    // ── Info Card ──
                     _buildInfoCard(),
                   ],
                 ),
@@ -295,7 +346,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── APP BAR ─────────────────────────────────────────────────────────────────
+  // ─── APP BAR ──────────────────────────────────────────────────────────────
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
@@ -325,7 +376,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── STATUS BANNER ───────────────────────────────────────────────────────────
+  // ─── STATUS BANNER ────────────────────────────────────────────────────────
 
   Widget _buildStatusBanner() {
     String message;
@@ -399,7 +450,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── LIVE BANNER ─────────────────────────────────────────────────────────────
+  // ─── LIVE BANNER ──────────────────────────────────────────────────────────
 
   Widget _buildLiveBanner() {
     return Container(
@@ -469,11 +520,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── COURSE INFO ─────────────────────────────────────────────────────────────
+  // ─── COURSE INFO ──────────────────────────────────────────────────────────
 
   Widget _buildCourseInfo() {
-    // Material_name = label ke neeche dikhne wali value (e.g. "GK Intermediate - Set 2")
-    // Original code se same — koi variable change nahi
     final materialName = _currentQuiz?.Material_name ?? '';
     if (materialName.isEmpty) return const SizedBox.shrink();
 
@@ -513,7 +562,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 const SizedBox(height: 3),
                 AppRichText.setTextPoppinsStyle(
                   context,
-                  materialName, // ← sirf Material_name, original jaisa
+                  materialName,
                   13,
                   AppColors.darkNavy,
                   FontWeight.w700,
@@ -529,8 +578,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── DATETIME FORMATTER ──────────────────────────────────────────────────────
-  // "2026-03-12 10:00:00" → "12 Mar 2026  •  10:00 AM"
+  // ─── DATETIME FORMATTER ───────────────────────────────────────────────────
+
   String _formatDateTime(String raw) {
     try {
       final dt = DateTime.parse(raw.trim().replaceAll(' ', 'T'));
@@ -544,10 +593,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     }
   }
 
-  // ─── QUIZ HEADER ─────────────────────────────────────────────────────────────
+  // ─── QUIZ HEADER ──────────────────────────────────────────────────────────
 
   Widget _buildQuizHeader() {
-    // Original jaisa — Category_name card title mein, title appbar mein
     final quizTitle = _currentQuiz!.Category_name;
 
     return Container(
@@ -561,7 +609,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tags row
           Wrap(
             spacing: 7,
             runSpacing: 6,
@@ -584,8 +631,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             ],
           ),
           const SizedBox(height: 12),
-
-          // Quiz Title
           AppRichText.setTextPoppinsStyle(
             context,
             quizTitle,
@@ -598,7 +643,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           ),
           const SizedBox(height: 12),
 
-          // Series label + name
           if (_currentQuiz!.subscription_description.isNotEmpty) ...[
             Row(
               children: [
@@ -646,7 +690,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             ),
           ],
 
-          // Countdown — full width pill
           if (_remainingSeconds > 0) ...[
             const SizedBox(height: 12),
             Container(
@@ -705,7 +748,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── STATS ROW ───────────────────────────────────────────────────────────────
+  // ─── STATS ROW ────────────────────────────────────────────────────────────
 
   Widget _buildStatsRow() {
     return Padding(
@@ -744,7 +787,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── BANNER AD ───────────────────────────────────────────────────────────────
+  // ─── BANNER AD ────────────────────────────────────────────────────────────
 
   Widget _buildBannerAd() {
     return Padding(
@@ -760,9 +803,212 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── SUBSCRIPTION SECTION ────────────────────────────────────────────────────
+  // ─── SUBSCRIPTION SECTION — dynamic ──────────────────────────────────────
 
   Widget _buildSubscriptionSection() {
+    final error = _currentQuiz?.accessError ?? '';
+    if (error == 'upgrade_required') {
+      return _buildFreeUserSection();
+    } else {
+      return _buildPremiumSection();
+    }
+  }
+
+  // ─── FREE USER SECTION ────────────────────────────────────────────────────
+
+  Widget _buildFreeUserSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.18), blurRadius: 20, offset: const Offset(0, 6))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0B1340), Color(0xFF1a3a5c)])),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.tealGreen.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.lock_open, color: AppColors.tealGreen, size: 15),
+                        const SizedBox(width: 6),
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Free Plan',
+                          12,
+                          AppColors.tealGreen,
+                          FontWeight.w700,
+                          1,
+                          TextAlign.left,
+                          0,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Is Mahine Ki\nLimit Khatam Ho Gayi!',
+                    16,
+                    AppColors.white,
+                    FontWeight.w800,
+                    2,
+                    TextAlign.left,
+                    1.3,
+                  ),
+                  const SizedBox(height: 4),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Agle mahine phir 1 free attempt milega',
+                    11,
+                    AppColors.white.withOpacity(0.7),
+                    FontWeight.w400,
+                    1,
+                    TextAlign.left,
+                    0,
+                  ),
+                ],
+              ),
+            ),
+
+            // Usage + upgrade
+            Container(
+              color: AppColors.white,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'Is mahine ka usage',
+                    12,
+                    AppColors.darkNavy,
+                    FontWeight.w700,
+                    1,
+                    TextAlign.left,
+                    0,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildUsageRow(
+                    icon: Icons.assignment_outlined,
+                    label: 'Mock Test',
+                    used: 1,
+                    total: 1,
+                    color: const Color(0xFFE53935),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildUsageRow(
+                    icon: Icons.quiz_outlined,
+                    label: 'Live Quiz',
+                    used: 1,
+                    total: 1,
+                    color: const Color(0xFFE53935),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.tealGreen.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.workspace_premium, color: AppColors.tealGreen, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: AppRichText.setTextPoppinsStyle(
+                            context,
+                            'Basic plan lo — unlimited attempts milenge apne course mein!',
+                            11,
+                            AppColors.darkNavy,
+                            FontWeight.w500,
+                            2,
+                            TextAlign.left,
+                            1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsageRow({
+    required IconData icon,
+    required String label,
+    required int used,
+    required int total,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(label, style: TextStyle(fontSize: 12, color: AppColors.darkNavy, fontWeight: FontWeight.w600)),
+                  Text('$used / $total', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 5),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: used / total,
+                  backgroundColor: color.withOpacity(0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                  minHeight: 6,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── PREMIUM SECTION ──────────────────────────────────────────────────────
+
+  Widget _buildPremiumSection() {
+    final error = _currentQuiz?.accessError ?? '';
+    final message =
+        error == 'plan_expired'
+            ? 'Aapka plan expire ho gaya!\nRenew karo aur access pao.'
+            : 'Ye quiz aapke current\ncourse mein nahi hai.';
+    final subtitle =
+        error == 'plan_expired' ? 'Plan renew karo — access wapas milega' : 'Premium lo — sab courses unlimited access';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -784,118 +1030,55 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   colors: [Color(0xFF0B1340), Color(0xFF1a3a5c)],
                 ),
               ),
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Positioned(
-                    top: -15,
-                    right: -15,
-                    child: Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.tealGreen.withOpacity(0.1)),
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightGold.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.lightGold.withOpacity(0.4)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 15),
-                            const SizedBox(width: 6),
-                            AppRichText.setTextPoppinsStyle(
-                              context,
-                              'Premium Quiz',
-                              12,
-                              AppColors.lightGold,
-                              FontWeight.w700,
-                              1,
-                              TextAlign.left,
-                              0,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Unlock This Test &\nFull Test Series',
-                        16,
-                        AppColors.white,
-                        FontWeight.w800,
-                        2,
-                        TextAlign.left,
-                        1.3,
-                      ),
-                      const SizedBox(height: 4),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'One subscription, unlimited access',
-                        11,
-                        AppColors.white.withOpacity(0.7),
-                        FontWeight.w400,
-                        1,
-                        TextAlign.left,
-                        0,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Price Strip
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF00C9A7), Color(0xFF00a387)])),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '₹299',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      Text(
-                        '₹599  •  50% OFF',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white.withOpacity(0.7),
-                          decoration: TextDecoration.lineThrough,
-                          decorationColor: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(9),
+                      color: AppColors.lightGold.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.lightGold.withOpacity(0.4)),
                     ),
-                    child: Column(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          '3 Months',
-                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                        Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 15),
+                        const SizedBox(width: 6),
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Upgrade Required',
+                          12,
+                          AppColors.lightGold,
+                          FontWeight.w700,
+                          1,
+                          TextAlign.left,
+                          0,
                         ),
-                        Text('Full Access', style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 9)),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    message,
+                    16,
+                    AppColors.white,
+                    FontWeight.w800,
+                    2,
+                    TextAlign.left,
+                    1.3,
+                  ),
+                  const SizedBox(height: 4),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    subtitle,
+                    11,
+                    AppColors.white.withOpacity(0.7),
+                    FontWeight.w400,
+                    1,
+                    TextAlign.left,
+                    0,
                   ),
                 ],
               ),
@@ -993,7 +1176,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── SCHEDULE SECTION ────────────────────────────────────────────────────────
+  // ─── SCHEDULE SECTION ─────────────────────────────────────────────────────
 
   Widget _buildScheduleSection() {
     return Container(
@@ -1009,8 +1192,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         children: [
           _buildSectionHead(Icons.access_time_rounded, 'Quiz Schedule', isGreen: true),
           const SizedBox(height: 14),
-
-          // Start time card
           _buildScheduleCard(
             icon: Icons.play_circle_outline_rounded,
             label: 'Starts At',
@@ -1018,10 +1199,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             color: AppColors.tealGreen,
             bgColor: AppColors.tealGreen.withOpacity(0.07),
           ),
-
           if (_currentQuiz!.endDateTime.isNotEmpty) ...[
             const SizedBox(height: 10),
-            // End time card
             _buildScheduleCard(
               icon: Icons.stop_circle_outlined,
               label: 'Ends At',
@@ -1030,10 +1209,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               bgColor: const Color(0xFFE53935).withOpacity(0.06),
             ),
           ],
-
           if (_currentQuiz!.timeLimit.isNotEmpty) ...[
             const SizedBox(height: 10),
-            // Duration card
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
@@ -1095,7 +1272,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     required Color bgColor,
   }) {
     String formatted = _formatDateTime(rawDateTime);
-    // Split into date and time parts for better display
     List<String> parts = formatted.split('  •  ');
     String datePart = parts.isNotEmpty ? parts[0] : formatted;
     String timePart = parts.length > 1 ? parts[1] : '';
@@ -1155,48 +1331,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 13, color: AppColors.tealGreen),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  label,
-                  11,
-                  AppColors.greyS600,
-                  FontWeight.w500,
-                  1,
-                  TextAlign.left,
-                  0,
-                ),
-                Flexible(
-                  child: AppRichText.setTextPoppinsStyle(
-                    context,
-                    value,
-                    11,
-                    AppColors.darkNavy,
-                    FontWeight.w700,
-                    1,
-                    TextAlign.right,
-                    0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── DESCRIPTION ─────────────────────────────────────────────────────────────
+  // ─── DESCRIPTION ──────────────────────────────────────────────────────────
 
   Widget _buildDescriptionCard() {
     return Container(
@@ -1227,7 +1362,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── INSTRUCTIONS ────────────────────────────────────────────────────────────
+  // ─── INSTRUCTIONS ─────────────────────────────────────────────────────────
 
   Widget _buildInstructionsCard() {
     return Container(
@@ -1318,7 +1453,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         .trim();
   }
 
-  // ─── INFO CARD ───────────────────────────────────────────────────────────────
+  // ─── INFO CARD ────────────────────────────────────────────────────────────
 
   Widget _buildInfoCard() {
     return Container(
@@ -1366,15 +1501,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── BOTTOM BAR ──────────────────────────────────────────────────────────────
+  // ─── BOTTOM BAR ───────────────────────────────────────────────────────────
 
   Widget _buildBottomBar(bool canStartQuiz, bool isAvailable) {
-    // ── UPCOMING (canStart but not live yet) → show countdown + Remind Me ──
     if (!_attempted && canStartQuiz && !isAvailable && _remainingSeconds > 0) {
       return _buildRemindMeBar();
     }
 
-    // Button config for other states
     String btnLabel;
     IconData btnIcon;
     List<Color> btnColors;
@@ -1391,11 +1524,30 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       btnColors = [Colors.red.shade600, Colors.red.shade900];
       shadowColors = [Colors.red.withOpacity(0.35)];
     } else {
-      // Not accessible → Subscribe
-      btnLabel = 'Subscribe Now';
-      btnIcon = Icons.workspace_premium_rounded;
-      btnColors = [AppColors.tealGreen, AppColors.darkNavy];
-      shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
+      // access_error se button decide karo
+      final error = _currentQuiz?.accessError ?? '';
+      if (error == 'attempt_pending') {
+        btnLabel = 'Resume Attempt';
+        btnIcon = Icons.play_circle_outline;
+        btnColors = [AppColors.tealGreen, AppColors.darkNavy];
+        shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
+      } else if (error == 'plan_expired') {
+        btnLabel = 'Renew Plan';
+        btnIcon = Icons.refresh_rounded;
+        btnColors = [Colors.orange.shade600, Colors.orange.shade900];
+        shadowColors = [Colors.orange.withOpacity(0.3)];
+      } else if (error == 'upgrade_required') {
+        btnLabel = 'Activate Now';
+        btnIcon = Icons.workspace_premium_rounded;
+        btnColors = [AppColors.tealGreen, AppColors.darkNavy];
+        shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
+      } else {
+        // course_mismatch ya default
+        btnLabel = 'Upgrade to Premium';
+        btnIcon = Icons.workspace_premium_rounded;
+        btnColors = [AppColors.lightGold, AppColors.darkNavy];
+        shadowColors = [AppColors.lightGold.withOpacity(0.3)];
+      }
     }
 
     return Container(
@@ -1429,13 +1581,15 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   return;
                 }
                 if (isAvailable) {
-                  if (_isFree) {
-                    rewardedAdService.showAd(() => _handleStartQuiz());
-                  } else {
-                    _handleStartQuiz();
-                  }
+                  _handleStartQuiz();
                 } else {
-                  _handleSubscribe();
+                  // access error se handle
+                  final error = _currentQuiz?.accessError ?? '';
+                  if (error == 'attempt_pending') {
+                    _navigateToQuiz();
+                  } else {
+                    _handleSubscribe();
+                  }
                 }
               },
               child: Padding(
@@ -1477,7 +1631,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── Timer row ──
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -1510,10 +1663,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 ],
               ),
             ),
-
             const SizedBox(height: 10),
-
-            // ── Remind Me full-width button ──
             Container(
               width: double.infinity,
               decoration: BoxDecoration(

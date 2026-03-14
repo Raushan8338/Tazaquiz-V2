@@ -78,16 +78,16 @@ class QuizItem {
     bool _toBool(dynamic v) => v == true || v == 1 || v == '1';
 
     return QuizItem(
-      quizId: json['quizId']?.toString() ?? '',
+      quizId: json['quiz_id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       banner: json['banner']?.toString(),
       startDateTime: json['startDateTime']?.toString() ?? '',
       endDateTime: json['endDateTime']?.toString() ?? '',
-      timeLimit: json['timeLimit']?.toString() ?? '',
-      difficultyLevel: json['difficultyLevel']?.toString() ?? '',
+      timeLimit: json['time_limit']?.toString() ?? '',
+      difficultyLevel: json['difficulty_level']?.toString() ?? '',
       instruction: json['instruction']?.toString() ?? '',
-      quizStatus: json['quizStatus']?.toString() ?? 'upcoming',
+      quizStatus: json['quiz_status']?.toString() ?? 'upcoming',
       is_attempted: _toBool(json['is_attempted']),
       subscription_id: _toInt(json['subscription_id']),
       isPaid: _toBool(json['isPaid']),
@@ -109,9 +109,7 @@ class QuizItem {
       accessStatus: _toBool(json['access_status'] ?? true),
       accessError: json['access_error']?.toString(),
       accessMessage: json['access_message']?.toString(),
-      pendingAttemptId: json['pending_attempt_id'] != null
-          ? _toInt(json['pending_attempt_id'])
-          : null,
+      pendingAttemptId: json['pending_attempt_id'] != null ? _toInt(json['pending_attempt_id']) : null,
     );
   }
 

@@ -613,53 +613,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                         // Enroll Now Button
                         Expanded(
                           flex: 3,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => BuyCoursePage(
-                                        contentId: material.materialId.toString(),
-                                        page_API_call: 'STUDY',
-                                      ),
-                                ),
-                              );
-
-                              // Navigator.push(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder:
-                              //         (context) =>
-                              //             CheckoutPage(contentType: 'STUDY', contentId: material.materialId.toString()),
-                              //   ),
-                              // );
-
-                              // Navigator.push(context, MaterialPageRoute(builder: (context) => CheckoutPage()));
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.transparent,
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.shopping_bag_rounded, size: 18, color: AppColors.white),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Enroll Now',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.white,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ).decorated(
+                          child: Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [AppColors.tealGreen, AppColors.darkNavy],
@@ -675,6 +629,43 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                                 ),
                               ],
                             ),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => BuyCoursePage(
+                                          contentId: material.materialId.toString(),
+                                          page_API_call: 'STUDY',
+                                        ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.shopping_bag_rounded, size: 18, color: AppColors.white),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Enroll Now',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -683,59 +674,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                     // Free Preview Button
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (material.is_premium == 0 && material.isAccessible == false) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => BuyCoursePage(
-                                      contentId: material.materialId.toString(),
-                                      page_API_call: 'STUDY',
-                                    ),
-                              ),
-                            );
-                          } else {
-                            if (material.contentType != 'Video') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title),
-                                ),
-                              );
-                            } else {
-                              launchUrl(Uri.parse(material.filePath));
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.transparent,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
-                            SizedBox(width: 8),
-                            Text(
-                              (material.isAccessible == true)
-                                  ? 'Start Learning'
-                                  : (material.is_premium == 0)
-                                  ? 'SUBSCRIBE NOW'
-                                  : 'Start Learning',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ).decorated(
+                      child: Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [AppColors.darkNavy, AppColors.tealGreen],
@@ -746,6 +685,61 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                           boxShadow: [
                             BoxShadow(color: AppColors.darkNavy.withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4)),
                           ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (material.is_premium == 0 && material.isAccessible == false) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => BuyCoursePage(
+                                        contentId: material.materialId.toString(),
+                                        page_API_call: 'STUDY',
+                                      ),
+                                ),
+                              );
+                            } else {
+                              if (material.contentType != 'Video') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title),
+                                  ),
+                                );
+                              } else {
+                                launchUrl(Uri.parse(material.filePath));
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
+                              SizedBox(width: 8),
+                              Text(
+                                (material.isAccessible == true)
+                                    ? 'Start Learning'
+                                    : (material.is_premium == 0)
+                                    ? 'SUBSCRIBE NOW'
+                                    : 'Start Learning',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

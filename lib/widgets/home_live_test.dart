@@ -150,6 +150,8 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
 
               return GestureDetector(
                 onTap: () {
+                  print('Tapped on quiz: ${quiz.title}');
+                  print('Quiz ID: ${quiz.quizId}');
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: false)),

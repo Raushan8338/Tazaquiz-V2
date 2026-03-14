@@ -24,7 +24,7 @@ class OTPBasedVerificationPage extends StatefulWidget {
     required this.name,
     required this.email,
     this.referalCode,
-    required this.pageId
+    required this.pageId,
   });
 
   @override
@@ -78,6 +78,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
     try {
       final data = {'phone': widget.phoneNumber, 'email': '', 'device_id': 'sd', 'androidInfo': 'android'};
       final response = await authRepository.loginUser(data);
+
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -139,19 +140,18 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
 
       final responseFuture = await authRepository.signupVerifyOTP(data);
 
+      print('Signup Response: ${responseFuture.data}');
+
       if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);
         final userJson = responseFuture.data['series'];
         final user = UserModel.fromJson(userJson);
         await SessionManager.saveUser(user);
-         if(widget.pageId == 0){
-             Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId:1)));
-         }
-         else {
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
-
-         }
-        
+        if (widget.pageId == 0) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId: 1)));
+        } else {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
+        }
       } else {
         setState(() => _isLoading = false);
 
