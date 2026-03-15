@@ -5,6 +5,7 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/utils/richText.dart';
@@ -29,21 +30,24 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   Map<String, dynamic> _currentQuestionData = {};
 
   // ── Mock-specific State ─────────────────────────────────────────────────────
-  // Per question saved answers (index → selected option index)
   Map<int, int> _savedAnswers = {};
-  // Mark for review (index → bool)
   Map<int, bool> _markedForReview = {};
-  // Visited questions
   Set<int> _visitedQuestions = {};
 
   // ── Total Timer ─────────────────────────────────────────────────────────────
-  int _totalSeconds = 0; // set from API timeLimit
+  int _totalSeconds = 0;
   Timer? _testTimer;
   bool _isPaused = false;
 
   // ── UI State ────────────────────────────────────────────────────────────────
-  int? _selectedOption; // current selected (not yet saved)
+  int? _selectedOption;
   bool _isLoading = true;
+
+  // ── Submit Progress State ────────────────────────────────────────────────────
+  bool _isSubmitting = false;
+  double _submitProgress = 0.0;
+  String _submitStatusText = 'Preparing submission...';
+  int _submittedCount = 0;
 
   // ── Animation ───────────────────────────────────────────────────────────────
   late AnimationController _animationController;
@@ -85,7 +89,17 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     _questions = apiResponse['questions'] ?? [];
     totalQuestions = _questions.length;
 
-    // timeLimit from API (in minutes) → seconds
+    // ✅ DEBUG: Print full structure of first question to see exact keys
+    if (_questions.isNotEmpty) {
+      print('=== FULL QUESTION[0] STRUCTURE ===');
+      print(jsonEncode(_questions[0]));
+      final List firstAnswers = _questions[0]['answers'] ?? [];
+      if (firstAnswers.isNotEmpty) {
+        print('=== ANSWER[0] KEYS: ${(firstAnswers[0] as Map).keys.toList()}');
+        print('=== ANSWER[0] DATA: ${jsonEncode(firstAnswers[0])}');
+      }
+    }
+
     int timeLimitMinutes = int.tryParse(apiResponse['time_limit']?.toString() ?? '30') ?? 30;
     _totalSeconds = timeLimitMinutes * 60;
 
@@ -115,10 +129,20 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         'attempt_id': question['attempt_id'] ?? 0,
         'question_ans_id': question['question_ans_id'] ?? 0,
         'question_id': question['question_id'] ?? 0,
-        // store all answer ids for submission
-        'answer_ids': answers.map((a) => a['id']).toList(),
+        // ✅ FIX: Try all possible key names for answer id
+        'answer_ids':
+            answers.map((a) {
+              final id =
+                  a['id'] ??
+                  a['answer_id'] ??
+                  a['ans_id'] ??
+                  a['ID'] ??
+                  a['answerId'] ??
+                  a['optionId'] ??
+                  a['option_id'];
+              return id?.toString() ?? '0';
+            }).toList(),
       };
-      // Restore previously saved answer for this question
       _selectedOption = _savedAnswers[index];
     });
   }
@@ -162,11 +186,16 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   void _saveAndNext() {
-    // Save current answer locally
     if (_selectedOption != null) {
       _savedAnswers[_currentQuestion] = _selectedOption!;
     }
-    _goToQuestion(_currentQuestion + 1);
+    // ✅ FIX: Last question pe Save karne ke baad submit dialog show karo
+    if (_currentQuestion == totalQuestions - 1) {
+      setState(() {});
+      _showFinalSubmitDialog();
+    } else {
+      _goToQuestion(_currentQuestion + 1);
+    }
   }
 
   void _saveCurrent() {
@@ -197,11 +226,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
   // ── Question Status ───────────────────────────────────────────────────────────
 
-  // 0 = not visited (grey)
-  // 1 = answered (green)
-  // 2 = marked for review (orange)
-  // 3 = answered + marked (purple)
-  // 4 = visited but not answered (red)
   int _questionStatus(int index) {
     bool answered = _savedAnswers.containsKey(index);
     bool marked = _markedForReview[index] == true;
@@ -234,55 +258,79 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   void _finalSubmit() async {
     _testTimer?.cancel();
 
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (_) => Center(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(16)),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(color: AppColors.tealGreen),
-                  const SizedBox(height: 16),
-                  Text('Submitting test...', style: TextStyle(color: AppColors.darkNavy, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-          ),
-    );
+    // Show full-screen animated progress overlay
+    setState(() {
+      _isSubmitting = true;
+      _submitProgress = 0.0;
+      _submittedCount = 0;
+      _submitStatusText = 'Preparing submission...';
+    });
 
     Authrepository authRepository = Authrepository(Api_Client.dio);
 
-    // Submit each answered question
+    // Small delay to let the overlay render smoothly
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    // Submit each answered question with progress tracking
     for (int i = 0; i < totalQuestions; i++) {
       final question = _questions[i];
       final List answers = question['answers'] ?? [];
       final int savedAnswer = _savedAnswers[i] ?? -1;
       final int correctIndex = answers.indexWhere((ans) => ans['is_correct'] == true);
-      final bool isCorrect = savedAnswer == correctIndex && savedAnswer != -1;
+      final bool isCorrect = savedAnswer != -1 && savedAnswer == correctIndex;
       final int points = question['points'] ?? 0;
+
+      // ✅ FIX: answer_id directly from pre-parsed answer_ids list
+      String answerId = '0';
+      if (savedAnswer != -1 && savedAnswer < answers.length) {
+        final ans = answers[savedAnswer] as Map;
+        final ansId =
+            ans['id'] ??
+            ans['answer_id'] ??
+            ans['ans_id'] ??
+            ans['ID'] ??
+            ans['answerId'] ??
+            ans['optionId'] ??
+            ans['option_id'];
+        answerId = (ansId != null) ? ansId.toString() : '0';
+        print('=== Q$i ans keys: ${ans.keys.toList()} | answerId resolved: $answerId');
+      }
 
       final data = {
         'attempt_id': (question['attempt_id'] ?? 0).toString(),
         'question_id': (question['question_id'] ?? 0).toString(),
-        'answer_id': savedAnswer != -1 ? (answers[savedAnswer]['id'] ?? 0).toString() : '0',
+        'answer_id': answerId,
         'score': (isCorrect ? points : 0).toString(),
         'is_correct': isCorrect ? '1' : '0',
-        'time_spent': '0',
+        'time_spent': '1',
       };
 
+      print('Submitting Q$i → answer_id: $answerId | is_correct: ${isCorrect ? "1" : "0"} | all data: $data');
+
       try {
-        await authRepository.submitQuizAnswers(data);
+        var response = await authRepository.submitQuizAnswers(data);
+        print('Response Q$i: ${response.data}');
       } catch (e) {
-        print('Error submitting question $i: $e');
+        print('Error Q$i: $e');
       }
+
+      // Update progress after each question
+      setState(() {
+        _submittedCount = i + 1;
+        _submitProgress = (i + 1) / totalQuestions;
+        _submitStatusText = 'Submitting question ${i + 1} of $totalQuestions...';
+      });
+
+      // Small delay between submissions to avoid rate limiting
+      await Future.delayed(const Duration(milliseconds: 80));
     }
 
-    // Final submit API
+    // Final submit step
+    setState(() {
+      _submitProgress = 0.95;
+      _submitStatusText = 'Finalizing your result...';
+    });
+
     final lastQuestion = _questions[totalQuestions - 1];
     int totalScore = 0;
     _savedAnswers.forEach((qIndex, aIndex) {
@@ -294,39 +342,48 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
     final finalData = {'attempt_id': (lastQuestion['attempt_id'] ?? 0).toString(), 'Passingscore': '$totalScore'};
 
+    print('Final submit data: $finalData');
+
     try {
       final responseData = await authRepository.finalSubmitQuiz(finalData);
       final resultRes = jsonDecode(responseData.data);
+      print('Final submit response: $resultRes');
 
-      if (mounted) Navigator.pop(context); // close loading
+      // Complete the progress bar
+      setState(() {
+        _submitProgress = 1.0;
+        _submitStatusText = 'Test submitted successfully!';
+      });
 
-      int correctScore = int.tryParse(resultRes['score'].toString()) ?? 0;
+      await Future.delayed(const Duration(milliseconds: 700));
+
       int correctCount = int.tryParse(resultRes['correctCount'].toString()) ?? 0;
       int total = int.tryParse(resultRes['total_question'].toString()) ?? 0;
-      int totalMarks = int.tryParse(resultRes['totalMarks'].toString()) ?? 0;
-      int wrongQuestions = int.tryParse(resultRes['wrongQuestions'].toString()) ?? 0;
-      int skipped = total - _savedAnswers.length;
-      double accuracy = total > 0 ? (correctCount / total) * 100 : 0;
 
       if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder:
-              (_) => _buildResultDialog(
-                correctScore: correctScore,
-                correctCount: correctCount,
-                totalQuestions: total,
-                wrongQuestions: wrongQuestions,
-                totalMarks: totalMarks,
-                skipped: skipped,
-                accuracy: accuracy,
-              ),
+        setState(() => _isSubmitting = false);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => QuizReviewPage(
+                  attemptId: int.tryParse(lastQuestion['attempt_id'].toString()) ?? 0,
+                  userId: int.tryParse(_user!.id.toString()) ?? 0,
+                  quizTitle: widget.testTitle,
+                  pageType: 4,
+                ),
+          ),
         );
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
       print('Error in final submit: $e');
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Submission failed. Please try again.'), backgroundColor: AppColors.red));
+      }
     }
   }
 
@@ -364,29 +421,216 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.greyS1,
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildProgressBar(),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 10),
-                  _buildQuestionCard(),
-                  _buildOptionsSection(),
-                  _buildActionButtons(),
-                  const SizedBox(height: 20),
-                ],
+    return Stack(
+      children: [
+        // ── Main Quiz Screen ─────────────────────────────────────────────────
+        Scaffold(
+          backgroundColor: AppColors.greyS1,
+          body: Column(
+            children: [
+              _buildHeader(),
+              _buildProgressBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      _buildQuestionCard(),
+                      _buildOptionsSection(),
+                      _buildActionButtons(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
               ),
+              _buildBottomNav(),
+            ],
+          ),
+        ),
+
+        // ── Animated Submit Overlay ───────────────────────────────────────────
+        if (_isSubmitting) _buildSubmitOverlay(),
+      ],
+    );
+  }
+
+  // ─── ANIMATED SUBMIT OVERLAY ──────────────────────────────────────────────────
+
+  Widget _buildSubmitOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.6),
+      width: double.infinity,
+      height: double.infinity,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.darkNavy,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 30, offset: const Offset(0, 10))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.tealGreen.withOpacity(0.15),
+                    border: Border.all(color: AppColors.tealGreen.withOpacity(0.5), width: 2),
+                  ),
+                  child:
+                      _submitProgress >= 1.0
+                          ? Icon(Icons.check_rounded, color: AppColors.tealGreen, size: 34)
+                          : Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: CircularProgressIndicator(value: null, color: AppColors.tealGreen, strokeWidth: 2.5),
+                          ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Title
+                Text(
+                  _submitProgress >= 1.0 ? 'Test Submitted!' : 'Submitting Test',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
+                ),
+
+                const SizedBox(height: 6),
+
+                // Status text
+                Text(
+                  _submitStatusText,
+                  style: TextStyle(fontSize: 12, color: AppColors.white.withOpacity(0.55), fontWeight: FontWeight.w400),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 20),
+
+                // Count row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Questions submitted',
+                      style: TextStyle(fontSize: 12, color: AppColors.white.withOpacity(0.55)),
+                    ),
+                    Text(
+                      '$_submittedCount / $totalQuestions',
+                      style: TextStyle(fontSize: 13, color: AppColors.tealGreen, fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // ✅ Progress bar with LayoutBuilder
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final barWidth = constraints.maxWidth;
+                    return Stack(
+                      children: [
+                        Container(
+                          height: 10,
+                          width: barWidth,
+                          decoration: BoxDecoration(
+                            color: AppColors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                          height: 10,
+                          width: barWidth * _submitProgress.clamp(0.0, 1.0),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [AppColors.tealGreen, Color(0xFF00E5CC)]),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [BoxShadow(color: AppColors.tealGreen.withOpacity(0.5), blurRadius: 8)],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+                // Percentage
+                Text(
+                  '${(_submitProgress * 100).toInt()}% complete',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Stats row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildOverlayStat(
+                      '${_savedAnswers.length}',
+                      'Answered',
+                      Icons.check_circle_outline,
+                      AppColors.tealGreen,
+                    ),
+                    _buildOverlayDivider(),
+                    _buildOverlayStat(
+                      '${totalQuestions - _savedAnswers.length}',
+                      'Skipped',
+                      Icons.radio_button_unchecked,
+                      AppColors.orange,
+                    ),
+                    _buildOverlayDivider(),
+                    _buildOverlayStat(
+                      '${_markedForReview.values.where((v) => v).length}',
+                      'Marked',
+                      Icons.bookmark_outline,
+                      AppColors.lightGold,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                Text(
+                  'Please do not close the app',
+                  style: TextStyle(fontSize: 10, color: AppColors.white.withOpacity(0.3)),
+                ),
+              ],
             ),
           ),
-          _buildBottomNav(),
-        ],
+        ),
       ),
     );
+  }
+
+  Widget _buildOverlayStat(String value, String label, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(height: 5),
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.white)),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: AppColors.white.withOpacity(0.5), fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOverlayDivider() {
+    return Container(height: 36, width: 1, color: AppColors.white.withOpacity(0.1));
   }
 
   // ─── HEADER ──────────────────────────────────────────────────────────────────
@@ -400,7 +644,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       ),
       child: Row(
         children: [
-          // Close button
           GestureDetector(
             onTap: _showExitDialog,
             child: Container(
@@ -413,8 +656,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ),
           ),
           const SizedBox(width: 12),
-
-          // Title + subject
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,7 +675,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   children: [
                     Text(widget.subject, style: TextStyle(fontSize: 11, color: AppColors.lightGold)),
                     const SizedBox(width: 8),
-                    // MOCK badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
@@ -464,8 +704,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
               ],
             ),
           ),
-
-          // Timer
           ScaleTransition(
             scale: _totalSeconds <= 60 ? _pulseAnimation : const AlwaysStoppedAnimation(1.0),
             child: Container(
@@ -477,7 +715,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
               ),
               child: Row(
                 children: [
-                  // Pause/Resume
                   GestureDetector(
                     onTap: () => setState(() => _isPaused = !_isPaused),
                     child: Icon(_isPaused ? Icons.play_arrow : Icons.pause, color: AppColors.white, size: 16),
@@ -527,7 +764,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 TextAlign.left,
                 0.0,
               ),
-              // Stats pills
               Row(
                 children: [
                   _buildMiniPill(
@@ -602,7 +838,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         children: [
           Row(
             children: [
-              // Subject tag
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
@@ -627,7 +862,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(width: 8),
-              // Points tag
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
@@ -652,7 +886,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 ),
               ),
               const Spacer(),
-              // Marked for review indicator
               if (isMarked)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -712,12 +945,10 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     Color letterBgColor = AppColors.greyS1;
 
     if (isSelected && !isSaved) {
-      // Just selected, not yet saved
       backgroundColor = AppColors.lightGold.withOpacity(0.12);
       borderColor = AppColors.lightGold;
       letterBgColor = AppColors.lightGold;
     } else if (isSaved) {
-      // Saved answer
       backgroundColor = AppColors.tealGreen.withOpacity(0.08);
       borderColor = AppColors.tealGreen;
       letterBgColor = AppColors.tealGreen;
@@ -744,7 +975,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         ),
         child: Row(
           children: [
-            // Letter circle
             Container(
               width: 34,
               height: 34,
@@ -763,7 +993,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
               ),
             ),
             const SizedBox(width: 12),
-            // Option text
             Expanded(
               child: AppRichText.setTextPoppinsStyle(
                 context,
@@ -776,7 +1005,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 0.0,
               ),
             ),
-            // Saved tick
             if (isSaved)
               Container(
                 padding: const EdgeInsets.all(5),
@@ -800,10 +1028,8 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
         children: [
-          // Row 1: Mark for Review + Clear
           Row(
             children: [
-              // Mark for review
               Expanded(
                 child: GestureDetector(
                   onTap: _toggleMarkForReview,
@@ -837,7 +1063,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(width: 10),
-              // Clear answer
               GestureDetector(
                 onTap: isSaved || hasSelection ? _clearAnswer : null,
                 child: Container(
@@ -873,19 +1098,20 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ],
           ),
           const SizedBox(height: 10),
-
-          // Row 2: Save & Next button
           GestureDetector(
-            onTap: hasSelection ? _saveAndNext : null,
+            onTap: (hasSelection || isSaved) ? _saveAndNext : null,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                gradient: hasSelection ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
-                color: hasSelection ? null : AppColors.greyS200,
+                gradient:
+                    (hasSelection || isSaved)
+                        ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy])
+                        : null,
+                color: (hasSelection || isSaved) ? null : AppColors.greyS200,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow:
-                    hasSelection
+                    (hasSelection || isSaved)
                         ? [
                           BoxShadow(
                             color: AppColors.tealGreen.withOpacity(0.3),
@@ -899,16 +1125,16 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.check_circle_outline,
-                    color: hasSelection ? AppColors.white : AppColors.greyS500,
+                    _currentQuestion == totalQuestions - 1 ? Icons.send_rounded : Icons.check_circle_outline,
+                    color: (hasSelection || isSaved) ? AppColors.white : AppColors.greyS500,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    _currentQuestion == totalQuestions - 1 ? 'Save Answer' : 'Save & Next',
+                    _currentQuestion == totalQuestions - 1 ? 'Save & Submit' : 'Save & Next',
                     14,
-                    hasSelection ? AppColors.white : AppColors.greyS500,
+                    (hasSelection || isSaved) ? AppColors.white : AppColors.greyS500,
                     FontWeight.w700,
                     1,
                     TextAlign.left,
@@ -939,7 +1165,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       ),
       child: Row(
         children: [
-          // Previous
           _buildNavButton(
             icon: Icons.arrow_back_ios_rounded,
             label: 'Prev',
@@ -948,8 +1173,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             isOutline: true,
           ),
           const SizedBox(width: 10),
-
-          // Question Palette
           Expanded(
             child: GestureDetector(
               onTap: _showQuestionPalette,
@@ -981,8 +1204,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ),
           ),
           const SizedBox(width: 10),
-
-          // Submit / Next
           if (canGoNext)
             _buildNavButton(
               icon: Icons.arrow_forward_ios_rounded,
@@ -1082,14 +1303,12 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             builder:
                 (_, scrollController) => Column(
                   children: [
-                    // Handle
                     Container(
                       margin: const EdgeInsets.only(top: 10, bottom: 6),
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(color: AppColors.greyS300, borderRadius: BorderRadius.circular(2)),
                     ),
-                    // Title
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       child: Row(
@@ -1112,7 +1331,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                         ],
                       ),
                     ),
-                    // Legend
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                       child: Wrap(
@@ -1128,7 +1346,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                       ),
                     ),
                     const Divider(height: 1),
-                    // Grid
                     Expanded(
                       child: GridView.builder(
                         controller: scrollController,
@@ -1186,7 +1403,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                         },
                       ),
                     ),
-                    // Submit button
                     Padding(
                       padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom + 16),
                       child: GestureDetector(
@@ -1286,7 +1502,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     0.0,
                   ),
                   const SizedBox(height: 12),
-                  // Summary
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
@@ -1380,202 +1595,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     );
   }
 
-  // ─── RESULT DIALOG ────────────────────────────────────────────────────────────
-
-  Widget _buildResultDialog({
-    required int correctScore,
-    required int correctCount,
-    required int totalQuestions,
-    required int wrongQuestions,
-    required int totalMarks,
-    required int skipped,
-    required double accuracy,
-  }) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.white, AppColors.greyS1],
-            ),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Trophy
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: AppColors.tealGreen.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8)),
-                  ],
-                ),
-                child: Icon(Icons.emoji_events, color: AppColors.lightGold, size: 38),
-              ),
-              const SizedBox(height: 20),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                'Mock Test Completed!',
-                17,
-                AppColors.darkNavy,
-                FontWeight.w900,
-                2,
-                TextAlign.center,
-                0.0,
-              ),
-              const SizedBox(height: 6),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                'Yeh rahi aapki performance',
-                11,
-                AppColors.greyS600,
-                FontWeight.normal,
-                2,
-                TextAlign.center,
-                0.0,
-              ),
-              const SizedBox(height: 24),
-
-              // Stats row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildResultStat('Score', '$correctScore', Icons.stars, AppColors.tealGreen),
-                  _buildResultStat('Correct', '$correctCount', Icons.check_circle, AppColors.tealGreen),
-                  _buildResultStat('Accuracy', '${accuracy.toInt()}%', Icons.percent, AppColors.darkNavy),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Extra stats
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(14)),
-                child: Column(
-                  children: [
-                    _buildSubmitRow('Wrong', '$wrongQuestions', AppColors.red),
-                    _buildSubmitRow('Skipped/Unattempted', '$skipped', AppColors.orange),
-                    _buildSubmitRow('Total Marks', '$totalMarks', AppColors.darkNavy),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // XP card
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.lightGold.withOpacity(0.3), AppColors.lightGoldS2.withOpacity(0.2)],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.lightGold),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 22),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Aapne $correctScore XP kamaye!',
-                            13,
-                            AppColors.darkNavy,
-                            FontWeight.w700,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Practice karte raho, rank badhao!',
-                            10,
-                            AppColors.greyS700,
-                            FontWeight.normal,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.darkNavy, width: 2),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Close',
-                        13,
-                        AppColors.darkNavy,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Done',
-                            13,
-                            AppColors.white,
-                            FontWeight.w800,
-                            1,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // ─── RESULT STAT ──────────────────────────────────────────────────────────────
 
   Widget _buildResultStat(String label, String value, IconData icon, Color color) {
     return Column(
