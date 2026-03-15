@@ -5,6 +5,7 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
+import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'dart:async';
 
 import 'package:tazaquiznew/utils/richText.dart';
@@ -228,26 +229,40 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
     final resultRes = jsonDecode(responseData.data);
 
-    int correctScore = int.tryParse(resultRes['score'].toString()) ?? 0;
+    // int correctScore = int.tryParse(resultRes['score'].toString()) ?? 0;
     int correctCount = int.tryParse(resultRes['correctCount'].toString()) ?? 0;
     int totalQuestions = int.tryParse(resultRes['total_question'].toString()) ?? 0;
-    int totalMarks = int.tryParse(resultRes['totalMarks'].toString()) ?? 0;
-    int wrongQuestions = int.tryParse(resultRes['wrongQuestions'].toString()) ?? 0;
+    //int totalMarks = int.tryParse(resultRes['totalMarks'].toString()) ?? 0;
+    // int wrongQuestions = int.tryParse(resultRes['wrongQuestions'].toString()) ?? 0;
 
-    double accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (context) => _buildResultDialog(
-            correctScore: correctScore,
-            correctCount: correctCount,
-            totalQuestions: totalQuestions,
-            wrongQuestions: wrongQuestions,
-            totalMarks: totalMarks,
-            accuracy: accuracy,
-          ),
+    //double accuracy = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => QuizReviewPage(
+              attemptId: int.tryParse(_currentQuestionData['attempt_id'].toString()) ?? 0,
+              userId: int.tryParse(_user!.id.toString()) ?? 0,
+              quizTitle: widget.testTitle,
+              pageType: 0, // 3 for live test review
+            ),
+      ),
     );
+
+    // showDialog(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder:
+    //       (context) => _buildResultDialog(
+    //         correctScore: correctScore,
+    //         correctCount: correctCount,
+    //         totalQuestions: totalQuestions,
+    //         wrongQuestions: wrongQuestions,
+    //         totalMarks: totalMarks,
+    //         accuracy: accuracy,
+    //       ),
+    // );
   }
 
   @override

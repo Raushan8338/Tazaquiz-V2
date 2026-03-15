@@ -10,6 +10,8 @@ import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 class QuizHistoryPage extends StatefulWidget {
+  final int pageType; // 0 for history, 1 for leaderboard
+  const QuizHistoryPage({Key? key, required this.pageType}) : super(key: key);
   @override
   _QuizHistoryPageState createState() => _QuizHistoryPageState();
 }
@@ -38,7 +40,11 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
       print('Fetching quiz history for user_id: ${_user!.id}');
-      final response = await auth.fetch_Quiz_performanceApi({'user_id': _user!.id.toString()});
+      final response = await auth.fetch_Quiz_performanceApi({
+        'user_id': _user!.id.toString(),
+        'pageType': widget.pageType.toString(),
+      });
+      print(widget.pageType);
       print('Quiz History Response: ${response.data}');
       if (response.statusCode == 200) {
         final parsed = QuizHistoryResponse.fromJson(response.data);
@@ -531,6 +537,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                     attemptId: int.tryParse(quiz.quizId.toString()) ?? 0,
                     userId: int.tryParse(_user!.id.toString()) ?? 0,
                     quizTitle: quiz.quizTitle,
+                    pageType: widget.pageType,
                   ),
             ),
           ),
@@ -725,6 +732,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                                       attemptId: int.tryParse(quiz.id.toString()) ?? 0,
                                       userId: int.tryParse(_user!.id.toString()) ?? 0,
                                       quizTitle: quiz.quizTitle,
+                                      pageType: widget.pageType,
                                     ),
                               ),
                             ),

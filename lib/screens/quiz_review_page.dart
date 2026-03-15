@@ -8,9 +8,15 @@ class QuizReviewPage extends StatefulWidget {
   final int attemptId;
   final int userId;
   final String quizTitle;
+  final int pageType;
 
-  const QuizReviewPage({Key? key, required this.attemptId, required this.userId, required this.quizTitle})
-    : super(key: key);
+  const QuizReviewPage({
+    Key? key,
+    required this.attemptId,
+    required this.userId,
+    required this.quizTitle,
+    required this.pageType,
+  }) : super(key: key);
 
   @override
   _QuizReviewPageState createState() => _QuizReviewPageState();
@@ -113,9 +119,14 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Quiz Review',
-            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Poppins'),
+          Text(
+            widget.pageType == 0 ? 'Quiz Review' : 'Mock Test Review',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              fontFamily: 'Poppins',
+            ),
           ),
           Text(
             widget.quizTitle,
@@ -197,7 +208,9 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        passed ? '✅ Quiz Passed!' : '❌ Quiz Failed',
+                        passed
+                            ? '✅ ${widget.pageType == 0 ? 'Quiz Passed' : 'Mock Test Passed'} '
+                            : '❌ ${widget.pageType == 0 ? 'Quiz Failed' : 'Mock Test Failed'},',
                         style: const TextStyle(
                           fontSize: 18,
                           color: Colors.white,

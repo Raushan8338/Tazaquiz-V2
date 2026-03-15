@@ -340,7 +340,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   'Quiz History ',
                   Icons.history_rounded,
                   const Color(0xFF00695C),
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage())),
+                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 0))),
                   'Attempts & Leaderboard',
                 ),
               ),
@@ -362,22 +362,22 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             children: [
               Expanded(
                 child: _buildActionButton(
+                  'Mock Test',
+                  Icons.quiz_rounded,
+                  const Color(0xFF7B1FA2),
+                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 4))),
+                  'Attempts & Leaderboard',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
                   'All Payments',
                   Icons.receipt_long_rounded,
                   const Color(0xFF003161),
                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentHistoryPage())),
 
                   'View your payment history',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  'Need Help',
-                  Icons.support_agent_rounded,
-                  const Color(0xFF7B1FA2),
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => ContactUsPage())),
-                  'Get help with any issues',
                 ),
               ),
             ],
@@ -452,15 +452,15 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             const Color(0xFFFF9800),
             () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage())),
           ),
-          // _buildDivider(),
-          // _buildSettingItem(
-          //   Icons.school_rounded,
-          //   'Leaderboard',
-          //   'Global leaderboard',
-          //   const Color(0xFF00695C),
-          //   () => Navigator.push(context, MaterialPageRoute(builder: (_) => LeaderboardPage())),
-          // ),
-          // _buildDivider(),
+          _buildDivider(),
+          _buildSettingItem(
+            Icons.support_agent_rounded,
+            'Need Help',
+            'Get help with any issues',
+            const Color(0xFF00695C),
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => ContactUsPage())),
+          ),
+          _buildDivider(),
           // _buildSettingItem(
           //   Icons.school_rounded,
           //   'Quiz-wise leaderboard',
