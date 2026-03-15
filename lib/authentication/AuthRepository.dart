@@ -92,8 +92,14 @@ class Authrepository {
   }
 
   Future<Response> savePaymentStatus(Map<String, dynamic> data) async {
-    FormData formData = FormData.fromMap(data);
-    return await _dio.post(BaseUrl.save_payment_status, data: formData);
+    return await _dio.post(
+      BaseUrl.save_payment_status,
+      data: data,
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+        responseType: ResponseType.json, // ✅ auto Map conversion
+      ),
+    );
   }
 
   Future<Response> fetchCheckoutDetails(Map<String, dynamic> data) async {

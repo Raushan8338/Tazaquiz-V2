@@ -24,9 +24,10 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 class CheckoutPage extends StatefulWidget {
   final String contentType;
   final String contentId;
-  final String package_id; 
+  final String package_id;
 
-  const CheckoutPage({Key? key, required this.contentType, required this.contentId, required this.package_id}) : super(key: key);
+  const CheckoutPage({Key? key, required this.contentType, required this.contentId, required this.package_id})
+    : super(key: key);
 
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
@@ -73,8 +74,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
       setState(() => _isLoadingCheckout = true);
 
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {'user_id': _user?.id, 'content_type': widget.contentType, 'content_id': widget.contentId,'package_id': widget.package_id};
-       print('Fetching checkout details with data: $data');
+      final data = {
+        'user_id': _user?.id,
+        'content_type': widget.contentType,
+        'content_id': widget.contentId,
+        'package_id': widget.package_id,
+      };
       final response = await authRepository.fetchCheckoutDetails(data);
 
       if (response.statusCode == 200) {
@@ -175,12 +180,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
       'user_id': _user?.id,
       'product_id': widget.contentId,
       'product_type': widget.contentType,
+      'package_id': widget.package_id,
       'amount': _getFinalPrice().toStringAsFixed(2),
       'name': _user?.username,
       'email': _user?.email,
       'phone': _user?.phone,
     };
-    print(data);
 
     final responseCreate = await authRepository.createPaymentOrder(data);
 
@@ -215,15 +220,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (session == null) {
         return;
       }
-      // final cfPaymentService = CFPaymentGatewayService();
+      final cfPaymentService = CFPaymentGatewayService();
 
-      // final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
+      final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
 
-      // cfPaymentService.doPayment(payment);
-      var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
-      var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
+      cfPaymentService.doPayment(payment);
+      // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
+      // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
 
-      service.doPayment(upiPayment);
+      // service.doPayment(upiPayment);
 
       // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
       // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
@@ -256,96 +261,56 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final data = {'error_message': combinedError, 'order_id': orderId, 'user_id': _user?.id};
 
     final responseCreate = await authRepository.save_CF_error_response(data);
-    print(responseCreate.data);
   }
 
   void _verifyPayment(String orderId) async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-
-    // ✅ Show loading dialog
-    // showDialog(
-    //   context: context,
-    //   barrierDismissible: false, // User dismiss nahi kar sakta
-    //   builder: (BuildContext context) {
-    //     return WillPopScope(
-    //       onWillPop: () async => false, // Back button disable
-    //       child: Center(
-    //         child: Card(
-    //           child: Padding(
-    //             padding: const EdgeInsets.all(20.0),
-    //             child: Column(
-    //               mainAxisSize: MainAxisSize.min,
-    //               children: [
-    //                 CircularProgressIndicator(),
-    //                 SizedBox(height: 16),
-    //                 Text(
-    //                   'Payment verify ho raha hai...\nKripya pratiksha karen',
-    //                   textAlign: TextAlign.center,
-    //                   style: TextStyle(fontSize: 16),
-    //                 ),
-    //               ],
-    //             ),
-    //           ),
-    //         ),
-    //       ),
-    //     );
-    //   },
-    // );
-
     final data = {'order_id': orderId};
 
-    final responseCreate = await authRepository.savePaymentStatus(data);
+    try {
+      final responseCreate = await authRepository.savePaymentStatus(data);
 
-    if (responseCreate.statusCode == 200) {
-      // ✅ Parse response
-      final resp = responseCreate.data;
+      // ✅ Dio already Map dega — koi parse nahi karna
+      final Map<String, dynamic> resp = Map<String, dynamic>.from(responseCreate.data);
 
       if (resp['success'] == true && resp['order_status'] == 'PAID') {
-        // Payment Success
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder:
                 (_) => PaymentStatusScreen(
-                  amount: resp['cf_response']?['order_amount'].toString() ?? '',
+                  amount: resp['cf_response']?['order_amount']?.toString() ?? '',
                   status: PaymentStatus.success,
-                  orderId: resp['payment_id'].toString() ?? '',
-                  paymentMethod: resp['payment_method'].toString() ?? '',
+                  orderId: resp['payment_id']?.toString() ?? '',
+                  paymentMethod: resp['payment_method']?.toString() ?? '',
                 ),
           ),
         );
-        //   Navigator.pop(context);
       } else {
-        // Payment Failed
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder:
                 (_) => PaymentStatusScreen(
-                  amount: resp['cf_response']?['order_amount'].toString() ?? '',
+                  amount: resp['cf_response']?['order_amount']?.toString() ?? '',
                   status: PaymentStatus.failed,
-                  orderId: resp['payment_id'].toString() ?? '',
-                  paymentMethod: resp['payment_method'].toString() ?? '',
+                  orderId: resp['payment_id']?.toString() ?? '',
+                  paymentMethod: resp['payment_method']?.toString() ?? '',
                 ),
           ),
         );
-        //  Navigator.pop(context);
       }
-    } else {
-      //  Optional: show failed page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => PaymentStatusScreen(
-                orderId: 'null',
-                amount: 'null',
-                paymentMethod: 'null',
-                status: PaymentStatus.failed,
-              ),
-        ),
-      );
-      // Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) =>
+                    PaymentStatusScreen(orderId: orderId, amount: '', paymentMethod: '', status: PaymentStatus.failed),
+          ),
+        );
+      }
     }
   }
 
