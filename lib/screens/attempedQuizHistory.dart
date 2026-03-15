@@ -5,7 +5,8 @@ import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quiz_history_modal.dart';
-import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/screens/leaderboard_page.dart';
+import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 class QuizHistoryPage extends StatefulWidget {
@@ -14,8 +15,7 @@ class QuizHistoryPage extends StatefulWidget {
 }
 
 class _QuizHistoryPageState extends State<QuizHistoryPage> {
-  String _selectedFilter = 'all'; // 'all', 'completed', 'won', 'lost'
-
+  String _selectedFilter = 'all';
   bool _isLoading = true;
   List<QuizAttemptItem> _allQuizzes = [];
   QuizHistoryStats? _stats;
@@ -30,87 +30,82 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
     setState(() {});
-    await fetchQuizHistory(_user!.id);
+    if (_user != null) await _fetchHistory();
   }
 
-  Future<void> fetchQuizHistory(String userId) async {
-    setState(() {
-      _isLoading = true;
-    });
-
+  Future<void> _fetchHistory() async {
+    setState(() => _isLoading = true);
     try {
-      Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {'user_id': userId};
-
-      print('Fetching quiz history for user: $userId');
-
-      final response = await authRepository.fetch_Quiz_performanceApi(data);
-
+      Authrepository auth = Authrepository(Api_Client.dio);
+      print('Fetching quiz history for user_id: ${_user!.id}');
+      final response = await auth.fetch_Quiz_performanceApi({'user_id': _user!.id.toString()});
+      print('Quiz History Response: ${response.data}');
       if (response.statusCode == 200) {
-        final responseData = response.data;
-        print('Quiz history response: $responseData');
-
-        final quizHistoryResponse = QuizHistoryResponse.fromJson(responseData);
-
+        final parsed = QuizHistoryResponse.fromJson(response.data);
         setState(() {
-          _allQuizzes = quizHistoryResponse.data;
-          _stats = quizHistoryResponse.stats;
+          _allQuizzes = parsed.data;
+          _stats = parsed.stats;
           _isLoading = false;
         });
-
-        print('Total quizzes: ${_allQuizzes.length}');
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Error fetching quiz history: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      print('Error: $e');
+      setState(() => _isLoading = false);
     }
   }
 
-  List<QuizAttemptItem> get _filteredQuizzes {
-    if (_selectedFilter == 'all') {
-      return _allQuizzes;
+  List<QuizAttemptItem> get _filtered {
+    switch (_selectedFilter) {
+      case 'passed':
+        return _allQuizzes.where((q) => q.passed).toList();
+      case 'failed':
+        return _allQuizzes.where((q) => !q.passed && q.status == 'completed').toList();
+      case 'ongoing':
+        return _allQuizzes.where((q) => q.status == 'in_progress').toList();
+      default:
+        return _allQuizzes;
     }
-    return _allQuizzes.where((quiz) => quiz.status == _selectedFilter).toList();
   }
 
-  int get _totalQuizzes => _stats?.totalQuizzes ?? 0;
-  int get _totalWins => _stats?.totalWins ?? 0;
-  double get _averageScore => _stats?.averageScore ?? 0.0;
-  int get _totalPrizeWon => _stats?.totalPrizeWon ?? 0;
-
-  void _showQuizDetails(QuizAttemptItem quiz) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildQuizDetailsSheet(quiz),
-    );
-  }
+  // ─── BUILD ───────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.greyS1,
+      backgroundColor: const Color(0xFFF0F2F8),
       appBar: _buildAppBar(),
       body:
           _isLoading
               ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)))
-              : Column(
-                children: [
-                  _buildStatsCard(),
-                  _buildFilterChips(),
-                  SizedBox(height: 8),
-                  Expanded(child: _filteredQuizzes.isEmpty ? _buildEmptyState() : _buildQuizList()),
-                ],
+              : RefreshIndicator(
+                onRefresh: _fetchHistory,
+                color: AppColors.tealGreen,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(child: _buildSummaryCards()),
+                    SliverToBoxAdapter(child: _buildProgressSection()),
+                    SliverToBoxAdapter(child: _buildFilterRow()),
+                    SliverToBoxAdapter(child: const SizedBox(height: 8)),
+                    _filtered.isEmpty
+                        ? SliverFillRemaining(child: _buildEmptyState())
+                        : SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (ctx, i) => _buildCard(_filtered[i]),
+                              childCount: _filtered.length,
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
               ),
     );
   }
+
+  // ─── APP BAR ─────────────────────────────────────────────────────────────
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
@@ -118,118 +113,126 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
       backgroundColor: AppColors.darkNavy,
       leading: IconButton(
         icon: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.arrow_back, color: AppColors.white, size: 16),
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+          child: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
         ),
         onPressed: () => Navigator.pop(context),
       ),
+      title: const Text(
+        'My Performance',
+        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Poppins'),
+      ),
       flexibleSpace: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [AppColors.darkNavy, AppColors.tealGreen],
           ),
         ),
       ),
-      title: AppRichText.setTextPoppinsStyle(
-        context,
-        'Quiz History',
-        16,
-        AppColors.white,
-        FontWeight.w900,
-        1,
-        TextAlign.left,
-        0.0,
-      ),
     );
   }
 
-  Widget _buildStatsCard() {
+  // ─── SUMMARY CARDS ───────────────────────────────────────────────────────
+
+  Widget _buildSummaryCards() {
+    final total = _stats?.totalQuizzes ?? 0;
+    final wins = _stats?.totalWins ?? 0;
+    final avg = _stats?.averageScore ?? 0.0;
+    final failed = total - wins;
+    final winRate = total > 0 ? ((wins / total) * 100).toStringAsFixed(0) : '0';
+
     return Container(
-      margin: EdgeInsets.all(16),
-      padding: EdgeInsets.all(20),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.tealGreen, AppColors.darkNavy],
+        gradient: const LinearGradient(
+          colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 15, offset: Offset(0, 8))],
+        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Column(
         children: [
+          // Top — avg score + win rate
           Row(
             children: [
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.emoji_events, color: AppColors.lightGold, size: 22),
-              ),
-              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      'Performance Overview',
-                      12,
-                      AppColors.white.withOpacity(0.9),
-                      FontWeight.w600,
-                      1,
-                      TextAlign.left,
-                      0.0,
+                    Text(
+                      'Overall Score',
+                      style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.w500),
                     ),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      '${_averageScore.toStringAsFixed(1)}% Avg Score',
-                      18,
-                      AppColors.white,
-                      FontWeight.w900,
-                      1,
-                      TextAlign.left,
-                      0.0,
+                    const SizedBox(height: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${avg.toStringAsFixed(1)}',
+                          style: const TextStyle(
+                            fontSize: 36,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'Poppins',
+                            height: 1,
+                          ),
+                        ),
+                        const Text(
+                          '%',
+                          style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    _performanceLabel(avg),
+                  ],
+                ),
+              ),
+
+              // Win rate circle
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.tealGreen.withOpacity(0.5), width: 2),
+                  color: Colors.white.withOpacity(0.05),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$winRate%',
+                      style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w900),
+                    ),
+                    Text(
+                      'Pass Rate',
+                      style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: 10),
+
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withOpacity(0.12), height: 1),
+          const SizedBox(height: 16),
+
+          // Bottom 3 stats
           Row(
             children: [
-              Expanded(
-                child: _buildStatItem(
-                  icon: Icons.quiz,
-                  label: 'Total Quizzes',
-                  value: '$_totalQuizzes',
-                  color: AppColors.white,
-                ),
-              ),
-              Container(width: 1, height: 50, color: AppColors.white.withOpacity(0.3)),
-              Expanded(
-                child: _buildStatItem(
-                  icon: Icons.military_tech,
-                  label: 'Wins',
-                  value: '$_totalWins',
-                  color: AppColors.lightGold,
-                ),
-              ),
-              Container(width: 1, height: 50, color: AppColors.white.withOpacity(0.3)),
-              Expanded(
-                child: _buildStatItem(
-                  icon: Icons.account_balance_wallet,
-                  label: 'Prize Won',
-                  value: '₹$_totalPrizeWon',
-                  color: AppColors.white,
-                ),
-              ),
+              Expanded(child: _topStat('${total}', 'Attempted', Icons.quiz_outlined, Colors.white)),
+              _vDivider(),
+              Expanded(child: _topStat('${wins}', 'Passed', Icons.check_circle_outline, AppColors.tealGreen)),
+              _vDivider(),
+              Expanded(child: _topStat('${failed}', 'Failed', Icons.cancel_outlined, Colors.redAccent)),
             ],
           ),
         ],
@@ -237,234 +240,378 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     );
   }
 
-  Widget _buildStatItem({required IconData icon, required String label, required String value, required Color color}) {
+  Widget _performanceLabel(double avg) {
+    String label;
+    Color color;
+    if (avg >= 80) {
+      label = '🔥 Excellent';
+      color = AppColors.tealGreen;
+    } else if (avg >= 60) {
+      label = '👍 Good';
+      color = Colors.lightGreen;
+    } else if (avg >= 40) {
+      label = '📈 Average';
+      color = Colors.orange;
+    } else {
+      label = '💪 Keep Going';
+      color = Colors.redAccent;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
+      child: Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+    );
+  }
+
+  Widget _topStat(String value, String label, IconData icon, Color color) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 22),
-        SizedBox(height: 6),
-        AppRichText.setTextPoppinsStyle(context, value, 15, AppColors.white, FontWeight.w900, 1, TextAlign.center, 0.0),
-        SizedBox(height: 2),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          label,
-          10,
-          AppColors.white.withOpacity(0.8),
-          FontWeight.w600,
-          1,
-          TextAlign.center,
-          0.0,
+        Icon(icon, color: color, size: 18),
+        const SizedBox(height: 5),
+        Text(value, style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.65), fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  Widget _vDivider() => Container(width: 1, height: 40, color: Colors.white.withOpacity(0.15));
+
+  // ─── PROGRESS SECTION ────────────────────────────────────────────────────
+
+  Widget _buildProgressSection() {
+    if (_allQuizzes.isEmpty) return const SizedBox.shrink();
+
+    final total = _stats?.totalQuizzes ?? 0;
+    final wins = _stats?.totalWins ?? 0;
+    final failed = total - wins;
+    final avg = _stats?.averageScore ?? 0.0;
+
+    // Category breakdown
+    final Map<String, int> catMap = {};
+    for (final q in _allQuizzes) {
+      catMap[q.categoryName] = (catMap[q.categoryName] ?? 0) + 1;
+    }
+    final topCats = catMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Score Distribution',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+          ),
+          const SizedBox(height: 14),
+
+          // Pass bar
+          _progressBar('Passed', wins, total, AppColors.tealGreen),
+          const SizedBox(height: 10),
+          _progressBar('Failed', failed, total, Colors.redAccent),
+          const SizedBox(height: 10),
+          _progressBar('Avg Score', avg.toInt(), 100, avg >= 60 ? AppColors.tealGreen : Colors.orange, suffix: '%'),
+
+          if (topCats.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            const Text(
+              'Top Categories',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children:
+                  topCats.take(5).map((e) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.tealGreen.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.tealGreen.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            e.key,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.darkNavy,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppColors.tealGreen,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${e.value}',
+                              style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _progressBar(String label, int value, int total, Color color, {String suffix = ''}) {
+    final pct = total > 0 ? (value / total).clamp(0.0, 1.0) : 0.0;
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w600)),
+            Text('$value$suffix', style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: pct,
+            backgroundColor: color.withOpacity(0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 7,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildFilterChips() {
+  // ─── FILTER ROW ──────────────────────────────────────────────────────────
+
+  Widget _buildFilterRow() {
+    final filters = [
+      {'key': 'all', 'label': 'All', 'icon': Icons.list_alt},
+      {'key': 'passed', 'label': 'Passed', 'icon': Icons.check_circle_outline},
+      {'key': 'failed', 'label': 'Failed', 'icon': Icons.cancel_outlined},
+      {'key': 'ongoing', 'label': 'Ongoing', 'icon': Icons.hourglass_empty},
+    ];
+
     return Container(
-      height: 40,
-      margin: EdgeInsets.symmetric(horizontal: 15),
+      height: 46,
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
       child: ListView(
         scrollDirection: Axis.horizontal,
-        children: [
-          _buildFilterChip('All Quizzes', 'all', Icons.list),
-          SizedBox(width: 8),
-          _buildFilterChip('Completed', 'completed', Icons.check_circle_outline),
-          SizedBox(width: 8),
-          _buildFilterChip('Won', 'won', Icons.emoji_events),
-          SizedBox(width: 8),
-          _buildFilterChip('Fail', 'Fail', Icons.sentiment_dissatisfied),
-        ],
+        children:
+            filters.map((f) {
+              final bool sel = _selectedFilter == f['key'];
+              Color c;
+              switch (f['key']) {
+                case 'passed':
+                  c = AppColors.tealGreen;
+                  break;
+                case 'failed':
+                  c = Colors.redAccent;
+                  break;
+                case 'ongoing':
+                  c = Colors.orange;
+                  break;
+                default:
+                  c = AppColors.darkNavy;
+              }
+              // Count badge
+              int count = 0;
+              switch (f['key']) {
+                case 'all':
+                  count = _allQuizzes.length;
+                  break;
+                case 'passed':
+                  count = _allQuizzes.where((q) => q.passed).length;
+                  break;
+                case 'failed':
+                  count = _allQuizzes.where((q) => !q.passed && q.status == 'completed').length;
+                  break;
+                case 'ongoing':
+                  count = _allQuizzes.where((q) => q.status == 'in_progress').length;
+                  break;
+              }
+
+              return GestureDetector(
+                onTap: () => setState(() => _selectedFilter = f['key'] as String),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: sel ? c : const Color(0xFFF0F2F8),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: sel ? c : Colors.grey.withOpacity(0.25)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(f['icon'] as IconData, size: 12, color: sel ? Colors.white : AppColors.greyS600),
+                      const SizedBox(width: 5),
+                      Text(
+                        f['label'] as String,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                          color: sel ? Colors.white : AppColors.greyS700,
+                        ),
+                      ),
+                      if (count > 0) ...[
+                        const SizedBox(width: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: sel ? Colors.white.withOpacity(0.25) : c.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: sel ? Colors.white : c),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, String value, IconData icon) {
-    final isSelected = _selectedFilter == value;
-    Color chipColor;
+  // ─── CARD ────────────────────────────────────────────────────────────────
+  Widget _buildCard(QuizAttemptItem quiz) {
+    final bool passed = quiz.passed;
+    final bool ongoing = quiz.status == 'in_progress';
 
-    switch (value) {
-      case 'won':
-        chipColor = AppColors.tealGreen;
-        break;
-      case 'lost':
-        chipColor = AppColors.red;
-        break;
-      case 'completed':
-        chipColor = Colors.blue;
-        break;
-      default:
-        chipColor = AppColors.darkNavy;
-    }
+    final Color statusColor =
+        ongoing
+            ? Colors.orange
+            : passed
+            ? AppColors.tealGreen
+            : Colors.redAccent;
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedFilter = value;
-        });
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          gradient: isSelected ? LinearGradient(colors: [chipColor, chipColor.withOpacity(0.7)]) : null,
-          color: isSelected ? null : AppColors.white,
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(color: isSelected ? chipColor : AppColors.greyS300!, width: isSelected ? 2 : 1),
-          boxShadow:
-              isSelected ? [BoxShadow(color: chipColor.withOpacity(0.3), blurRadius: 8, offset: Offset(0, 4))] : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: isSelected ? AppColors.white : AppColors.greyS600),
-            SizedBox(width: 6),
-            AppRichText.setTextPoppinsStyle(
-              context,
-              label,
-              13,
-              isSelected ? AppColors.white : AppColors.darkNavy,
-              FontWeight.w700,
-              1,
-              TextAlign.center,
-              0.0,
+    final String statusLabel =
+        ongoing
+            ? 'Ongoing'
+            : passed
+            ? 'Passed'
+            : 'Failed';
+
+    final IconData statusIcon =
+        ongoing
+            ? Icons.hourglass_empty
+            : passed
+            ? Icons.check_circle
+            : Icons.cancel;
+
+    return GestureDetector(
+      onTap:
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => QuizReviewPage(
+                    attemptId: int.tryParse(quiz.quizId.toString()) ?? 0,
+                    userId: int.tryParse(_user!.id.toString()) ?? 0,
+                    quizTitle: quiz.quizTitle,
+                  ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuizList() {
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      itemCount: _filteredQuizzes.length,
-      itemBuilder: (context, index) {
-        final quiz = _filteredQuizzes[index];
-        return _buildQuizCard(quiz);
-      },
-    );
-  }
-
-  Widget _buildQuizCard(QuizAttemptItem quiz) {
-    Color statusColor;
-    IconData statusIcon;
-    String statusText;
-    Color badgeColor;
-
-    switch (quiz.status) {
-      case 'won':
-        statusColor = AppColors.tealGreen;
-        statusIcon = Icons.emoji_events;
-        statusText = 'Won';
-        badgeColor = AppColors.gold;
-        break;
-      case 'lost':
-        statusColor = AppColors.red;
-        statusIcon = Icons.sentiment_dissatisfied;
-        statusText = 'Lost';
-        badgeColor = AppColors.red.withOpacity(0.30);
-        break;
-      case 'completed':
-        statusColor = Colors.blue;
-        statusIcon = Icons.check_circle;
-        statusText = 'Completed';
-        badgeColor = Colors.blue.withOpacity(0.30);
-        break;
-      default:
-        statusColor = AppColors.red;
-        statusIcon = Icons.sentiment_dissatisfied;
-        statusText = 'Lost';
-        badgeColor = AppColors.red.withOpacity(0.30);
-    }
-
-    return InkWell(
-      onTap: () => _showQuizDetails(quiz),
+          ),
       child: Container(
-        margin: EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [statusColor.withOpacity(0.15), statusColor.withOpacity(0.08)]),
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-              ),
+            // ── Top row ──────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.all(14),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Icon
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: statusColor.withOpacity(0.2)),
+                    ),
+                    child: Icon(Icons.quiz_outlined, color: statusColor, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Title + chips
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        AppRichText.setTextPoppinsStyle(
-                          context,
+                        Text(
                           quiz.quizTitle,
-                          14,
-                          AppColors.darkNavy,
-                          FontWeight.w800,
-                          2,
-                          TextAlign.left,
-                          0.0,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkNavy,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: 6),
-                        Row(
+                        const SizedBox(height: 5),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
                           children: [
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.gold.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: AppRichText.setTextPoppinsStyle(
-                                context,
-                                quiz.categoryName,
-                                10,
-                                AppColors.darkNavy,
-                                FontWeight.w700,
-                                1,
-                                TextAlign.left,
-                                0.0,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Icon(Icons.access_time, size: 12, color: AppColors.greyS600),
-                            SizedBox(width: 4),
-                            AppRichText.setTextPoppinsStyle(
-                              context,
-                              quiz.date,
-                              10,
-                              AppColors.greyS600,
-                              FontWeight.w600,
-                              1,
-                              TextAlign.left,
-                              0.0,
+                            _chip(quiz.categoryName, AppColors.darkNavy.withOpacity(0.08), AppColors.darkNavy),
+                            _chip(
+                              quiz.difficultyLevel,
+                              _diffColor(quiz.difficultyLevel).withOpacity(0.1),
+                              _diffColor(quiz.difficultyLevel),
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
+
+                  const SizedBox(width: 8),
+
+                  // Status badge
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(statusIcon, color: AppColors.black, size: 16),
-                        SizedBox(width: 4),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          statusText,
-                          11,
-                          AppColors.black,
-                          FontWeight.w800,
-                          1,
-                          TextAlign.center,
-                          0.0,
+                        Icon(statusIcon, color: statusColor, size: 12),
+                        const SizedBox(width: 3),
+                        Text(
+                          statusLabel,
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor),
                         ),
                       ],
                     ),
@@ -473,157 +620,126 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
               ),
             ),
 
-            // Score Section
+            // ── Stats row ─────────────────────────────────
             Container(
-              padding: EdgeInsets.all(16),
+              margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(color: const Color(0xFFF8F9FF), borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
-                  // Score Circle
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [statusColor, statusColor.withOpacity(0.7)]),
-                      shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: statusColor.withOpacity(0.3), blurRadius: 10, offset: Offset(0, 5))],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          '${quiz.score.toStringAsFixed(0)}%',
-                          22,
-                          AppColors.white,
-                          FontWeight.w900,
-                          1,
-                          TextAlign.center,
-                          0.0,
-                        ),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Score',
-                          10,
-                          AppColors.white.withOpacity(0.9),
-                          FontWeight.w600,
-                          1,
-                          TextAlign.center,
-                          0.0,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 16),
-
-                  // Stats
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildSmallStat(
-                                icon: Icons.check_circle,
-                                value: '${quiz.correctAnswers}',
-                                label: 'Correct',
-                                color: AppColors.tealGreen,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: _buildSmallStat(
-                                icon: Icons.cancel,
-                                value: '${quiz.wrongAnswers}',
-                                label: 'Wrong',
-                                color: AppColors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildSmallStat(
-                                icon: Icons.skip_next,
-                                value: '${quiz.skipped}',
-                                label: 'Skipped',
-                                color: Colors.orange,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: _buildSmallStat(
-                                icon: Icons.military_tech,
-                                value: quiz.rank > 0 ? '#${quiz.rank}' : 'N/A',
-                                label: 'Rank',
-                                color: AppColors.lightGold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                  Expanded(child: _statCol('${quiz.score.toStringAsFixed(0)}%', 'Score', statusColor)),
+                  _miniDiv(),
+                  Expanded(child: _statCol('${quiz.correctAnswers}', 'Correct', AppColors.tealGreen)),
+                  _miniDiv(),
+                  Expanded(child: _statCol('${quiz.wrongAnswers}', 'Wrong', Colors.redAccent)),
+                  _miniDiv(),
+                  Expanded(child: _statCol(quiz.rank > 0 ? '#${quiz.rank}' : '-', 'Rank', AppColors.lightGold)),
                 ],
               ),
             ),
 
-            // Footer
+            // ── Footer ───────────────────────────────────
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.greyS1,
-                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
-              ),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+              decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.08)))),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.people, size: 16, color: AppColors.greyS600),
-                      SizedBox(width: 6),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        '${quiz.totalParticipants} players',
-                        12,
-                        AppColors.greyS700,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                      if (quiz.status == 'won' && quiz.prize > 0) ...[
-                        SizedBox(width: 16),
-                        Icon(Icons.emoji_events, size: 16, color: AppColors.lightGold),
-                        SizedBox(width: 4),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          quiz.prizeText,
-                          12,
-                          AppColors.lightGold,
-                          FontWeight.w800,
-                          1,
-                          TextAlign.left,
-                          0.0,
+                  // Left — date + time taken
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.access_time_rounded, size: 12, color: AppColors.greyS600),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            '${quiz.date}  ${quiz.time}',
+                            style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
+                        if (quiz.timeTaken.isNotEmpty && quiz.timeTaken != 'N/A') ...[
+                          const SizedBox(width: 8),
+                          Icon(Icons.timer_outlined, size: 12, color: AppColors.greyS600),
+                          const SizedBox(width: 3),
+                          Text(
+                            quiz.timeTaken,
+                            style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
+
+                  // Right — Rank button + View Details
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'View Details',
-                        12,
-                        AppColors.tealGreen,
-                        FontWeight.w700,
-                        1,
-                        TextAlign.right,
-                        0.0,
+                      // ── Leaderboard / Rank button ──
+                      GestureDetector(
+                        onTap:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => LeaderboardPage(
+                                      // courseId: int.tryParse(quiz.quizId.toString()) ?? 0,
+                                      //  courseName: quiz.categoryName,
+                                      quizId: int.tryParse(quiz.quizId.toString()) ?? 0,
+                                      quizTitle: quiz.quizTitle,
+                                      //  isMock: false,
+                                    ),
+                              ),
+                            ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6B4EFF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF6B4EFF).withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.leaderboard_rounded, size: 12, color: Color(0xFF6B4EFF)),
+                              SizedBox(width: 3),
+                              Text(
+                                'Rank',
+                                style: TextStyle(fontSize: 10, color: Color(0xFF6B4EFF), fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.tealGreen),
+
+                      const SizedBox(width: 10),
+
+                      // ── View Details ──
+                      GestureDetector(
+                        onTap:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => QuizReviewPage(
+                                      attemptId: int.tryParse(quiz.id.toString()) ?? 0,
+                                      userId: int.tryParse(_user!.id.toString()) ?? 0,
+                                      quizTitle: quiz.quizTitle,
+                                    ),
+                              ),
+                            ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Details',
+                              style: TextStyle(fontSize: 10, color: AppColors.tealGreen, fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(Icons.chevron_right, size: 14, color: AppColors.tealGreen),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -635,346 +751,234 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     );
   }
 
-  Widget _buildSmallStat({required IconData icon, required String value, required String label, required Color color}) {
+  Color _diffColor(String diff) {
+    switch (diff.toLowerCase()) {
+      case 'easy':
+        return Colors.green;
+      case 'medium':
+        return Colors.orange;
+      case 'hard':
+        return Colors.red;
+      default:
+        return AppColors.greyS600;
+    }
+  }
+
+  Widget _chip(String label, Color bg, Color text) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 16, color: color),
-          SizedBox(height: 4),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            value,
-            14,
-            AppColors.darkNavy,
-            FontWeight.w800,
-            1,
-            TextAlign.center,
-            0.0,
-          ),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            label,
-            9,
-            AppColors.greyS600,
-            FontWeight.w600,
-            1,
-            TextAlign.center,
-            0.0,
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      child: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: text)),
     );
   }
+
+  Widget _statCol(String value, String label, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color, fontFamily: 'Poppins')),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 9, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  Widget _miniDiv() => Container(width: 1, height: 28, color: Colors.grey.withOpacity(0.15));
+
+  // ─── EMPTY STATE ─────────────────────────────────────────────────────────
 
   Widget _buildEmptyState() {
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: EdgeInsets.all(30),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.tealGreen.withOpacity(0.1), AppColors.darkNavy.withOpacity(0.05)],
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.quiz, size: 80, color: AppColors.greyS400),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.08), shape: BoxShape.circle),
+            child: Icon(Icons.quiz_outlined, size: 56, color: AppColors.greyS400),
           ),
-          SizedBox(height: 24),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            'No quiz history found',
-            20,
-            AppColors.darkNavy,
-            FontWeight.w800,
-            1,
-            TextAlign.center,
-            0.0,
+          const SizedBox(height: 16),
+          const Text(
+            'No quizzes found',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
           ),
-          SizedBox(height: 12),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            'Start playing quizzes to see your history',
-            14,
-            AppColors.greyS600,
-            FontWeight.w500,
-            1,
-            TextAlign.center,
-            0.0,
+          const SizedBox(height: 6),
+          Text(
+            'Start giving quizzes to see your history here',
+            style: TextStyle(fontSize: 12, color: AppColors.greyS600),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuizDetailsSheet(QuizAttemptItem quiz) {
-    Color statusColor;
-    IconData statusIcon;
-    String statusText;
+  // ─── DETAILS SHEET ───────────────────────────────────────────────────────
 
-    switch (quiz.status) {
-      case 'won':
-        statusColor = AppColors.tealGreen;
-        statusIcon = Icons.emoji_events;
-        statusText = 'Congratulations! You Won';
-        break;
-      case 'lost':
-        statusColor = AppColors.red;
-        statusIcon = Icons.sentiment_dissatisfied;
-        statusText = 'Better luck next time!';
-        break;
-      case 'completed':
-        statusColor = Colors.blue;
-        statusIcon = Icons.check_circle;
-        statusText = 'Quiz Completed';
-        break;
-      default:
-        statusColor = AppColors.greyS600;
-        statusIcon = Icons.help;
-        statusText = 'Unknown Status';
-    }
+  void _showDetails(QuizAttemptItem quiz) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _detailSheet(quiz),
+    );
+  }
+
+  Widget _detailSheet(QuizAttemptItem quiz) {
+    final bool passed = quiz.passed;
+    final bool ongoing = quiz.status == 'in_progress';
+    final Color sc =
+        ongoing
+            ? Colors.orange
+            : passed
+            ? AppColors.tealGreen
+            : Colors.redAccent;
+    final String headline =
+        ongoing
+            ? 'Quiz In Progress ⏳'
+            : passed
+            ? 'Quiz Passed! 🎉'
+            : 'Quiz Failed 😔';
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(30), topRight: Radius.circular(30)),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle bar
+            // Handle
             Container(
-              margin: EdgeInsets.only(top: 12),
-              width: 50,
-              height: 5,
-              decoration: BoxDecoration(color: AppColors.greyS300, borderRadius: BorderRadius.circular(10)),
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: Colors.grey.withOpacity(0.25), borderRadius: BorderRadius.circular(10)),
             ),
 
-            // Header
             Padding(
-              padding: EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [statusColor, statusColor.withOpacity(0.7)]),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(statusIcon, color: AppColors.white, size: 48),
-                  ),
-                  SizedBox(height: 16),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    statusText,
-                    22,
-                    AppColors.darkNavy,
-                    FontWeight.w900,
-                    1,
-                    TextAlign.center,
-                    0.0,
-                  ),
-                  SizedBox(height: 8),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    quiz.quizTitle,
-                    16,
-                    AppColors.greyS600,
-                    FontWeight.w600,
-                    2,
-                    TextAlign.center,
-                    0.0,
-                  ),
-                ],
-              ),
-            ),
-
-            // Score Display
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 24),
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [statusColor.withOpacity(0.15), statusColor.withOpacity(0.08)]),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: statusColor.withOpacity(0.3), width: 2),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(
-                    children: [
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        '${quiz.score.toStringAsFixed(0)}%',
-                        36,
-                        statusColor,
-                        FontWeight.w900,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Your Score',
-                        13,
-                        AppColors.greyS600,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                    ],
-                  ),
-                  Container(width: 2, height: 50, color: AppColors.greyS300),
-                  Column(
-                    children: [
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        quiz.rank > 0 ? '#${quiz.rank}' : 'N/A',
-                        36,
-                        AppColors.lightGold,
-                        FontWeight.w900,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Your Rank',
-                        13,
-                        AppColors.greyS600,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.center,
-                        0.0,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 24),
-
-            // Detailed Stats
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Performance Breakdown',
-                    16,
-                    AppColors.darkNavy,
-                    FontWeight.w800,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                  SizedBox(height: 16),
+                  // Header
                   Row(
                     children: [
-                      Expanded(
-                        child: _buildDetailStatCard(
-                          icon: Icons.check_circle,
-                          value: '${quiz.correctAnswers}',
-                          label: 'Correct',
-                          color: AppColors.tealGreen,
-                        ),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: sc.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                        child: Icon(Icons.quiz_outlined, color: sc, size: 28),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       Expanded(
-                        child: _buildDetailStatCard(
-                          icon: Icons.cancel,
-                          value: '${quiz.wrongAnswers}',
-                          label: 'Wrong',
-                          color: AppColors.red,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(headline, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: sc)),
+                            const SizedBox(height: 3),
+                            Text(
+                              quiz.quizTitle,
+                              style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontWeight: FontWeight.w500),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDetailStatCard(
-                          icon: Icons.skip_next,
-                          value: '${quiz.skipped}',
-                          label: 'Skipped',
-                          color: Colors.orange,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDetailStatCard(
-                          icon: Icons.quiz,
-                          value: '${quiz.totalQuestions}',
-                          label: 'Total',
-                          color: AppColors.darkNavy,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Quiz Information',
-                    16,
-                    AppColors.darkNavy,
-                    FontWeight.w800,
-                    1,
-                    TextAlign.left,
-                    0.0,
-                  ),
-                  SizedBox(height: 16),
-                  _buildInfoRow('Quiz ID', quiz.id),
-                  _buildInfoRow('Category', quiz.categoryName),
-                  _buildInfoRow('Date', quiz.date),
-                  _buildInfoRow('Time', quiz.time),
-                  _buildInfoRow('Duration', quiz.duration),
-                  _buildInfoRow('Time Taken', quiz.timeTaken),
-                  _buildInfoRow('Accuracy', '${quiz.accuracy.toStringAsFixed(1)}%'),
-                  _buildInfoRow('Total Participants', '${quiz.totalParticipants}'),
-                  if (quiz.status == 'won' && quiz.prize > 0)
-                    _buildInfoRow('Prize Won', quiz.prizeText, isHighlight: true),
-                  SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.transparent,
-                      shadowColor: AppColors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: EdgeInsets.zero,
+
+                  const SizedBox(height: 20),
+
+                  // Score card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [sc.withOpacity(0.12), sc.withOpacity(0.04)]),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: sc.withOpacity(0.2)),
                     ),
-                    child: Ink(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _detailScore('${quiz.score.toStringAsFixed(0)}%', 'Score', sc),
+                        Container(width: 1, height: 40, color: sc.withOpacity(0.2)),
+                        _detailScore(quiz.rank > 0 ? '#${quiz.rank}' : 'N/A', 'Rank', AppColors.lightGold),
+                        Container(width: 1, height: 40, color: sc.withOpacity(0.2)),
+                        _detailScore('${quiz.accuracy.toStringAsFixed(0)}%', 'Accuracy', Colors.blue),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Answer breakdown
+                  const Text(
+                    'Answer Breakdown',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _answerCard(
+                          Icons.check_circle,
+                          '${quiz.correctAnswers}',
+                          'Correct',
+                          AppColors.tealGreen,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: _answerCard(Icons.cancel, '${quiz.wrongAnswers}', 'Wrong', Colors.redAccent)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _answerCard(Icons.remove_circle_outline, '${quiz.skipped}', 'Skipped', Colors.orange),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Info
+                  const Text(
+                    'Details',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(color: const Color(0xFFF8F9FF), borderRadius: BorderRadius.circular(12)),
+                    child: Column(
+                      children: [
+                        _infoRow(Icons.category_outlined, 'Category', quiz.categoryName),
+                        _infoRow(Icons.signal_cellular_alt, 'Difficulty', quiz.difficultyLevel),
+                        _infoRow(Icons.calendar_today_outlined, 'Date', '${quiz.date}  ${quiz.time}'),
+                        _infoRow(Icons.timer_outlined, 'Time Taken', quiz.timeTaken),
+                        _infoRow(Icons.hourglass_bottom_outlined, 'Duration', quiz.duration),
+                        _infoRow(Icons.quiz_outlined, 'Total Questions', '${quiz.totalQuestions}'),
+                        _infoRow(Icons.people_outline, 'Total Participants', '${quiz.totalParticipants}'),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Close button
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                        gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        alignment: Alignment.center,
-                        child: AppRichText.setTextPoppinsStyle(
-                          context,
+                      child: const Center(
+                        child: Text(
                           'Close',
-                          14,
-                          AppColors.white,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.center,
-                          0.0,
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
                         ),
                       ),
                     ),
@@ -983,84 +987,52 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
               ),
             ),
 
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 24),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailStatCard({
-    required IconData icon,
-    required String value,
-    required String label,
-    required Color color,
-  }) {
+  Widget _detailScore(String value, String label, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color, fontFamily: 'Poppins')),
+        Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
+      ],
+    );
+  }
+
+  Widget _answerCard(IconData icon, String value, String label, Color color) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
         children: [
-          Icon(icon, size: 28, color: color),
-          SizedBox(height: 8),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            value,
-            20,
-            AppColors.darkNavy,
-            FontWeight.w900,
-            1,
-            TextAlign.center,
-            0.0,
-          ),
-          SizedBox(height: 4),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            label,
-            11,
-            AppColors.greyS600,
-            FontWeight.w600,
-            1,
-            TextAlign.center,
-            0.0,
-          ),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 5),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.darkNavy)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 10, color: AppColors.greyS600)),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {bool isHighlight = false}) {
+  Widget _infoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
-            label,
-            13,
-            AppColors.greyS600,
-            FontWeight.w600,
-            1,
-            TextAlign.left,
-            0.0,
-          ),
-          Flexible(
-            child: AppRichText.setTextPoppinsStyle(
-              context,
-              value,
-              13,
-              isHighlight ? AppColors.lightGold : AppColors.darkNavy,
-              FontWeight.w700,
-              1,
-              TextAlign.right,
-              0.0,
-            ),
-          ),
+          Icon(icon, size: 14, color: AppColors.greyS600),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
+          const Spacer(),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.darkNavy)),
         ],
       ),
     );

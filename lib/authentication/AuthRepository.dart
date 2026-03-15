@@ -172,16 +172,29 @@ class Authrepository {
   Future<Response> fetchBlogPosts() async {
     return await _dio.get(BaseUrl.fetch_blog_posts_api);
   }
+
   Future<Response> fetchDailyQuizCRUD(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.fetch_daily_quiz_api_crud, data: formData);
   }
+
   Future<Response> fetchDailyQuizCheckHome(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.fetch_fetch_daily_quiz_check_home, data: formData);
   }
+
   Future<Response> fetchPackages(Map<String, dynamic> data) async {
-     FormData formData = FormData.fromMap(data);
+    FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.fetch_get_packages, data: formData);
+  }
+
+  Future<Response> fetchQuizReview(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_get_quiz_review, data: formData);
+  }
+
+  Future<Response> fetchLeaderboard(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_get_leaderboard, data: formData);
   }
 }

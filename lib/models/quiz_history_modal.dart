@@ -1,31 +1,121 @@
-// Quiz History Response Model
-class QuizHistoryResponse {
-  final bool success;
-  final String message;
-  final int totalRecords;
-  final QuizHistoryStats stats;
-  final List<QuizAttemptItem> data;
+// quiz_history_modal.dart
 
-  QuizHistoryResponse({
-    required this.success,
-    required this.message,
-    required this.totalRecords,
-    required this.stats,
-    required this.data,
+class QuizAttemptItem {
+  final String id;
+  final String quizId;
+  final String quizTitle;
+  final String quizDescription;
+  final String categoryName;
+  final String difficultyLevel;
+  final String banner;
+  final String date;
+  final String time;
+  final String duration;
+  final String timeTaken;
+  final double score;
+  final int rawScore;
+  final int totalScore;
+  final int passingScore;
+  final int correctAnswers;
+  final int wrongAnswers;
+  final int skipped;
+  final int totalQuestions;
+  final double accuracy;
+  final int rank;
+  final int totalParticipants;
+  final String status;
+  final bool passed;
+  final int prize;
+  final String prizeText;
+
+  QuizAttemptItem({
+    required this.id,
+    required this.quizId,
+    required this.quizTitle,
+    required this.quizDescription,
+    required this.categoryName,
+    required this.difficultyLevel,
+    required this.banner,
+    required this.date,
+    required this.time,
+    required this.duration,
+    required this.timeTaken,
+    required this.score,
+    required this.rawScore,
+    required this.totalScore,
+    required this.passingScore,
+    required this.correctAnswers,
+    required this.wrongAnswers,
+    required this.skipped,
+    required this.totalQuestions,
+    required this.accuracy,
+    required this.rank,
+    required this.totalParticipants,
+    required this.status,
+    required this.passed,
+    required this.prize,
+    required this.prizeText,
   });
 
-  factory QuizHistoryResponse.fromJson(Map<String, dynamic> json) {
-    return QuizHistoryResponse(
-      success: json['success'] ?? false,
-      message: json['message'] ?? '',
-      totalRecords: json['total_records'] ?? 0,
-      stats: QuizHistoryStats.fromJson(json['stats'] ?? {}),
-      data: (json['data'] as List?)?.map((e) => QuizAttemptItem.fromJson(e)).toList() ?? [],
+  factory QuizAttemptItem.fromJson(Map<String, dynamic> j) {
+    // ── Safe int parser ──────────────────────────────
+    int safeInt(dynamic val) {
+      if (val == null) return 0;
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+      return int.tryParse(val.toString()) ?? 0;
+    }
+
+    // ── Safe double parser ───────────────────────────
+    double safeDouble(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is double) return val;
+      if (val is int) return val.toDouble();
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
+    // ── Safe bool parser ─────────────────────────────
+    bool safeBool(dynamic val) {
+      if (val == null) return false;
+      if (val is bool) return val;
+      if (val is int) return val == 1;
+      if (val is String) {
+        return val == '1' || val.toLowerCase() == 'true';
+      }
+      return false;
+    }
+
+    return QuizAttemptItem(
+      id: j['id']?.toString() ?? j['attempt_id']?.toString() ?? '',
+      quizId: j['quiz_id']?.toString() ?? '',
+      quizTitle: j['quiz_title']?.toString() ?? '',
+      quizDescription: j['quiz_description']?.toString() ?? '',
+      categoryName: j['category_name']?.toString() ?? '',
+      difficultyLevel: j['difficulty_level']?.toString() ?? 'Medium',
+      banner: j['banner']?.toString() ?? '',
+      date: j['date']?.toString() ?? '',
+      time: j['time']?.toString() ?? '',
+      duration: j['duration']?.toString() ?? '',
+      timeTaken: j['time_taken']?.toString() ?? '',
+      score: safeDouble(j['score']),
+      rawScore: safeInt(j['raw_score']),
+      totalScore: safeInt(j['total_score']),
+      passingScore: safeInt(j['passing_score']),
+      correctAnswers: safeInt(j['correct_answers']),
+      wrongAnswers: safeInt(j['wrong_answers']),
+      skipped: safeInt(j['skipped']),
+      totalQuestions: safeInt(j['total_questions']),
+      accuracy: safeDouble(j['accuracy']),
+      rank: safeInt(j['rank']),
+      totalParticipants: safeInt(j['total_participants']),
+      status: j['status']?.toString() ?? 'in_progress',
+      passed: safeBool(j['passed']),
+      prize: safeInt(j['prize']),
+      prizeText: j['prize_text']?.toString() ?? '',
     );
   }
 }
 
-// Quiz History Stats Model
 class QuizHistoryStats {
   final int totalQuizzes;
   final int totalWins;
@@ -39,155 +129,43 @@ class QuizHistoryStats {
     required this.totalPrizeWon,
   });
 
-  factory QuizHistoryStats.fromJson(Map<String, dynamic> json) {
+  factory QuizHistoryStats.fromJson(Map<String, dynamic> j) {
+    int safeInt(dynamic val) {
+      if (val == null) return 0;
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+      return int.tryParse(val.toString()) ?? 0;
+    }
+
+    double safeDouble(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is double) return val;
+      if (val is int) return val.toDouble();
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
     return QuizHistoryStats(
-      totalQuizzes: _toInt(json['total_quizzes']),
-      totalWins: _toInt(json['total_wins']),
-      averageScore: _toDouble(json['average_score']),
-      totalPrizeWon: _toInt(json['total_prize_won']),
+      totalQuizzes: safeInt(j['total_quizzes']),
+      totalWins: safeInt(j['total_wins']),
+      averageScore: safeDouble(j['average_score']),
+      totalPrizeWon: safeInt(j['total_prize_won']),
     );
   }
-
-  static int _toInt(dynamic value) => int.tryParse(value?.toString() ?? '0') ?? 0;
-  static double _toDouble(dynamic value) => double.tryParse(value?.toString() ?? '0.0') ?? 0.0;
 }
 
-// Quiz Attempt Item Model
-class QuizAttemptItem {
-  final int attemptId;
-  final int quizId;
-  final String quizTitle;
-  final String quizDescription;
-  final String categoryName;
-  final int categoryId;
-  final String difficultyLevel;
-  final String banner;
-  final String date;
-  final String time;
-  final String startTime;
-  final String endTime;
-  final String duration;
-  final String timeTaken;
-  final int durationSeconds;
-  final String status; // 'won', 'lost', 'completed', 'in_progress'
-  final double score; // Percentage
-  final int rawScore;
-  final int totalScore;
-  final int passingScore;
-  final bool passed;
-  final int totalQuestions;
-  final int correctAnswers;
-  final int wrongAnswers;
-  final int skipped;
-  final double accuracy;
-  final int rank;
-  final int totalParticipants;
-  final int prize;
-  final String prizeText;
+class QuizHistoryResponse {
+  final bool status;
+  final QuizHistoryStats stats;
+  final List<QuizAttemptItem> data;
 
-  QuizAttemptItem({
-    required this.attemptId,
-    required this.quizId,
-    required this.quizTitle,
-    required this.quizDescription,
-    required this.categoryName,
-    required this.categoryId,
-    required this.difficultyLevel,
-    required this.banner,
-    required this.date,
-    required this.time,
-    required this.startTime,
-    required this.endTime,
-    required this.duration,
-    required this.timeTaken,
-    required this.durationSeconds,
-    required this.status,
-    required this.score,
-    required this.rawScore,
-    required this.totalScore,
-    required this.passingScore,
-    required this.passed,
-    required this.totalQuestions,
-    required this.correctAnswers,
-    required this.wrongAnswers,
-    required this.skipped,
-    required this.accuracy,
-    required this.rank,
-    required this.totalParticipants,
-    required this.prize,
-    required this.prizeText,
-  });
+  QuizHistoryResponse({required this.status, required this.stats, required this.data});
 
-  factory QuizAttemptItem.fromJson(Map<String, dynamic> json) {
-    return QuizAttemptItem(
-      attemptId: _toInt(json['attempt_id']),
-      quizId: _toInt(json['quiz_id']),
-      quizTitle: json['quiz_title']?.toString() ?? '',
-      quizDescription: json['quiz_description']?.toString() ?? '',
-      categoryName: json['category_name']?.toString() ?? '',
-      categoryId: _toInt(json['category_id']),
-      difficultyLevel: json['difficulty_level']?.toString() ?? '',
-      banner: json['banner']?.toString() ?? '',
-      date: json['date']?.toString() ?? '',
-      time: json['time']?.toString() ?? '',
-      startTime: json['start_time']?.toString() ?? '',
-      endTime: json['end_time']?.toString() ?? '',
-      duration: json['duration']?.toString() ?? '',
-      timeTaken: json['time_taken']?.toString() ?? '',
-      durationSeconds: _toInt(json['duration_seconds']),
-      status: json['status']?.toString() ?? 'in_progress',
-      score: _toDouble(json['score']),
-      rawScore: _toInt(json['raw_score']),
-      totalScore: _toInt(json['total_score']),
-      passingScore: _toInt(json['passing_score']),
-      passed: _toBool(json['passed']),
-      totalQuestions: _toInt(json['total_questions']),
-      correctAnswers: _toInt(json['correct_answers']),
-      wrongAnswers: _toInt(json['wrong_answers']),
-      skipped: _toInt(json['skipped']),
-      accuracy: _toDouble(json['accuracy']),
-      rank: _toInt(json['rank']),
-      totalParticipants: _toInt(json['total_participants']),
-      prize: _toInt(json['prize']),
-      prizeText: json['prize_text']?.toString() ?? '₹0',
+  factory QuizHistoryResponse.fromJson(Map<String, dynamic> j) {
+    return QuizHistoryResponse(
+      status:
+          j['status'] == true || j['status'] == 1 || j['status'] == '1' || j['success'] == true || j['success'] == 1,
+      stats: QuizHistoryStats.fromJson(j['stats'] ?? {}),
+      data: (j['data'] as List? ?? []).map((e) => QuizAttemptItem.fromJson(e as Map<String, dynamic>)).toList(),
     );
   }
-
-  static int _toInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    return int.tryParse(value.toString()) ?? 0;
-  }
-
-  static double _toDouble(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    return double.tryParse(value.toString()) ?? 0.0;
-  }
-
-  static bool _toBool(dynamic value) {
-    if (value == null) return false;
-    if (value is bool) return value;
-    if (value is int) return value == 1;
-    if (value is String) return value == '1' || value.toLowerCase() == 'true';
-    return false;
-  }
-
-  // Helper getter for display status
-  String get displayStatus {
-    switch (status.toLowerCase()) {
-      case 'won':
-        return 'won';
-      case 'lost':
-        return 'lost';
-      case 'in_progress':
-        return 'in_progress';
-      default:
-        return 'completed';
-    }
-  }
-
-  // Helper getter for unique ID
-  String get id => 'QZ$attemptId';
 }

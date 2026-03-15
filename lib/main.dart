@@ -10,6 +10,7 @@ import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 
 /// Background handler (Android / iOS / Web only)
+/// 
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 

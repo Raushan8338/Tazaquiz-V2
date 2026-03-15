@@ -4,6 +4,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
 import 'package:tazaquiznew/screens/course_selection.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
+import 'package:tazaquiznew/screens/leaderboard_page.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/paymentHistory.dart';
 import 'package:tazaquiznew/screens/refer_earn_page.dart';
@@ -336,10 +337,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             children: [
               Expanded(
                 child: _buildActionButton(
-                  'Quiz History',
+                  'Quiz History ',
                   Icons.history_rounded,
                   const Color(0xFF00695C),
                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage())),
+                  'Attempts & Leaderboard',
                 ),
               ),
               const SizedBox(width: 12),
@@ -350,6 +352,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   const Color(0xFFFF9800),
                   () =>
                       Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen())),
+                  'Course & Leaderboard',
                 ),
               ),
             ],
@@ -363,6 +366,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   Icons.receipt_long_rounded,
                   const Color(0xFF003161),
                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentHistoryPage())),
+
+                  'View your payment history',
                 ),
               ),
               const SizedBox(width: 12),
@@ -372,6 +377,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   Icons.support_agent_rounded,
                   const Color(0xFF7B1FA2),
                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => ContactUsPage())),
+                  'Get help with any issues',
                 ),
               ),
             ],
@@ -381,7 +387,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  Widget _buildActionButton(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(String title, IconData icon, Color color, VoidCallback onTap, String subtitle) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -403,6 +409,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             Text(
               title,
               style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
           ],
@@ -440,6 +452,25 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             const Color(0xFFFF9800),
             () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage())),
           ),
+          // _buildDivider(),
+          // _buildSettingItem(
+          //   Icons.school_rounded,
+          //   'Leaderboard',
+          //   'Global leaderboard',
+          //   const Color(0xFF00695C),
+          //   () => Navigator.push(context, MaterialPageRoute(builder: (_) => LeaderboardPage())),
+          // ),
+          // _buildDivider(),
+          // _buildSettingItem(
+          //   Icons.school_rounded,
+          //   'Quiz-wise leaderboard',
+          //   'Manage your enrolled courses',
+          //   const Color(0xFF00695C),
+          //   () => Navigator.push(
+          //     context,
+          //     MaterialPageRoute(builder: (_) => LeaderboardPage(quizId: quiz.quizId, quizTitle: quiz.title)),
+          //   ),
+          // ),
           _buildDivider(),
           _buildSettingItem(
             Icons.card_giftcard_rounded,

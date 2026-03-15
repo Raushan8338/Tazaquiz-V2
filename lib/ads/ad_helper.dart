@@ -1,6 +1,6 @@
 class AdHelper {
   // ================= SWITCH =================
-  static bool isTest = false;
+  static bool isTest = true;
 
   // ================= APP ID =================
   static const String androidTestAppId = 'ca-app-pub-3940256099942544~3347511713';
