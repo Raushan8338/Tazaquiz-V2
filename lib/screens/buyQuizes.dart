@@ -137,16 +137,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     return "${s}s";
   }
 
-  // ─── QUIZ START ───────────────────────────────────────────────────────────
-
   void _handleStartQuiz() {
     if (_currentQuiz == null) return;
-
     if (!_currentQuiz!.accessStatus) {
       _showAccessDialog();
       return;
     }
-
     if (_isFree) {
       rewardedAdService.showAd(() => _navigateToQuiz());
     } else {
@@ -175,24 +171,24 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
     switch (_currentQuiz!.accessError) {
       case 'attempt_pending':
-        message = 'Aapka ek attempt pending hai. Pehle use complete karo.';
+        message = 'You have a pending attempt. Please complete it first.';
         buttonText = 'Resume Attempt';
         showResume = true;
         break;
       case 'course_mismatch':
-        message = 'Sirf apne course ka quiz access kar sakte ho. Upgrade karo!';
+        message = 'You can only access quizzes from your enrolled course. Upgrade your plan!';
         buttonText = 'Upgrade Plan';
         break;
       case 'upgrade_required':
-        message = 'Is mahine ka attempt limit khatam ho gaya. Upgrade karo!';
+        message = 'You have used all your attempts for this month. Upgrade to continue!';
         buttonText = 'Activate Now';
         break;
       case 'plan_expired':
-        message = 'Aapka plan expire ho gaya. Renew karo!';
+        message = 'Your plan has expired. Please renew to regain access!';
         buttonText = 'Renew Plan';
         break;
       default:
-        message = _currentQuiz!.accessMessage ?? 'Access nahi hai.';
+        message = _currentQuiz!.accessMessage ?? 'You do not have access.';
         buttonText = 'Upgrade Plan';
     }
 
@@ -232,8 +228,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     });
   }
 
-  // ─── STATUS HELPERS ───────────────────────────────────────────────────────
-
   Color _getStatusColor() {
     switch (_currentQuiz?.quizStatus.toLowerCase()) {
       case 'live':
@@ -259,8 +253,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         return Icons.circle;
     }
   }
-
-  // ─── BUILD ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -291,7 +283,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       );
     }
 
-    // ── canStartQuiz ab accessStatus se ──
     final bool canStartQuiz = _currentQuiz!.accessStatus;
     final bool isAvailable = _isLive && canStartQuiz;
 
@@ -309,31 +300,21 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 child: Column(
                   children: [
                     const SizedBox(height: 14),
-
                     if (canStartQuiz) _buildStatusBanner(),
                     if (canStartQuiz) const SizedBox(height: 10),
-
                     if (_isLive && canStartQuiz) _buildLiveBanner(),
                     if (_isLive && canStartQuiz) const SizedBox(height: 10),
-
                     _buildCourseInfo(),
                     const SizedBox(height: 10),
-
                     _buildQuizHeader(),
                     const SizedBox(height: 10),
-
                     _buildStatsRow(),
                     const SizedBox(height: 10),
-
                     if (isBannerLoaded && bannerService.bannerAd != null) _buildBannerAd(),
-
                     if (!canStartQuiz) _buildSubscriptionSection() else _buildScheduleSection(),
                     const SizedBox(height: 10),
-
                     if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 10)],
-
                     if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), const SizedBox(height: 10)],
-
                     _buildInfoCard(),
                   ],
                 ),
@@ -345,8 +326,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       bottomNavigationBar: _buildBottomBar(canStartQuiz, isAvailable),
     );
   }
-
-  // ─── APP BAR ──────────────────────────────────────────────────────────────
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
@@ -375,8 +354,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       flexibleSpace: FlexibleSpaceBar(background: Container(color: AppColors.darkNavy)),
     );
   }
-
-  // ─── STATUS BANNER ────────────────────────────────────────────────────────
 
   Widget _buildStatusBanner() {
     String message;
@@ -450,8 +427,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── LIVE BANNER ──────────────────────────────────────────────────────────
-
   Widget _buildLiveBanner() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -520,8 +495,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── COURSE INFO ──────────────────────────────────────────────────────────
-
   Widget _buildCourseInfo() {
     final materialName = _currentQuiz?.Material_name ?? '';
     if (materialName.isEmpty) return const SizedBox.shrink();
@@ -578,8 +551,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── DATETIME FORMATTER ───────────────────────────────────────────────────
-
   String _formatDateTime(String raw) {
     try {
       final dt = DateTime.parse(raw.trim().replaceAll(' ', 'T'));
@@ -592,8 +563,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       return raw;
     }
   }
-
-  // ─── QUIZ HEADER ──────────────────────────────────────────────────────────
 
   Widget _buildQuizHeader() {
     final quizTitle = _currentQuiz!.Category_name;
@@ -642,7 +611,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             1.3,
           ),
           const SizedBox(height: 12),
-
           if (_currentQuiz!.subscription_description.isNotEmpty) ...[
             Row(
               children: [
@@ -689,7 +657,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               ),
             ),
           ],
-
           if (_remainingSeconds > 0) ...[
             const SizedBox(height: 12),
             Container(
@@ -748,15 +715,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── STATS ROW ────────────────────────────────────────────────────────────
-
   Widget _buildStatsRow() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _buildStatBox('❓', _currentQuiz?.totalQuestions.toString() ?? '—', 'Questions'),
-          const SizedBox(width: 10),
+          //  _buildStatBox('❓', _currentQuiz?.totalQuestions.toString() ?? '—', 'Questions'),
+          //  const SizedBox(width: 10),
           _buildStatBox('⏱️', _currentQuiz?.timeLimit.isEmpty == false ? _currentQuiz!.timeLimit : '—', 'Minutes'),
           const SizedBox(width: 10),
           _buildStatBox('🏆', _currentQuiz?.totalMarks.toString() ?? '—', 'Marks'),
@@ -787,8 +752,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── BANNER AD ────────────────────────────────────────────────────────────
-
   Widget _buildBannerAd() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -803,8 +766,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── SUBSCRIPTION SECTION — dynamic ──────────────────────────────────────
-
   Widget _buildSubscriptionSection() {
     final error = _currentQuiz?.accessError ?? '';
     if (error == 'upgrade_required') {
@@ -813,8 +774,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       return _buildPremiumSection();
     }
   }
-
-  // ─── FREE USER SECTION ────────────────────────────────────────────────────
 
   Widget _buildFreeUserSection() {
     return Container(
@@ -827,7 +786,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         borderRadius: BorderRadius.circular(18),
         child: Column(
           children: [
-            // Header
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
@@ -863,7 +821,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   const SizedBox(height: 12),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Is Mahine Ki\nLimit Khatam Ho Gayi!',
+                    'Monthly Attempt\nLimit Reached!',
                     16,
                     AppColors.white,
                     FontWeight.w800,
@@ -874,7 +832,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   const SizedBox(height: 4),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Agle mahine phir 1 free attempt milega',
+                    'Your next free attempt resets next month',
                     11,
                     AppColors.white.withOpacity(0.7),
                     FontWeight.w400,
@@ -885,8 +843,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 ],
               ),
             ),
-
-            // Usage + upgrade
             Container(
               color: AppColors.white,
               padding: const EdgeInsets.all(16),
@@ -895,7 +851,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 children: [
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Is mahine ka usage',
+                    'This month\'s usage',
                     12,
                     AppColors.darkNavy,
                     FontWeight.w700,
@@ -934,7 +890,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                         Expanded(
                           child: AppRichText.setTextPoppinsStyle(
                             context,
-                            'Basic plan lo — unlimited attempts milenge apne course mein!',
+                            'Upgrade to a basic plan — get unlimited attempts for your course!',
                             11,
                             AppColors.darkNavy,
                             FontWeight.w500,
@@ -998,16 +954,16 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── PREMIUM SECTION ──────────────────────────────────────────────────────
-
   Widget _buildPremiumSection() {
     final error = _currentQuiz?.accessError ?? '';
     final message =
         error == 'plan_expired'
-            ? 'Aapka plan expire ho gaya!\nRenew karo aur access pao.'
-            : 'Ye quiz aapke current\ncourse mein nahi hai.';
+            ? 'Your plan has expired!\nRenew to regain access.'
+            : 'This quiz is not in\nyour current course.';
     final subtitle =
-        error == 'plan_expired' ? 'Plan renew karo — access wapas milega' : 'Premium lo — sab courses unlimited access';
+        error == 'plan_expired'
+            ? 'Renew your plan — access will be restored'
+            : 'Go Premium — unlimited access to all courses';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1019,7 +975,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         borderRadius: BorderRadius.circular(18),
         child: Column(
           children: [
-            // Header
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),
@@ -1083,8 +1038,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 ],
               ),
             ),
-
-            // Benefits
             Container(
               color: AppColors.white,
               padding: const EdgeInsets.all(14),
@@ -1175,8 +1128,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       ),
     );
   }
-
-  // ─── SCHEDULE SECTION ─────────────────────────────────────────────────────
 
   Widget _buildScheduleSection() {
     return Container(
@@ -1331,8 +1282,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── DESCRIPTION ──────────────────────────────────────────────────────────
-
   Widget _buildDescriptionCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1361,8 +1310,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       ),
     );
   }
-
-  // ─── INSTRUCTIONS ─────────────────────────────────────────────────────────
 
   Widget _buildInstructionsCard() {
     return Container(
@@ -1453,8 +1400,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         .trim();
   }
 
-  // ─── INFO CARD ────────────────────────────────────────────────────────────
-
   Widget _buildInfoCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1501,8 +1446,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ─── BOTTOM BAR ───────────────────────────────────────────────────────────
-
   Widget _buildBottomBar(bool canStartQuiz, bool isAvailable) {
     if (!_attempted && canStartQuiz && !isAvailable && _remainingSeconds > 0) {
       return _buildRemindMeBar();
@@ -1518,36 +1461,40 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       btnIcon = Icons.check_circle_outline;
       btnColors = [Colors.grey.shade500, Colors.grey.shade700];
       shadowColors = [Colors.grey.withOpacity(0.2)];
-    } else if (isAvailable) {
-      btnLabel = 'Start Quiz Now';
-      btnIcon = Icons.play_arrow_rounded;
-      btnColors = [Colors.red.shade600, Colors.red.shade900];
-      shadowColors = [Colors.red.withOpacity(0.35)];
-    } else {
-      // access_error se button decide karo
-      final error = _currentQuiz?.accessError ?? '';
-      if (error == 'attempt_pending') {
-        btnLabel = 'Resume Attempt';
-        btnIcon = Icons.play_circle_outline;
-        btnColors = [AppColors.tealGreen, AppColors.darkNavy];
-        shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
-      } else if (error == 'plan_expired') {
-        btnLabel = 'Renew Plan';
-        btnIcon = Icons.refresh_rounded;
-        btnColors = [Colors.orange.shade600, Colors.orange.shade900];
-        shadowColors = [Colors.orange.withOpacity(0.3)];
-      } else if (error == 'upgrade_required') {
+    } else if (_currentQuiz?.pendingAttemptId != null && _currentQuiz!.pendingAttemptId! > 0) {
+      btnLabel = 'Resume Attempt';
+      btnIcon = Icons.play_circle_outline;
+      btnColors = [AppColors.tealGreen, AppColors.darkNavy];
+      shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
+    } else if (_currentQuiz?.quizStatus == "live") {
+      if (_currentQuiz?.isAccessible == true) {
+        btnLabel = 'Start Quiz Now';
+        btnIcon = Icons.play_arrow_rounded;
+        btnColors = [Colors.red.shade600, Colors.red.shade900];
+        shadowColors = [Colors.red.withOpacity(0.35)];
+      } else {
         btnLabel = 'Activate Now';
         btnIcon = Icons.workspace_premium_rounded;
         btnColors = [AppColors.tealGreen, AppColors.darkNavy];
         shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
-      } else {
-        // course_mismatch ya default
-        btnLabel = 'Upgrade to Premium';
-        btnIcon = Icons.workspace_premium_rounded;
-        btnColors = [AppColors.lightGold, AppColors.darkNavy];
-        shadowColors = [AppColors.lightGold.withOpacity(0.3)];
       }
+    } else if (_currentQuiz?.quizStatus == "upcoming") {
+      if (_currentQuiz?.isAccessible == true) {
+        btnLabel = 'Remind Me';
+        btnIcon = Icons.notifications_active_outlined;
+        btnColors = [Colors.blue.shade600, Colors.blue.shade900];
+        shadowColors = [Colors.blue.withOpacity(0.3)];
+      } else {
+        btnLabel = 'Activate Now';
+        btnIcon = Icons.workspace_premium_rounded;
+        btnColors = [AppColors.tealGreen, AppColors.darkNavy];
+        shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
+      }
+    } else {
+      btnLabel = 'Quiz Ended';
+      btnIcon = Icons.lock_clock;
+      btnColors = [Colors.grey.shade500, Colors.grey.shade700];
+      shadowColors = [Colors.grey.withOpacity(0.2)];
     }
 
     return Container(
@@ -1569,7 +1516,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
               onTap: () {
-                if (_attempted) {
+                final quiz = _currentQuiz;
+                if (quiz == null) return;
+
+                if (quiz.is_attempted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('You have already attempted this quiz'),
@@ -1580,16 +1530,34 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   );
                   return;
                 }
-                if (isAvailable) {
-                  _handleStartQuiz();
-                } else {
-                  // access error se handle
-                  final error = _currentQuiz?.accessError ?? '';
-                  if (error == 'attempt_pending') {
-                    _navigateToQuiz();
+
+                if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
+                  _navigateToQuiz();
+                  return;
+                }
+
+                if (quiz.quizStatus == "live") {
+                  if (quiz.isAccessible == true) {
+                    _handleStartQuiz();
                   } else {
                     _handleSubscribe();
                   }
+                  return;
+                }
+
+                if (quiz.quizStatus == "upcoming") {
+                  if (quiz.isAccessible == true) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Quiz starts in ${quiz.startsInText}")));
+                  } else {
+                    _handleSubscribe();
+                  }
+                  return;
+                }
+
+                if (quiz.quizStatus == "ended") {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("This quiz has ended")));
                 }
               },
               child: Padding(
@@ -1680,7 +1648,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('🔔 Reminder set! We\'ll notify you before the quiz starts.'),
+                        content: const Text('Reminder set! We\'ll notify you before the quiz starts.'),
                         backgroundColor: AppColors.tealGreen,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

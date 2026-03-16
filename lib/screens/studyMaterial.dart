@@ -315,7 +315,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                       child: Text(
                         material.description,
                         style: TextStyle(fontSize: 10, color: AppColors.greyS600, height: 1.4),
-                        maxLines: 2,
+                        maxLines: 4,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

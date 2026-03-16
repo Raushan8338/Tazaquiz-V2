@@ -71,48 +71,74 @@ class QuizItem {
     this.accessMessage,
     this.pendingAttemptId,
   });
-
   factory QuizItem.fromJson(Map<String, dynamic> json) {
     int _toInt(dynamic v) => int.tryParse(v?.toString() ?? '') ?? 0;
     double _toDouble(dynamic v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
-    bool _toBool(dynamic v) => v == true || v == 1 || v == '1';
+
+    bool _toBool(dynamic v) {
+      if (v == null) return false;
+      if (v is bool) return v;
+      if (v is int) return v == 1;
+      if (v is String) {
+        return v.toLowerCase() == 'true' || v == '1';
+      }
+      return false;
+    }
+
+    String status =
+        json['quizStatus']?.toString().toLowerCase() ?? json['quiz_status']?.toString().toLowerCase() ?? 'upcoming';
 
     return QuizItem(
-      quizId: json['quiz_id']?.toString() ?? '',
+      quizId: json['quizId']?.toString() ?? json['quiz_id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       banner: json['banner']?.toString(),
+
       startDateTime: json['startDateTime']?.toString() ?? '',
       endDateTime: json['endDateTime']?.toString() ?? '',
-      timeLimit: json['time_limit']?.toString() ?? '',
-      difficultyLevel: json['difficulty_level']?.toString() ?? '',
+      timeLimit: json['timeLimit']?.toString() ?? json['time_limit']?.toString() ?? '',
+
+      difficultyLevel: json['difficultyLevel']?.toString() ?? json['difficulty_level']?.toString() ?? '',
+
       instruction: json['instruction']?.toString() ?? '',
-      quizStatus: json['quiz_status']?.toString() ?? 'upcoming',
+      quizStatus: status,
+
       is_attempted: _toBool(json['is_attempted']),
+
       subscription_id: _toInt(json['subscription_id']),
       isPaid: _toBool(json['isPaid']),
       price: _toDouble(json['price']),
-      isPurchased: _toBool(json['isPurchased']),
-      isAccessible: _toBool(json['isAccessible']),
-      isLive: _toBool(json['isLive']),
+
+      isPurchased: _toBool(json['isPurchased'] ?? json['is_purchased']),
+      isAccessible: _toBool(json['isAccessible'] ?? json['is_accessible']),
+
+      // ⭐ LIVE FIX
+      isLive: status == 'live' || _toBool(json['isLive']),
+
       startsInSeconds: _toInt(json['startsInSeconds']),
       startsInText: json['startsInText']?.toString() ?? '',
+
       is_premium: _toInt(json['is_premium']),
+
       Category_name: json['Category_name']?.toString() ?? '',
       Material_name: json['Material_name']?.toString() ?? '',
+
       subscription_price: _toDouble(json['subscription_price']),
       subscription_description: json['subscription_description']?.toString() ?? '',
-      totalQuestions: _toInt(json['total_questions']),
-      totalMarks: _toInt(json['total_marks']),
+
+      totalQuestions: _toInt(json['total_questions'] ?? json['questionCount']),
+      totalMarks: _toInt(json['total_marks'] ?? json['passing_score']),
+
       pageType: _toInt(json['pageType']),
-      // naye fields — null safe hain
-      accessStatus: _toBool(json['access_status'] ?? true),
+
+      // ⭐ ACCESS CONTROL
+      accessStatus: _toBool(json['access_status']),
       accessError: json['access_error']?.toString(),
       accessMessage: json['access_message']?.toString(),
-      pendingAttemptId: json['pending_attempt_id'] != null ? _toInt(json['pending_attempt_id']) : null,
+
+      pendingAttemptId: _toInt(json['pending_attempt_id'] ?? json['pendingAttemptId']),
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       'quiz_id': quizId,

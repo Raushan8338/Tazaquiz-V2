@@ -5,6 +5,7 @@ import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
+import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -36,6 +37,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   bool _isAccessible = false;
   bool _isFree = false;
   StudyMaterialDetailsItem? _currentMaterial;
+
+  bool _descExpanded = false;
 
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -104,16 +107,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
 
   void _handleStartLearning() {
     if (_currentMaterial == null) return;
-    if (_currentMaterial!.contentType != 'Video') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PDFViewerPage(pdfUrl: _currentMaterial!.filePath, title: _currentMaterial!.title),
-        ),
-      );
-    } else {
-      launchUrl(Uri.parse(_currentMaterial!.filePath));
-    }
+    Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()));
   }
 
   void _handleSubscribe() {
@@ -123,14 +117,11 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     });
   }
 
-  // ─── BUILD ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: const Color(0xFFF0F2F8),
-        // ← AppBar loading mein bhi dikhao
         appBar: AppBar(
           backgroundColor: AppColors.darkNavy,
           elevation: 0,
@@ -145,7 +136,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
             ),
             onPressed: () => Navigator.pop(context),
           ),
-          // Loading mein title blank — theek hai
           flexibleSpace: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -214,7 +204,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
           ),
         ),
       ),
-      // ... baaki sab same
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SingleChildScrollView(
@@ -223,22 +212,13 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
             padding: const EdgeInsets.only(bottom: 100),
             child: Column(
               children: [
-                // ── Hero banner ──
-                _buildHeroBanner(),
+                _buildHeroBanner(canStart),
                 const SizedBox(height: 14),
-
-                // ── Access banner (agar purchased) ──
                 if (canStart) _buildAccessBanner(),
                 if (canStart) const SizedBox(height: 12),
-
-                // ── What you get (agar nahi kharida) ──
                 if (!canStart) _buildWhatYouGetSection(),
                 if (!canStart) const SizedBox(height: 12),
-
-                // ── Description ──
                 if (_currentMaterial!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 12)],
-
-                // ── Instructor ──
                 _buildInstructorCard(),
                 const SizedBox(height: 12),
               ],
@@ -250,9 +230,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ─── HERO BANNER ──────────────────────────────────────────────────────────
+  Widget _buildHeroBanner(bool canStart) {
+    final String? thumbUrl = _currentMaterial!.thumbnail;
+    final bool hasThumb = thumbUrl != null && thumbUrl.isNotEmpty;
 
-  Widget _buildHeroBanner() {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -262,77 +243,130 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
           colors: [AppColors.darkNavy, Color(0xFF0D2137)],
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          // Content type badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.tealGreen.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppColors.tealGreen.withOpacity(0.5)),
+          if (hasThumb)
+            Positioned.fill(
+              child: Image.network(
+                thumbUrl!,
+                fit: BoxFit.cover,
+                color: Colors.black.withOpacity(0.62),
+                colorBlendMode: BlendMode.darken,
+                errorBuilder: (_, __, ___) => const SizedBox(),
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _currentMaterial!.contentType.toUpperCase() == 'PDF' ? Icons.picture_as_pdf : Icons.video_library,
-                  size: 11,
-                  color: AppColors.tealGreen,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  _currentMaterial!.contentType.toUpperCase() == 'PDF' ? 'PDF MATERIAL' : 'VIDEO LECTURE',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.tealGreen,
-                    letterSpacing: 0.5,
+          if (hasThumb)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, AppColors.darkNavy.withOpacity(0.85)],
                   ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.white.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _currentMaterial!.contentType.toUpperCase() == 'PDF'
+                                ? Icons.picture_as_pdf
+                                : Icons.video_library,
+                            size: 11,
+                            color: AppColors.white,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            _currentMaterial!.contentType.toUpperCase() == 'PDF' ? 'PDF MATERIAL' : 'VIDEO LECTURE',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (canStart)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.white.withOpacity(0.55)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.verified_rounded, size: 11, color: Colors.white),
+                            const SizedBox(width: 5),
+                            Text(
+                              _isFree ? 'FREE COURSE' : 'ENROLLED',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  _currentMaterial!.Material_name,
+                  22,
+                  Colors.white,
+                  FontWeight.w800,
+                  4,
+                  TextAlign.left,
+                  1.3,
+                ),
+                const SizedBox(height: 8),
+                if (_currentMaterial!.subscription_description.isNotEmpty)
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    _currentMaterial!.subscription_description,
+                    12,
+                    Colors.white,
+                    FontWeight.w400,
+                    10,
+                    TextAlign.left,
+                    1.5,
+                  ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _buildHeroStat('⚡', 'Live Quizzes', 'Monthly'),
+                    const SizedBox(width: 10),
+                    _buildHeroStat('📝', 'Mock Tests', 'Unlimited'),
+                    const SizedBox(width: 10),
+                    _buildHeroStat('📚', 'Study Material', 'Full Access'),
+                  ],
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-
-          // Course name
-          AppRichText.setTextPoppinsStyle(
-            context,
-            _currentMaterial!.Material_name,
-            22,
-            Colors.white,
-            FontWeight.w800,
-            4,
-            TextAlign.left,
-            1.3,
-          ),
-          const SizedBox(height: 8),
-
-          // Subtitle
-          if (_currentMaterial!.subscription_description.isNotEmpty)
-            AppRichText.setTextPoppinsStyle(
-              context,
-              _currentMaterial!.subscription_description,
-              12,
-              Colors.white.withOpacity(0.7),
-              FontWeight.w400,
-              3,
-              TextAlign.left,
-              1.5,
-            ),
-          const SizedBox(height: 16),
-
-          // Stats row
-          Row(
-            children: [
-              _buildHeroStat('⚡', 'Live Quizzes', 'Monthly'),
-              const SizedBox(width: 10),
-              _buildHeroStat('📝', 'Mock Tests', 'Unlimited'),
-              const SizedBox(width: 10),
-              _buildHeroStat('📚', 'Study Material', 'Full Access'),
-            ],
           ),
         ],
       ),
@@ -352,17 +386,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
           children: [
             Text(emoji, style: const TextStyle(fontSize: 20)),
             const SizedBox(height: 5),
-            Text(value, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.lightGold)),
+            Text(value, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.tealGreen)),
             const SizedBox(height: 2),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 9,
-                color: Colors.white.withOpacity(0.6),
-                fontWeight: FontWeight.w500,
-                height: 1.3,
-              ),
+              style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w500, height: 1.3),
             ),
           ],
         ),
@@ -370,61 +399,165 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ─── ACCESS BANNER ────────────────────────────────────────────────────────
-
   Widget _buildAccessBanner() {
-    String message;
-    IconData icon;
-    List<Color> colors;
-
-    if (_isFree) {
-      message = '🎉 This content is FREE!';
-      icon = Icons.celebration_outlined;
-      colors = [AppColors.tealGreen, AppColors.darkNavy];
-    } else if (_isPurchased) {
-      message = '✅ Access Unlocked — Start Learning!';
-      icon = Icons.verified;
-      colors = [AppColors.tealGreen, AppColors.darkNavy];
-    } else {
-      message = '🔓 Included in your plan!';
-      icon = Icons.lock_open_rounded;
-      colors = [AppColors.lightGold, AppColors.lightGoldS2];
-    }
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: colors),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 6))],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: Colors.white, size: 16),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: AppRichText.setTextPoppinsStyle(
-              context,
-              message,
-              12,
-              AppColors.white,
-              FontWeight.w700,
-              1,
-              TextAlign.left,
-              0,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors:
+                      _isFree
+                          ? [AppColors.tealGreen, AppColors.darkNavy]
+                          : [const Color(0xFF0D7B5F), AppColors.darkNavy],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.white.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isFree ? Icons.celebration_outlined : Icons.verified_rounded,
+                          color: Colors.white,
+                          size: 13,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _isFree ? 'Free Content' : 'Course Purchased',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    _isFree
+                        ? 'This Course\nIs Completely FREE!'
+                        : _isPurchased
+                        ? 'Course Already\nPurchased!'
+                        : 'Included In\nYour Plan!',
+                    17,
+                    Colors.white,
+                    FontWeight.w800,
+                    2,
+                    TextAlign.left,
+                    1.3,
+                  ),
+                  const SizedBox(height: 6),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    _isFree
+                        ? 'Start now — no charges at all!'
+                        : _isPurchased
+                        ? 'Your access is fully unlocked'
+                        : 'This is included in your current plan',
+                    12,
+                    Colors.white.withOpacity(0.85),
+                    FontWeight.w400,
+                    1,
+                    TextAlign.left,
+                    0,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Container(
+              color: AppColors.white,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    'You have access to all of this:',
+                    12,
+                    AppColors.darkNavy,
+                    FontWeight.w700,
+                    1,
+                    TextAlign.left,
+                    0,
+                  ),
+                  const SizedBox(height: 14),
+                  _buildCheckItem(
+                    Icons.picture_as_pdf_outlined,
+                    _currentMaterial!.contentType.toUpperCase() == 'PDF' ? 'PDF Material' : 'Video Lecture',
+                    'You have full access to this content',
+                    AppColors.tealGreen,
+                  ),
+                  _buildCheckItem(
+                    Icons.history_edu_outlined,
+                    'Previous Year Papers',
+                    'Last 5 years question papers',
+                    AppColors.tealGreen,
+                  ),
+                  _buildCheckItem(
+                    Icons.bar_chart_rounded,
+                    'Performance Analytics',
+                    'Track your topic-wise weak areas',
+                    AppColors.darkNavy,
+                  ),
+                  _buildCheckItem(
+                    Icons.leaderboard_outlined,
+                    'All India Ranking',
+                    'Compare with students nationwide',
+                    AppColors.tealGreen,
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.tealGreen.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.school_outlined, color: AppColors.tealGreen, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: AppRichText.setTextPoppinsStyle(
+                            context,
+                            'Tap "Start Learning" to view all your courses!',
+                            11,
+                            AppColors.darkNavy,
+                            FontWeight.w600,
+                            2,
+                            TextAlign.left,
+                            1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  // ─── WHAT YOU GET SECTION ─────────────────────────────────────────────────
 
   Widget _buildWhatYouGetSection() {
     return Container(
@@ -437,7 +570,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         borderRadius: BorderRadius.circular(18),
         child: Column(
           children: [
-            // ── Header ──
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -454,18 +586,18 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: AppColors.lightGold.withOpacity(0.2),
+                      color: Colors.white.withOpacity(0.18),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppColors.lightGold.withOpacity(0.4)),
+                      border: Border.all(color: Colors.white.withOpacity(0.4)),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 13),
-                        const SizedBox(width: 5),
+                        Icon(Icons.workspace_premium, color: Colors.white, size: 13),
+                        SizedBox(width: 5),
                         Text(
                           'Premium Course',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.lightGold),
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
                         ),
                       ],
                     ),
@@ -473,7 +605,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   const SizedBox(height: 12),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Ek Course,\nSab Kuch Milega!',
+                    'One Course,\nEverything Included!',
                     20,
                     Colors.white,
                     FontWeight.w800,
@@ -484,7 +616,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   const SizedBox(height: 6),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Subscribe karo aur unlimited access pao',
+                    'Subscribe and get unlimited access',
                     12,
                     Colors.white.withOpacity(0.65),
                     FontWeight.w400,
@@ -495,8 +627,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                 ],
               ),
             ),
-
-            // ── Features ──
             Container(
               color: AppColors.white,
               padding: const EdgeInsets.all(16),
@@ -505,7 +635,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                 children: [
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Is package mein shamil hai:',
+                    'This package includes:',
                     12,
                     AppColors.darkNavy,
                     FontWeight.w700,
@@ -514,8 +644,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                     0,
                   ),
                   const SizedBox(height: 14),
-
-                  // Big tiles
                   Row(
                     children: [
                       Expanded(
@@ -538,13 +666,11 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  // Check items
                   _buildCheckItem(
                     Icons.history_edu_outlined,
                     'Previous Year Papers',
-                    '5 saal ke last year question papers',
-                    AppColors.lightGold,
+                    'Last 5 years question papers',
+                    AppColors.tealGreen,
                   ),
                   _buildCheckItem(
                     Icons.picture_as_pdf_outlined,
@@ -555,30 +681,28 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   _buildCheckItem(
                     Icons.video_library_outlined,
                     'Video Lectures',
-                    'Expert teachers ke video lessons',
+                    'Video lessons by expert teachers',
                     AppColors.darkNavy,
                   ),
                   _buildCheckItem(
                     Icons.bar_chart_rounded,
                     'Performance Analytics',
-                    'Topic-wise weak areas track karo',
-                    AppColors.lightGold,
+                    'Track your topic-wise weak areas',
+                    AppColors.darkNavy,
                   ),
                   _buildCheckItem(
                     Icons.leaderboard_outlined,
                     'All India Ranking',
-                    'Nationwide students se compare karo',
+                    'Compare with students nationwide',
                     AppColors.tealGreen,
                   ),
                   _buildCheckItem(
                     Icons.update_rounded,
                     'Regular Updates',
-                    'Har hafte naya content add hota hai',
+                    'New content added every week',
                     AppColors.darkNavy,
                   ),
                   const SizedBox(height: 14),
-
-                  // Validity strip
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
@@ -593,7 +717,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                         Expanded(
                           child: AppRichText.setTextPoppinsStyle(
                             context,
-                            'Course validity tak sab kuch unlimited — koi hidden charges nahi!',
+                            'Everything unlimited for the course validity — no hidden charges!',
                             11,
                             AppColors.darkNavy,
                             FontWeight.w600,
@@ -673,9 +797,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ─── DESCRIPTION ──────────────────────────────────────────────────────────
-
   Widget _buildDescriptionCard() {
+    final text = _currentMaterial!.description;
+    final bool isLong = text.length > 200;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -711,22 +836,73 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
             ],
           ),
           const SizedBox(height: 10),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            _currentMaterial!.description,
-            12,
-            AppColors.greyS700,
-            FontWeight.w400,
-            10,
-            TextAlign.left,
-            1.5,
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 300),
+            crossFadeState: (!isLong || _descExpanded) ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            firstChild: Stack(
+              children: [
+                AppRichText.setTextPoppinsStyle(
+                  context,
+                  text,
+                  12,
+                  AppColors.greyS700,
+                  FontWeight.w400,
+                  4,
+                  TextAlign.left,
+                  1.5,
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 28,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.white.withOpacity(0.0), Colors.white],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            secondChild: AppRichText.setTextPoppinsStyle(
+              context,
+              text,
+              12,
+              AppColors.greyS700,
+              FontWeight.w400,
+              999,
+              TextAlign.left,
+              1.5,
+            ),
           ),
+          if (isLong) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => setState(() => _descExpanded = !_descExpanded),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _descExpanded ? 'Read Less  ' : 'Read More  ',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.tealGreen),
+                  ),
+                  Icon(
+                    _descExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.tealGreen,
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
-
-  // ─── INSTRUCTOR ───────────────────────────────────────────────────────────
 
   Widget _buildInstructorCard() {
     final name = _currentMaterial!.coaching_name;
@@ -794,14 +970,11 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ─── BOTTOM BAR ───────────────────────────────────────────────────────────
-
   Widget _buildBottomBar(bool canStart) {
     final String btnLabel = canStart ? 'Start Learning' : 'Subscribe Now';
     final IconData btnIcon = canStart ? Icons.play_circle_filled : Icons.workspace_premium;
-    final List<Color> btnColors =
-        canStart ? [AppColors.lightGold, AppColors.lightGoldS2] : [AppColors.tealGreen, AppColors.darkNavy];
-    final Color textColor = canStart ? AppColors.darkNavy : AppColors.white;
+    const List<Color> btnColors = [AppColors.tealGreen, AppColors.darkNavy];
+    const Color textColor = AppColors.white;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -813,7 +986,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         top: false,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: btnColors),
+            gradient: const LinearGradient(colors: btnColors),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [BoxShadow(color: btnColors.first.withOpacity(0.4), blurRadius: 14, offset: const Offset(0, 5))],
           ),

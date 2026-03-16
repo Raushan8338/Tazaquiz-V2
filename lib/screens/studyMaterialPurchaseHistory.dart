@@ -325,13 +325,14 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                 icon: Icons.bolt_rounded,
                 label: 'Live Quiz',
                 color: AppColors.tealGreen,
+                //Paid_QuizListScreen(material.materialId.toString())
                 onTap:
                     () => Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder:
-                            (_) => QuizListScreen(
-                              '1',
+                            (_) => Paid_QuizListScreen(
+                              material.materialId.toString(),
                               '0', // pageType 0 = quiz
                             ),
                       ),
@@ -349,9 +350,9 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                       context,
                       MaterialPageRoute(
                         builder:
-                            (_) => QuizListScreen(
-                              '1',
-                              '4', // pageType 4 = mock
+                            (_) => Paid_QuizListScreen(
+                              material.materialId.toString(),
+                              '4', // pageType 0 = quiz
                             ),
                       ),
                     ),

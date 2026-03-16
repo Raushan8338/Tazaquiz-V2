@@ -105,6 +105,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
       });
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
+    
         setState(() {
           _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
           _isFetchingQuizzes = false;
@@ -501,8 +502,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
   // ─── CARD ─────────────────────────────────────────────────────────────────
 
   Widget _buildCard(QuizItem quiz, List<Color> colors) {
-    final bool isLive = quiz.isLive;
-    final bool isUpcoming = quiz.quizStatus == 'upcoming' && !isLive;
+    // final bool isLive = quiz.isLive;
+    // final bool isUpcoming = quiz.quizStatus == 'upcoming' && !isLive;
+    print('Quiz Status: ${quiz.quizStatus}');
+
+    final bool isLive = quiz.quizStatus == 'live';
+    final bool isUpcoming = quiz.quizStatus == 'upcoming';
+    print('is live status: $isLive');
+
     final bool hasBanner = quiz.banner != null && quiz.banner!.isNotEmpty;
 
     return GestureDetector(
@@ -747,6 +754,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
   }
 
   String _btnText(QuizItem quiz, bool isLive) {
+    print('quiz.isAccessible: ${quiz.isAccessible}, quiz.is_attempted: ${quiz.is_attempted}');
     if (isMockTest) return quiz.is_attempted ? 'View Result' : 'Start Test';
     if (!quiz.isAccessible) return 'Subscribe to Unlock';
     if (isLive) return 'Join Now';

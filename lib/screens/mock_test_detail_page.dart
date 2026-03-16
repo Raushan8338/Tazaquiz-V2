@@ -13,8 +13,6 @@ import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
-// ✅ Ye sahi hai
-
 class MockTestDetailPage extends StatefulWidget {
   final String quizId;
   final bool is_subscribed;
@@ -78,7 +76,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
-
       final responseFuture = await authRepository.get_quizId_wise_details(data);
 
       if (responseFuture.statusCode == 200) {
@@ -87,7 +84,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
           _currentQuiz = QuizItem.fromJson(responseData['data']);
           setState(() {
             _isPurchased = _currentQuiz!.isPurchased;
-            _isAccessible = _currentQuiz!.accessStatus; // ← change
+            _isAccessible = _currentQuiz!.accessStatus;
             _attempted = _currentQuiz!.is_attempted;
             _isFree = _currentQuiz!.price == 0 || !_currentQuiz!.isPaid;
             _isPremium = _currentQuiz!.is_premium;
@@ -104,16 +101,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     }
   }
 
-  // ─── HANDLERS ────────────────────────────────────────────────────────────
-
   void _handleStartMockTest() {
     if (_currentQuiz == null) return;
-
     if (!_currentQuiz!.accessStatus) {
       _showAccessDialog();
       return;
     }
-
     if (_isFree) {
       rewardedAdService.showAd(() => _navigateToMockTest());
     } else {
@@ -142,24 +135,24 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
     switch (_currentQuiz!.accessError) {
       case 'attempt_pending':
-        message = 'Aapka ek attempt pending hai. Pehle use complete karo.';
+        message = 'You have a pending attempt. Please complete it first.';
         buttonText = 'Resume Attempt';
         showResume = true;
         break;
       case 'course_mismatch':
-        message = 'Sirf apne course ka mock test access kar sakte ho. Upgrade karo!';
+        message = 'You can only access mock tests from your enrolled course. Upgrade your plan!';
         buttonText = 'Upgrade Plan';
         break;
       case 'upgrade_required':
-        message = 'Is mahine ka attempt limit khatam ho gaya. Upgrade karo!';
+        message = 'You have used all your attempts for this month. Upgrade to continue!';
         buttonText = 'Activate Now';
         break;
       case 'plan_expired':
-        message = 'Aapka plan expire ho gaya. Renew karo!';
+        message = 'Your plan has expired. Please renew to regain access!';
         buttonText = 'Renew Plan';
         break;
       default:
-        message = _currentQuiz!.accessMessage ?? 'Access nahi hai.';
+        message = _currentQuiz!.accessMessage ?? 'You do not have access.';
         buttonText = 'Upgrade Plan';
     }
 
@@ -199,8 +192,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     });
   }
 
-  // ─── DIFFICULTY COLOR ─────────────────────────────────────────────────────
-
   Color _getDifficultyColor() {
     switch (_currentQuiz?.difficultyLevel.toLowerCase()) {
       case 'easy':
@@ -226,8 +217,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       return raw;
     }
   }
-
-  // ─── BUILD ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -258,7 +247,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       );
     }
 
-    // ── canStart ab accessStatus se ──
     final bool canStart = _currentQuiz!.accessStatus;
 
     return Scaffold(
@@ -275,31 +263,21 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                 child: Column(
                   children: [
                     SizedBox(height: 14),
-
                     if (canStart) _buildAccessBanner(),
                     if (canStart) SizedBox(height: 10),
-
                     _buildCourseInfo(),
                     SizedBox(height: 10),
-
                     _buildMockHeader(),
                     SizedBox(height: 10),
-
                     _buildStatsRow(),
                     SizedBox(height: 10),
-
                     _buildExpectSection(),
                     SizedBox(height: 10),
-
                     if (isBannerLoaded && bannerService.bannerAd != null) _buildBannerAd(),
-
                     if (!canStart) _buildSubscriptionSection() else _buildTestInfoSection(),
                     SizedBox(height: 10),
-
                     if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), SizedBox(height: 10)],
-
                     if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), SizedBox(height: 10)],
-
                     _buildImportantInfo(),
                   ],
                 ),
@@ -311,8 +289,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       bottomNavigationBar: _buildBottomBar(canStart),
     );
   }
-
-  // ─── APP BAR ──────────────────────────────────────────────────────────────
 
   Widget _buildAppBar() {
     return SliverAppBar(
@@ -346,23 +322,21 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── ACCESS BANNER ────────────────────────────────────────────────────────
-
   Widget _buildAccessBanner() {
     String message;
     String subtitle;
     IconData icon;
 
     if (_isFree) {
-      message = '🎉 Yeh Mock Test bilkul FREE hai!';
-      subtitle = 'Kisi subscription ki zaroorat nahi';
+      message = '🎉 This Mock Test is completely FREE!';
+      subtitle = 'No subscription required';
       icon = Icons.celebration_outlined;
     } else if (_isPurchased) {
       message = '✅ Access Unlocked!';
-      subtitle = 'Aap is mock test ke liye subscribe hain';
+      subtitle = 'You are subscribed to this mock test';
       icon = Icons.verified;
     } else {
-      message = '🔓 Aapke plan mein included hai!';
+      message = '🔓 Included in your plan!';
       subtitle = 'Full access available';
       icon = Icons.lock_open_rounded;
     }
@@ -415,8 +389,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       ),
     );
   }
-
-  // ─── COURSE INFO ──────────────────────────────────────────────────────────
 
   Widget _buildCourseInfo() {
     final materialName = _currentQuiz?.Material_name ?? '';
@@ -478,8 +450,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       ),
     );
   }
-
-  // ─── MOCK HEADER CARD ─────────────────────────────────────────────────────
 
   Widget _buildMockHeader() {
     return Container(
@@ -620,7 +590,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 16),
                         SizedBox(width: 8),
                         Text(
-                          'Aapne yeh test pehle attempt kiya hai',
+                          'You have already attempted this test',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2E7D32)),
                         ),
                       ],
@@ -649,15 +619,13 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── STATS ROW ────────────────────────────────────────────────────────────
-
   Widget _buildStatsRow() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _buildStatBox('❓', _currentQuiz?.totalQuestions.toString() ?? '—', 'Questions'),
-          SizedBox(width: 10),
+          //   _buildStatBox('❓', _currentQuiz?.totalQuestions.toString() ?? '—', 'Questions'),
+          //   SizedBox(width: 10),
           _buildStatBox('⏱️', _currentQuiz?.timeLimit.isEmpty == false ? _currentQuiz!.timeLimit : '—', 'Minutes'),
           SizedBox(width: 10),
           _buildStatBox('🏆', _currentQuiz?.totalMarks.toString() ?? '—', 'Marks'),
@@ -689,8 +657,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       ),
     );
   }
-
-  // ─── EXPECT SECTION ───────────────────────────────────────────────────────
 
   Widget _buildExpectSection() {
     return Container(
@@ -759,8 +725,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── BANNER AD ────────────────────────────────────────────────────────────
-
   Widget _buildBannerAd() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -774,8 +738,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       ),
     );
   }
-
-  // ─── TEST INFO SECTION ────────────────────────────────────────────────────
 
   Widget _buildTestInfoSection() {
     return Container(
@@ -791,7 +753,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         children: [
           _buildSectionHead(Icons.info_outline_rounded, 'Test Details', isGreen: false),
           SizedBox(height: 14),
-          _buildDetailRow(Icons.calendar_today_outlined, 'Available', 'Anytime — apni speed pe lo'),
+          _buildDetailRow(Icons.calendar_today_outlined, 'Available', 'Anytime — take it at your own pace'),
           if (_currentQuiz!.startDateTime.isNotEmpty)
             _buildDetailRow(
               Icons.play_circle_outline,
@@ -809,7 +771,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
           _buildDetailRow(
             Icons.repeat_rounded,
             'Attempts',
-            _attempted ? 'Ek baar attempt ho chuka hai' : 'Ek attempt allowed',
+            _attempted ? 'Already attempted once' : 'One attempt allowed',
           ),
         ],
       ),
@@ -835,8 +797,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── SUBSCRIPTION SECTION — dynamic ──────────────────────────────────────
-
   Widget _buildSubscriptionSection() {
     final error = _currentQuiz?.accessError ?? '';
     if (error == 'upgrade_required') {
@@ -845,8 +805,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       return _buildPremiumSection();
     }
   }
-
-  // ─── FREE USER SECTION ────────────────────────────────────────────────────
 
   Widget _buildFreeUserSection() {
     return Container(
@@ -894,7 +852,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   SizedBox(height: 12),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Is Mahine Ki\nLimit Khatam Ho Gayi!',
+                    'Monthly Attempt\nLimit Reached!',
                     16,
                     AppColors.white,
                     FontWeight.w800,
@@ -905,7 +863,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   SizedBox(height: 4),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Agle mahine phir 1 free attempt milega',
+                    'Your next free attempt resets next month',
                     11,
                     AppColors.white.withOpacity(0.7),
                     FontWeight.w400,
@@ -924,7 +882,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                 children: [
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Is mahine ka usage',
+                    "This month's usage",
                     12,
                     AppColors.darkNavy,
                     FontWeight.w700,
@@ -963,7 +921,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         Expanded(
                           child: AppRichText.setTextPoppinsStyle(
                             context,
-                            'Basic plan lo — unlimited mock tests milenge apne course mein!',
+                            'Upgrade to a basic plan — get unlimited mock tests for your course!',
                             11,
                             AppColors.darkNavy,
                             FontWeight.w500,
@@ -1027,16 +985,16 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── PREMIUM SECTION ──────────────────────────────────────────────────────
-
   Widget _buildPremiumSection() {
     final error = _currentQuiz?.accessError ?? '';
     final message =
         error == 'plan_expired'
-            ? 'Aapka plan expire ho gaya!\nRenew karo aur access pao.'
-            : 'Ye mock test aapke current\ncourse mein nahi hai.';
+            ? 'Your plan has expired!\nRenew to regain access.'
+            : 'This mock test is not in\nyour current course.';
     final subtitle =
-        error == 'plan_expired' ? 'Plan renew karo — access wapas milega' : 'Premium lo — sab courses unlimited access';
+        error == 'plan_expired'
+            ? 'Renew your plan — access will be restored'
+            : 'Go Premium — unlimited access to all courses';
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
@@ -1119,28 +1077,28 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   _buildBenefit(
                     Icons.assignment_outlined,
                     'Full Mock Test Series',
-                    'Real exam pattern ke saath unlimited practice',
+                    'Unlimited practice with real exam patterns',
                     _mockPrimary,
                   ),
                   SizedBox(height: 8),
                   _buildBenefit(
                     Icons.analytics_outlined,
                     'Detailed Performance Analysis',
-                    'Topic-wise weak areas identify karo',
+                    'Identify your topic-wise weak areas',
                     _mockAccent,
                   ),
                   SizedBox(height: 8),
                   _buildBenefit(
                     Icons.compare_arrows_rounded,
-                    'Answers Compare & Review',
-                    'Galat answers ke solutions dekho',
+                    'Answer Review & Comparison',
+                    'View solutions for incorrect answers',
                     _mockPrimary,
                   ),
                   SizedBox(height: 8),
                   _buildBenefit(
                     Icons.leaderboard_outlined,
                     'All India Rank',
-                    'Nationwide students ke saath compare karo',
+                    'Compare your performance nationwide',
                     _mockAccent,
                   ),
                 ],
@@ -1202,8 +1160,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── DESCRIPTION ──────────────────────────────────────────────────────────
-
   Widget _buildDescriptionCard() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
@@ -1232,8 +1188,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       ),
     );
   }
-
-  // ─── INSTRUCTIONS ─────────────────────────────────────────────────────────
 
   Widget _buildInstructionsCard() {
     final lines = _currentQuiz!.instruction.split('\n').where((l) => l.trim().isNotEmpty).toList();
@@ -1303,8 +1257,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── IMPORTANT INFO ───────────────────────────────────────────────────────
-
   Widget _buildImportantInfo() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
@@ -1317,14 +1269,14 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(Icons.info_outline_rounded, 'Zaroori Baatein', isGreen: false),
+          _buildSectionHead(Icons.info_outline_rounded, 'Important Information', isGreen: false),
           SizedBox(height: 10),
-          _buildInfoRow(Icons.touch_app_rounded, 'Sirf ek attempt allowed hai — dhyan se attempt karo'),
-          _buildInfoRow(Icons.swap_horiz_rounded, 'Koi bhi question pe jaao — koi order nahi'),
-          _buildInfoRow(Icons.bookmark_border_rounded, 'Review ke liye mark karo, submit se pehle wapas aao'),
-          _buildInfoRow(Icons.wifi_rounded, 'Stable internet connection zaroori hai'),
-          _buildInfoRow(Icons.bar_chart_rounded, 'Submit ke baad detailed analysis milegi'),
-          _buildInfoRow(Icons.timer_outlined, 'Timer chalta rahega — pause pe bhi time count hoga'),
+          _buildInfoRow(Icons.touch_app_rounded, 'Single attempt only — make it count'),
+          _buildInfoRow(Icons.swap_horiz_rounded, 'Navigate freely — no forced question order'),
+          _buildInfoRow(Icons.bookmark_border_rounded, 'Mark for review and revisit before submitting'),
+          _buildInfoRow(Icons.wifi_rounded, 'Stable internet connection required'),
+          _buildInfoRow(Icons.bar_chart_rounded, 'Detailed analysis available after submission'),
+          _buildInfoRow(Icons.timer_outlined, 'Timer keeps running — even when paused'),
         ],
       ),
     );
@@ -1355,8 +1307,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── SECTION HEAD ─────────────────────────────────────────────────────────
-
   Widget _buildSectionHead(IconData icon, String label, {bool isGreen = true}) {
     final Color headColor = isGreen ? _mockPrimary : _mockSecondary;
     return Row(
@@ -1372,8 +1322,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  // ─── BOTTOM BAR ───────────────────────────────────────────────────────────
-
   Widget _buildBottomBar(bool canStart) {
     String btnLabel;
     IconData btnIcon;
@@ -1387,7 +1335,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       onTap = () {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Aapne yeh test pehle attempt kar liya hai'),
+            content: Text('You have already attempted this test'),
             backgroundColor: Colors.grey.shade600,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1400,7 +1348,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       btnColors = [_mockPrimary, _mockSecondary];
       onTap = _handleStartMockTest;
     } else {
-      // access_error se button decide karo
       final error = _currentQuiz?.accessError ?? '';
       if (error == 'attempt_pending') {
         btnLabel = 'Resume Attempt';
@@ -1418,7 +1365,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         btnColors = [_mockPrimary, _mockSecondary];
         onTap = _handleSubscribe;
       } else {
-        // course_mismatch
         btnLabel = 'Upgrade to Premium';
         btnIcon = Icons.workspace_premium_rounded;
         btnColors = [_mockGold, _mockPrimary];
@@ -1446,7 +1392,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     Icon(Icons.info_outline_rounded, size: 12, color: _mockPrimary.withOpacity(0.5)),
                     SizedBox(width: 5),
                     Text(
-                      'Timer shuru hoga test start hone ke baad',
+                      'Timer starts once the test begins',
                       style: TextStyle(fontSize: 10, color: _mockPrimary.withOpacity(0.6), fontWeight: FontWeight.w500),
                     ),
                   ],
