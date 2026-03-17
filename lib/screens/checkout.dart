@@ -220,15 +220,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (session == null) {
         return;
       }
-      final cfPaymentService = CFPaymentGatewayService();
+      // final cfPaymentService = CFPaymentGatewayService();
 
-      final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
+      // final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
 
-      cfPaymentService.doPayment(payment);
-      // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
-      // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
+      // cfPaymentService.doPayment(payment);
+      var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
+      var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
 
-      // service.doPayment(upiPayment);
+      service.doPayment(upiPayment);
 
       // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
       // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();

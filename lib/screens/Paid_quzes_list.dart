@@ -79,8 +79,11 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   // ✅ Same category fetch as QuizListScreen
   Future<void> _fetchLevels() async {
     try {
-      Authrepository auth = Authrepository(Api_Client.dio);
-      Response response = await auth.fetchStudyLevels();
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {'categoryId': widget.pageId};
+
+    Response response = await authRepository.fetchStudySubjectCategory(data);
+     
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
         setState(() {
@@ -90,7 +93,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
           ];
           _isLoading = false;
         });
-        await _fetchQuizzes(0);
+        await _fetchQuizzes(0,1);
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -98,7 +101,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   }
 
   // ✅ Paid API with Pagetype + type filter
-  Future<void> _fetchQuizzes(int categoryId) async {
+  Future<void> _fetchQuizzes(int categoryId,int educationLevelId) async {
     setState(() => _isFetchingQuizzes = true);
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
@@ -106,12 +109,18 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
         'subscription_id': widget.pageId,
         'user_id': _user!.id.toString(),
         'category_id': categoryId.toString(),
+        'education_level_id':  educationLevelId == 0 ? categoryId.toString() : 0, // ✅ education level filter ke liye, agar 0 hai toh empty bhejo
         'Pagetype': widget.PageType,
+       
         // ✅ ended client side filter hai — API ko sirf live/upcoming bhejo
+
+       
         if (_selectedFilter == 'live' || _selectedFilter == 'upcoming') 'type': _selectedFilter,
       };
+       print('Fetching quizzes with data: $data');
 
       final response = await auth.get_paid_quizes_api(data);
+      print('Quiz API response: ${response.data}');
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
 
@@ -361,7 +370,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                         setState(() => _selectedFilter = tempFilter);
                         Navigator.pop(context);
                         // ✅ API dobara call karo naye filter ke saath
-                        _fetchQuizzes(_selectedCategoryId);
+                        _fetchQuizzes(_selectedCategoryId,1);
                       },
                       child: Container(
                         width: double.infinity,
@@ -406,7 +415,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
           return GestureDetector(
             onTap: () async {
               setState(() => _selectedCategoryId = cat.category_id);
-              await _fetchQuizzes(cat.category_id);
+              await _fetchQuizzes(cat.category_id,0); // ✅ educationLevelId = 0 for now, kyunki filter nahi hai (agar aage add kiya toh yahan se bhejna)
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),

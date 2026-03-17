@@ -22,19 +22,19 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
 
   // Mock test ke liye alag color palette — professional/study feel
   static const List<List<Color>> _mockGradients = [
-    [Color(0xFF1a237e), Color(0xFF283593)], // Deep blue
-    [Color(0xFF004D40), Color(0xFF00695C)], // Deep teal
-    [Color(0xFF4A148C), Color(0xFF6A1B9A)], // Deep purple
-    [Color(0xFF1B5E20), Color(0xFF2E7D32)], // Deep green
-    [Color(0xFFBF360C), Color(0xFFD84315)], // Deep orange
+    [Color(0xFF0D6E6E), Color(0xFF14A3A3)],
+    [Color(0xFF1A2340), Color(0xFF2D5F8A)],
+    [Color(0xFF6B21A8), Color(0xFF9333EA)],
+    [Color(0xFF991B1B), Color(0xFFDC2626)],
+    [Color(0xFF065F46), Color(0xFF059669)],
   ];
 
   static const List<List<Color>> _safeGradients = [
-    [Color(0xFF1a237e), Color(0xFF283593)],
-    [Color(0xFF004D40), Color(0xFF00695C)],
-    [Color(0xFF4A148C), Color(0xFF6A1B9A)],
-    [Color(0xFF1B5E20), Color(0xFF2E7D32)],
-    [Color(0xFF6D1F00), Color(0xFFBF360C)],
+    [Color(0xFF0D6E6E), Color(0xFF14A3A3)],
+    [Color(0xFF1A2340), Color(0xFF2D5F8A)],
+    [Color(0xFF6B21A8), Color(0xFF9333EA)],
+    [Color(0xFF991B1B), Color(0xFFDC2626)],
+    [Color(0xFF065F46), Color(0xFF059669)],
   ];
 
   @override

@@ -46,11 +46,11 @@ class _QuizListScreenState extends State<QuizListScreen> {
   ];
 
   final List<List<Color>> _mockGradients = const [
-    [Color(0xFF1a237e), Color(0xFF283593)],
-    [Color(0xFF0D1B6D), Color(0xFF1a237e)],
-    [Color(0xFF283593), Color(0xFF3949AB)],
-    [Color(0xFF1a237e), Color(0xFF0D1B6D)],
-    [Color(0xFF3949AB), Color(0xFF283593)],
+      [Color(0xFF0D4B3B), Color(0xFF1A8070)],
+    [Color(0xFF0B3D5E), Color(0xFF1A6D8A)],
+    [Color(0xFF1A4D6D), Color(0xFF0D7A6B)],
+    [Color(0xFF0C3756), Color(0xFF28A194)],
+    [Color(0xFF093D4A), Color(0xFF1A7A6D)],
   ];
 
   List<List<Color>> get _gradients => isMockTest ? _mockGradients : _liveGradients;
@@ -77,6 +77,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Future<void> _fetchLevels() async {
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
+      
       Response response = await auth.fetchStudyLevels();
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
@@ -103,6 +104,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
         'category_id': categoryId.toString(),
         'user_id': _user!.id.toString(),
       });
+      print('Quiz List API response: ${categoryId.toString()}');
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
     
@@ -235,7 +237,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
             end: Alignment.bottomRight,
             colors:
                 isMockTest
-                    ? [AppColors.darkNavy, const Color(0xFF1a237e)]
+                    ? [AppColors.darkNavy, const Color(0xFF0D4B3B)]
                     : [AppColors.darkNavy, const Color(0xFF0D4B3B)],
           ),
         ),
