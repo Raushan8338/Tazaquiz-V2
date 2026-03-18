@@ -15,10 +15,7 @@ class _PlanFeature {
   const _PlanFeature({required this.text, required this.isIncluded});
 
   factory _PlanFeature.fromJson(Map<String, dynamic> json) {
-    return _PlanFeature(
-      text: json['text'] ?? '',
-      isIncluded: json['is_included'] ?? false,
-    );
+    return _PlanFeature(text: json['text'] ?? '', isIncluded: json['is_included'] ?? false);
   }
 }
 
@@ -49,9 +46,10 @@ class _Package {
       price: double.tryParse(json['price'].toString()) ?? 0.0,
       billingType: json['billing_type'] ?? '',
       validityDays: int.tryParse(json['validity_days'].toString()) ?? 0,
-      features: (json['features'] as List<dynamic>? ?? [])
-          .map((f) => _PlanFeature.fromJson(f as Map<String, dynamic>))
-          .toList(),
+      features:
+          (json['features'] as List<dynamic>? ?? [])
+              .map((f) => _PlanFeature.fromJson(f as Map<String, dynamic>))
+              .toList(),
     );
   }
 
@@ -59,19 +57,18 @@ class _Package {
   bool get isBasic => slug == 'basic';
   bool get isPremium => slug == 'premium';
 
-  String get priceDisplay =>
-      price == 0 ? '₹0' : '₹${price.toInt()}';
+  String get priceDisplay => price == 0 ? '₹0' : '₹${price.toInt()}';
 
   String get billingLabel {
     switch (billingType) {
       case 'free':
-        return 'Hamesha ke liye free';
+        return 'Free forever';
       case 'quarterly':
-        return 'One-time · $validityDays din';
+        return 'One-time · $validityDays days';
       case 'monthly':
-        return 'Per month · $validityDays din';
+        return 'Per month · $validityDays days';
       default:
-        return '$validityDays din validity';
+        return '$validityDays days validity';
     }
   }
 }
@@ -79,7 +76,6 @@ class _Package {
 // ─── Pricing Page ─────────────────────────────────────────────────────────────
 
 class PricingPage extends StatefulWidget {
-  // Pass the user's currently active package slug if any (e.g. 'basic', 'premium', null)
   final String? activePackageSlug;
 
   const PricingPage({super.key, this.activePackageSlug});
@@ -88,28 +84,19 @@ class PricingPage extends StatefulWidget {
   State<PricingPage> createState() => _PricingPageState();
 }
 
-class _PricingPageState extends State<PricingPage>
-    with TickerProviderStateMixin {
+class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin {
   late AnimationController _shimmerCtrl;
   late Animation<double> _shimmerAnim;
 
-  // ── User
   UserModel? _user;
 
-  // ── API state
   List<_Package> _packages = [];
   bool _isLoading = true;
   String? _error;
 
-  // ── Active package tracking
-  // Set from widget param; updated on purchase
   String? _activePlanSlug;
-
-  // For basic plan: which course was selected
   String? _activatedCourse;
 
-  // ── User's selected courses (from MyCoursesSelection API)
-  // Only these will show in Basic plan course bottom sheet
   List<SelectedCourseItem> _userSelectedCourses = [];
 
   @override
@@ -117,46 +104,31 @@ class _PricingPageState extends State<PricingPage>
     super.initState();
     _activePlanSlug = widget.activePackageSlug;
 
-    _shimmerCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat(reverse: true);
-    _shimmerAnim =
-        CurvedAnimation(parent: _shimmerCtrl, curve: Curves.easeInOut);
+    _shimmerCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))
+      ..repeat(reverse: true);
+    _shimmerAnim = CurvedAnimation(parent: _shimmerCtrl, curve: Curves.easeInOut);
 
     _init();
   }
 
   Future<void> _init() async {
     _user = await SessionManager.getUser();
-    // Run both fetches in parallel
-    await Future.wait([
-      _fetchPackages(),
-      _fetchUserSelectedCourses(),
-    ]);
+    await Future.wait([_fetchPackages(), _fetchUserSelectedCourses()]);
   }
-
-  // ─── Fetch user's selected courses (same as MyCoursesSelection) ──────────────
 
   Future<void> _fetchUserSelectedCourses() async {
     if (_user == null) return;
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'user_id': _user!.id.toString()};
-
-      final response =
-          await authRepository.getUserSelected_non_Courses(data);
+      final response = await authRepository.getUserSelected_non_Courses(data);
 
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
-        final all =
-            list.map((e) => SelectedCourseItem.fromJson(e)).toList();
-
+        final all = list.map((e) => SelectedCourseItem.fromJson(e)).toList();
         if (mounted) {
           setState(() {
-            // Only keep courses the user has already selected
-            _userSelectedCourses =
-                all.where((c) => c.isSelected).toList();
+            _userSelectedCourses = all.where((c) => c.isSelected).toList();
           });
         }
       }
@@ -164,8 +136,6 @@ class _PricingPageState extends State<PricingPage>
       debugPrint('Selected courses fetch error: $e');
     }
   }
-
-  // ─── API Call ────────────────────────────────────────────────────────────────
 
   Future<void> _fetchPackages() async {
     setState(() {
@@ -175,13 +145,9 @@ class _PricingPageState extends State<PricingPage>
 
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {
-        'action': 'fetch_packages',
-        if (_user != null) 'user_id': _user!.id.toString(),
-      };
+      final data = {'action': 'fetch_packages', if (_user != null) 'user_id': _user!.id.toString()};
 
       final response = await authRepository.fetchPackages(data);
-      // Expected: { "status": true, "packages": [...] }
 
       if (response.statusCode == 200) {
         final body = response.data as Map<String, dynamic>;
@@ -190,26 +156,24 @@ class _PricingPageState extends State<PricingPage>
 
         if (status && raw != null) {
           setState(() {
-            _packages = raw
-                .map((p) => _Package.fromJson(p as Map<String, dynamic>))
-                .toList();
+            _packages = raw.map((p) => _Package.fromJson(p as Map<String, dynamic>)).toList();
             _isLoading = false;
           });
         } else {
           setState(() {
-            _error = 'Packages load nahi hue. Dobara try karo.';
+            _error = 'Packages could not be loaded. Please try again.';
             _isLoading = false;
           });
         }
       } else {
         setState(() {
-          _error = 'Server error (${response.statusCode}). Dobara try karo.';
+          _error = 'Server error (${response.statusCode}). Please try again.';
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _error = 'Network error. Internet check karo aur dobara try karo.';
+        _error = 'Network error. Please check your connection and try again.';
         _isLoading = false;
       });
       debugPrint('fetchPackages error: $e');
@@ -222,8 +186,6 @@ class _PricingPageState extends State<PricingPage>
     super.dispose();
   }
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────────
-
   _Package? _getPackage(String slug) {
     try {
       return _packages.firstWhere((p) => p.slug == slug);
@@ -234,38 +196,34 @@ class _PricingPageState extends State<PricingPage>
 
   bool _isActivePlan(String slug) => _activePlanSlug == slug;
 
-  // ─── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       appBar: _buildAppBar(),
       body: SingleChildScrollView(
-        child: _isLoading
-            ? _buildLoader()
-            : _error != null
+        child:
+            _isLoading
+                ? _buildLoader()
+                : _error != null
                 ? _buildErrorState()
                 : Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 20, 14, 0),
-                    child: Column(
-                      children: [
-                        if (_getPackage('free') != null)
-                          _buildFreeCard(_getPackage('free')!),
-                        const SizedBox(height: 12),
-                        if (_getPackage('basic') != null)
-                          _buildBasicCard(_getPackage('basic')!),
-                        const SizedBox(height: 12),
-                        if (_getPackage('premium') != null)
-                          _buildPremiumCard(_getPackage('premium')!),
-                        const SizedBox(height: 20),
-                        _buildInfoNote(),
-                        const SizedBox(height: 16),
-                        _buildTrustBar(),
-                        const SizedBox(height: 32),
-                      ],
-                    ),
+                  padding: const EdgeInsets.fromLTRB(14, 20, 14, 0),
+                  child: Column(
+                    children: [
+                      if (_getPackage('free') != null) _buildFreeCard(_getPackage('free')!),
+                      const SizedBox(height: 12),
+                      if (_getPackage('basic') != null) _buildBasicCard(_getPackage('basic')!),
+                      const SizedBox(height: 12),
+                      if (_getPackage('premium') != null) _buildPremiumCard(_getPackage('premium')!),
+                      const SizedBox(height: 20),
+                      _buildInfoNote(),
+                      const SizedBox(height: 16),
+                      _buildTrustBar(),
+                      const SizedBox(height: 32),
+                    ],
                   ),
+                ),
       ),
     );
   }
@@ -273,12 +231,7 @@ class _PricingPageState extends State<PricingPage>
   // ─── Loader ─────────────────────────────────────────────────────────────────
 
   Widget _buildLoader() {
-    return const SizedBox(
-      height: 400,
-      child: Center(
-        child: CircularProgressIndicator(color: AppColors.tealGreen),
-      ),
-    );
+    return const SizedBox(height: 400, child: Center(child: CircularProgressIndicator(color: AppColors.tealGreen)));
   }
 
   Widget _buildErrorState() {
@@ -291,9 +244,8 @@ class _PricingPageState extends State<PricingPage>
             const Text('😕', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 12),
             Text(
-              _error ?? 'Kuch gadbad ho gayi',
-              style: TextStyle(
-                  color: AppColors.greyS600, fontSize: 14),
+              _error ?? 'Something went wrong',
+              style: TextStyle(color: AppColors.greyS600, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -301,11 +253,9 @@ class _PricingPageState extends State<PricingPage>
               onPressed: _fetchPackages,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.tealGreen,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: Text('Dobara Try Karo',
-                  style: TextStyle(color: AppColors.white)),
+              child: Text('Try Again', style: TextStyle(color: AppColors.white)),
             ),
           ],
         ),
@@ -339,8 +289,7 @@ class _PricingPageState extends State<PricingPage>
                       color: AppColors.white.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.arrow_back,
-                        color: AppColors.white, size: 20),
+                    child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -351,18 +300,11 @@ class _PricingPageState extends State<PricingPage>
                     children: [
                       const Text(
                         'Plans & Pricing',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.white,
-                        ),
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.white),
                       ),
                       Text(
-                        'Apne budget mein best plan chuniye',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.white.withOpacity(0.65),
-                        ),
+                        'Choose the best plan for your budget',
+                        style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.65)),
                       ),
                     ],
                   ),
@@ -382,22 +324,14 @@ class _PricingPageState extends State<PricingPage>
       decoration: BoxDecoration(
         color: AppColors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppColors.white.withOpacity(0.15)),
+        border: Border.all(color: AppColors.white.withOpacity(0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(num,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.white)),
+          Text(num, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.white)),
           const SizedBox(width: 5),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.white.withOpacity(0.7))),
+          Text(label, style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.7))),
         ],
       ),
     );
@@ -413,18 +347,10 @@ class _PricingPageState extends State<PricingPage>
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isActive
-              ? AppColors.tealGreen.withOpacity(0.5)
-              : AppColors.greyS200,
+          color: isActive ? AppColors.tealGreen.withOpacity(0.5) : AppColors.greyS200,
           width: isActive ? 2 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 14, offset: const Offset(0, 4))],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -435,12 +361,8 @@ class _PricingPageState extends State<PricingPage>
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.greyS1,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text('🎁',
-                      style: TextStyle(fontSize: 22)),
+                  decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
+                  child: const Text('🎁', style: TextStyle(fontSize: 22)),
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -448,113 +370,81 @@ class _PricingPageState extends State<PricingPage>
                   children: [
                     Text(
                       pkg.name,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.darkNavy,
-                      ),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                     ),
-                    Text(
-                      pkg.billingLabel,
-                      style: TextStyle(
-                          fontSize: 11, color: AppColors.greyS500),
-                    ),
+                    Text(pkg.billingLabel, style: TextStyle(fontSize: 11, color: AppColors.greyS500)),
                   ],
                 ),
                 const Spacer(),
-                // Active badge OR price
                 if (isActive)
                   _activeBadge()
                 else
                   Text(
                     pkg.priceDisplay,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.darkNavy,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.darkNavy),
                   ),
               ],
             ),
             const SizedBox(height: 16),
             _divider(),
             const SizedBox(height: 14),
-            ...pkg.features.map(
-              (f) => _featureRow(f.text, included: f.isIncluded),
-            ),
+            ...pkg.features.map((f) => _featureRow(f.text, included: f.isIncluded)),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: isActive
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.tealGreen.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: AppColors.tealGreen.withOpacity(0.35)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.check_circle_rounded,
-                                  color: AppColors.tealGreen, size: 16),
-                              SizedBox(width: 6),
-                              Text(
-                                '✓ Current Plan',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.tealGreen,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.tealGreen.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                  color:
-                                      AppColors.tealGreen.withOpacity(0.4)),
-                            ),
-                            child: Text(
-                              'Active ✓',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.tealGreen,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.greyS300),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
+              child:
+                  isActive
+                      ? Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: AppColors.tealGreen.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.tealGreen.withOpacity(0.35)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: AppColors.tealGreen, size: 16),
+                                SizedBox(width: 6),
+                                Text(
+                                  '✓ Current Plan',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.tealGreen,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.tealGreen.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.tealGreen.withOpacity(0.4)),
+                              ),
+                              child: Text(
+                                'Active ✓',
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.tealGreen),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                      : OutlinedButton(
+                        onPressed: () {},
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.greyS300),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          'Use Now',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.greyS600),
                         ),
                       ),
-                      child: Text(
-                        'Abhi Use Karo',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.greyS600,
-                        ),
-                      ),
-                    ),
             ),
           ],
         ),
@@ -575,18 +465,8 @@ class _PricingPageState extends State<PricingPage>
           colors: [AppColors.darkNavy, AppColors.tealGreen],
         ),
         borderRadius: BorderRadius.circular(20),
-        // Highlight border when active
-        border: isActive
-            ? Border.all(
-                color: AppColors.lightGold.withOpacity(0.6), width: 2)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.tealGreen.withOpacity(0.3),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: isActive ? Border.all(color: AppColors.lightGold.withOpacity(0.6), width: 2) : null,
+        boxShadow: [BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 8))],
       ),
       child: Stack(
         children: [
@@ -596,10 +476,7 @@ class _PricingPageState extends State<PricingPage>
             child: Container(
               width: 120,
               height: 120,
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.06),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.06), shape: BoxShape.circle),
             ),
           ),
           Positioned(
@@ -608,10 +485,7 @@ class _PricingPageState extends State<PricingPage>
             child: Container(
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.04),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.04), shape: BoxShape.circle),
             ),
           ),
           Padding(
@@ -628,8 +502,7 @@ class _PricingPageState extends State<PricingPage>
                         color: AppColors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text('🚀',
-                          style: TextStyle(fontSize: 22)),
+                      child: const Text('🚀', style: TextStyle(fontSize: 22)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -638,34 +511,21 @@ class _PricingPageState extends State<PricingPage>
                         children: [
                           Text(
                             pkg.name,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.white,
-                            ),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
                           ),
                           Text(
                             pkg.billingLabel,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color:
-                                  AppColors.white.withOpacity(0.7),
-                            ),
+                            style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.7)),
                           ),
                         ],
                       ),
                     ),
-                    // Active indicator OR Most Popular badge
                     if (isActive)
                       _activeBadgeDark()
                     else
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightGold,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(20)),
                         child: const Text(
                           '⭐ Most Popular',
                           style: TextStyle(
@@ -685,15 +545,15 @@ class _PricingPageState extends State<PricingPage>
                   animation: _shimmerAnim,
                   builder: (context, child) {
                     return ShaderMask(
-                      shaderCallback: (bounds) => LinearGradient(
-                        colors: [
-                          AppColors.white,
-                          AppColors.white.withOpacity(
-                              0.5 + _shimmerAnim.value * 0.5),
-                          AppColors.white,
-                        ],
-                        stops: const [0.0, 0.5, 1.0],
-                      ).createShader(bounds),
+                      shaderCallback:
+                          (bounds) => LinearGradient(
+                            colors: [
+                              AppColors.white,
+                              AppColors.white.withOpacity(0.5 + _shimmerAnim.value * 0.5),
+                              AppColors.white,
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                          ).createShader(bounds),
                       child: child,
                     );
                   },
@@ -712,14 +572,10 @@ class _PricingPageState extends State<PricingPage>
                 Divider(color: AppColors.white.withOpacity(0.15)),
                 const SizedBox(height: 12),
 
-                ...pkg.features.map(
-                  (f) => _featureRowDark(f.text,
-                      included: f.isIncluded),
-                ),
+                ...pkg.features.map((f) => _featureRowDark(f.text, included: f.isIncluded)),
 
                 const SizedBox(height: 18),
 
-                // CTA — show activated state, or active course, or buy button
                 if (isActive && _activatedCourse != null) ...[
                   _buildActivatedCourseBadge(),
                 ] else if (isActive) ...[
@@ -729,34 +585,26 @@ class _PricingPageState extends State<PricingPage>
                     onTap: () => _showCourseBottomSheet(pkg),
                     child: Container(
                       width: double.infinity,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color:
-                                AppColors.black.withOpacity(0.15),
+                            color: AppColors.black.withOpacity(0.15),
                             blurRadius: 14,
                             offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('🛒',
-                              style: TextStyle(fontSize: 14)),
+                          const Text('🛒', style: TextStyle(fontSize: 14)),
                           const SizedBox(width: 8),
                           Text(
                             'Buy Now — ${pkg.priceDisplay}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.darkNavy,
-                            ),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                           ),
                         ],
                       ),
@@ -781,18 +629,10 @@ class _PricingPageState extends State<PricingPage>
         color: AppColors.darkNavy,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isActive
-              ? AppColors.lightGold.withOpacity(0.8)
-              : AppColors.lightGold.withOpacity(0.4),
+          color: isActive ? AppColors.lightGold.withOpacity(0.8) : AppColors.lightGold.withOpacity(0.4),
           width: isActive ? 2.5 : 1.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.darkNavy.withOpacity(0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.25), blurRadius: 20, offset: const Offset(0, 6))],
       ),
       child: Stack(
         children: [
@@ -802,10 +642,7 @@ class _PricingPageState extends State<PricingPage>
             child: Container(
               width: 130,
               height: 130,
-              decoration: BoxDecoration(
-                color: AppColors.lightGold.withOpacity(0.06),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: AppColors.lightGold.withOpacity(0.06), shape: BoxShape.circle),
             ),
           ),
           Padding(
@@ -821,12 +658,9 @@ class _PricingPageState extends State<PricingPage>
                       decoration: BoxDecoration(
                         color: AppColors.lightGold.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: AppColors.lightGold
-                                .withOpacity(0.25)),
+                        border: Border.all(color: AppColors.lightGold.withOpacity(0.25)),
                       ),
-                      child: const Text('👑',
-                          style: TextStyle(fontSize: 22)),
+                      child: const Text('👑', style: TextStyle(fontSize: 22)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -835,19 +669,11 @@ class _PricingPageState extends State<PricingPage>
                         children: [
                           Text(
                             pkg.name,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.white,
-                            ),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
                           ),
                           Text(
                             pkg.billingLabel,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color:
-                                  AppColors.white.withOpacity(0.55),
-                            ),
+                            style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.55)),
                           ),
                         ],
                       ),
@@ -856,12 +682,9 @@ class _PricingPageState extends State<PricingPage>
                       _activeBadgeGold()
                     else
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          border: Border.all(
-                              color: AppColors.lightGold
-                                  .withOpacity(0.6)),
+                          border: Border.all(color: AppColors.lightGold.withOpacity(0.6)),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
@@ -878,7 +701,6 @@ class _PricingPageState extends State<PricingPage>
                 ),
                 const SizedBox(height: 14),
 
-                // Price
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -892,12 +714,9 @@ class _PricingPageState extends State<PricingPage>
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.only(
-                          bottom: 6, left: 6),
+                      padding: const EdgeInsets.only(bottom: 6, left: 6),
                       child: Text(
-                        pkg.billingType == 'monthly'
-                            ? '/ month'
-                            : '/ ${pkg.validityDays} din',
+                        pkg.billingType == 'monthly' ? '/ month' : '/ ${pkg.validityDays} days',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.white.withOpacity(0.5),
@@ -912,44 +731,31 @@ class _PricingPageState extends State<PricingPage>
                 Divider(color: AppColors.white.withOpacity(0.1)),
                 const SizedBox(height: 12),
 
-                // Filter out Offline Mode & Certificates Download from display
                 ...pkg.features
-                    .where((f) =>
-                        !f.text.toLowerCase().contains('offline') &&
-                        !f.text.toLowerCase().contains('certificate'))
-                    .map(
-                      (f) => _featureRowDark(f.text,
-                          included: f.isIncluded,
-                          accent: AppColors.lightGold),
-                    ),
+                    .where(
+                      (f) => !f.text.toLowerCase().contains('offline') && !f.text.toLowerCase().contains('certificate'),
+                    )
+                    .map((f) => _featureRowDark(f.text, included: f.isIncluded, accent: AppColors.lightGold)),
 
                 const SizedBox(height: 18),
 
                 if (isActive) ...[
                   Container(
                     width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: AppColors.lightGold.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color:
-                              AppColors.lightGold.withOpacity(0.4)),
+                      border: Border.all(color: AppColors.lightGold.withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.workspace_premium,
-                            color: AppColors.lightGold, size: 16),
+                        Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 16),
                         SizedBox(width: 6),
                         Text(
                           '✓ Current Plan — Active',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.lightGold,
-                          ),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.lightGold),
                         ),
                       ],
                     ),
@@ -959,39 +765,26 @@ class _PricingPageState extends State<PricingPage>
                     onTap: () => _showPremiumBottomSheet(pkg),
                     child: Container(
                       width: double.infinity,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.lightGold,
-                            AppColors.lightGoldS2,
-                          ],
-                        ),
+                        gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.lightGold
-                                .withOpacity(0.3),
+                            color: AppColors.lightGold.withOpacity(0.3),
                             blurRadius: 14,
                             offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('👑',
-                              style: TextStyle(fontSize: 16)),
+                          const Text('👑', style: TextStyle(fontSize: 16)),
                           const SizedBox(width: 8),
                           Text(
-                            'Premium Shuru Karo — ${pkg.priceDisplay}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.darkNavy,
-                            ),
+                            'Get Premium — ${pkg.priceDisplay}',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                           ),
                         ],
                       ),
@@ -1008,75 +801,50 @@ class _PricingPageState extends State<PricingPage>
 
   // ─── Active state helpers ────────────────────────────────────────────────────
 
-  /// Green "✓ Current Plan" badge for light cards
   Widget _activeBadge() {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: AppColors.tealGreen.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: AppColors.tealGreen.withOpacity(0.4)),
+        border: Border.all(color: AppColors.tealGreen.withOpacity(0.4)),
       ),
       child: const Text(
         '✓ Current Plan',
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-          color: AppColors.tealGreen,
-          letterSpacing: 0.3,
-        ),
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.tealGreen, letterSpacing: 0.3),
       ),
     );
   }
 
-  /// White "✓ Active" badge for dark gradient cards
   Widget _activeBadgeDark() {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: AppColors.white.withOpacity(0.18),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: AppColors.white.withOpacity(0.3)),
+        border: Border.all(color: AppColors.white.withOpacity(0.3)),
       ),
       child: const Text(
         '✓ Active',
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-          color: AppColors.white,
-          letterSpacing: 0.3,
-        ),
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.white, letterSpacing: 0.3),
       ),
     );
   }
 
-  /// Gold "✓ Active" badge for premium card
   Widget _activeBadgeGold() {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: AppColors.lightGold.withOpacity(0.2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: AppColors.lightGold.withOpacity(0.7)),
+        border: Border.all(color: AppColors.lightGold.withOpacity(0.7)),
       ),
       child: const Text(
         '✓ Active',
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
-          color: AppColors.lightGold,
-          letterSpacing: 0.3,
-        ),
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.lightGold, letterSpacing: 0.3),
       ),
     );
   }
-
 
   Widget _buildActiveFullButton() {
     return Container(
@@ -1092,16 +860,11 @@ class _PricingPageState extends State<PricingPage>
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle_rounded,
-                  color: AppColors.lightGold, size: 16),
+              Icon(Icons.check_circle_rounded, color: AppColors.lightGold, size: 16),
               SizedBox(width: 6),
               Text(
                 '✓ Current Plan',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.white,
-                ),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.white),
               ),
             ],
           ),
@@ -1114,11 +877,7 @@ class _PricingPageState extends State<PricingPage>
             ),
             child: Text(
               'Active ✓',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.lightGold,
-              ),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.lightGold),
             ),
           ),
         ],
@@ -1127,12 +886,13 @@ class _PricingPageState extends State<PricingPage>
   }
 
   Widget _buildActivatedCourseBadge() {
-    final course = _userSelectedCourses.isNotEmpty
-        ? _userSelectedCourses.firstWhere(
-            (c) => c.categoryId.toString() == _activatedCourse,
-            orElse: () => _userSelectedCourses.first,
-          )
-        : null;
+    final course =
+        _userSelectedCourses.isNotEmpty
+            ? _userSelectedCourses.firstWhere(
+              (c) => c.categoryId.toString() == _activatedCourse,
+              orElse: () => _userSelectedCourses.first,
+            )
+            : null;
 
     return Container(
       width: double.infinity,
@@ -1147,18 +907,11 @@ class _PricingPageState extends State<PricingPage>
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle_rounded,
-                  color: AppColors.lightGold, size: 16),
+              Icon(Icons.check_circle_rounded, color: AppColors.lightGold, size: 16),
               SizedBox(width: 6),
               Text(
-                course != null
-                    ? '✓ ${course.categoryName}'
-                    : '✓ Current Plan',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.white,
-                ),
+                course != null ? '✓ ${course.categoryName}' : '✓ Current Plan',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.white),
               ),
             ],
           ),
@@ -1171,11 +924,7 @@ class _PricingPageState extends State<PricingPage>
             ),
             child: Text(
               'Active ✓',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: AppColors.lightGold,
-              ),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.lightGold),
             ),
           ),
         ],
@@ -1191,8 +940,7 @@ class _PricingPageState extends State<PricingPage>
       decoration: BoxDecoration(
         color: AppColors.tealGreen.withOpacity(0.07),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: AppColors.tealGreen.withOpacity(0.2)),
+        border: Border.all(color: AppColors.tealGreen.withOpacity(0.2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1204,21 +952,13 @@ class _PricingPageState extends State<PricingPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Basic Plan kaise kaam karta hai?',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.darkNavy,
-                  ),
+                  'How does the Basic Plan work?',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '₹29 pay karo → Ek course select karo (SSC/Banking/etc.) → Woh course lifetime ke liye unlock! Us course ke sab mock tests, live quizzes aur study material milega.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.greyS600,
-                    height: 1.6,
-                  ),
+                  'Pay ₹29 → Select one course (SSC/Banking/etc.) → That course unlocks forever! Get all mock tests, live quizzes and study material for that course.',
+                  style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1.6),
                 ),
               ],
             ),
@@ -1236,13 +976,7 @@ class _PricingPageState extends State<PricingPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 3))],
       ),
       child: Row(
         children: [
@@ -1262,20 +996,13 @@ class _PricingPageState extends State<PricingPage>
       children: [
         Text(icon, style: TextStyle(fontSize: 20)),
         const SizedBox(height: 4),
-        Text(title,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.darkNavy)),
-        Text(sub,
-            style: TextStyle(
-                fontSize: 10, color: AppColors.greyS500)),
+        Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.darkNavy)),
+        Text(sub, style: TextStyle(fontSize: 10, color: AppColors.greyS500)),
       ],
     );
   }
 
-  Widget _vDivider() =>
-      Container(width: 1, height: 40, color: AppColors.greyS200);
+  Widget _vDivider() => Container(width: 1, height: 40, color: AppColors.greyS200);
 
   // ─── SHARED FEATURE ROWS ────────────────────────────────────────────────────
 
@@ -1289,9 +1016,7 @@ class _PricingPageState extends State<PricingPage>
             height: 20,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: included
-                  ? AppColors.tealGreen.withOpacity(0.1)
-                  : AppColors.greyS200,
+              color: included ? AppColors.tealGreen.withOpacity(0.1) : AppColors.greyS200,
             ),
             child: Center(
               child: Text(
@@ -1299,9 +1024,7 @@ class _PricingPageState extends State<PricingPage>
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  color: included
-                      ? AppColors.tealGreen
-                      : AppColors.greyS400,
+                  color: included ? AppColors.tealGreen : AppColors.greyS400,
                 ),
               ),
             ),
@@ -1311,15 +1034,9 @@ class _PricingPageState extends State<PricingPage>
             label,
             style: TextStyle(
               fontSize: 12.5,
-              color: included
-                  ? AppColors.greyS700
-                  : AppColors.greyS400,
-              decoration: included
-                  ? TextDecoration.none
-                  : TextDecoration.lineThrough,
-              fontWeight: included
-                  ? FontWeight.w500
-                  : FontWeight.w400,
+              color: included ? AppColors.greyS700 : AppColors.greyS400,
+              decoration: included ? TextDecoration.none : TextDecoration.lineThrough,
+              fontWeight: included ? FontWeight.w500 : FontWeight.w400,
             ),
           ),
         ],
@@ -1327,8 +1044,7 @@ class _PricingPageState extends State<PricingPage>
     );
   }
 
-  Widget _featureRowDark(String label,
-      {required bool included, Color? accent}) {
+  Widget _featureRowDark(String label, {required bool included, Color? accent}) {
     final tickColor = accent ?? AppColors.tealGreen;
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
@@ -1339,9 +1055,7 @@ class _PricingPageState extends State<PricingPage>
             height: 20,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: included
-                  ? tickColor.withOpacity(0.18)
-                  : AppColors.white.withOpacity(0.07),
+              color: included ? tickColor.withOpacity(0.18) : AppColors.white.withOpacity(0.07),
             ),
             child: Center(
               child: Text(
@@ -1349,9 +1063,7 @@ class _PricingPageState extends State<PricingPage>
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  color: included
-                      ? tickColor
-                      : AppColors.white.withOpacity(0.25),
+                  color: included ? tickColor : AppColors.white.withOpacity(0.25),
                 ),
               ),
             ),
@@ -1362,15 +1074,9 @@ class _PricingPageState extends State<PricingPage>
               label,
               style: TextStyle(
                 fontSize: 12.5,
-                color: included
-                    ? AppColors.white.withOpacity(0.9)
-                    : AppColors.white.withOpacity(0.28),
-                decoration: included
-                    ? TextDecoration.none
-                    : TextDecoration.lineThrough,
-                fontWeight: included
-                    ? FontWeight.w500
-                    : FontWeight.w400,
+                color: included ? AppColors.white.withOpacity(0.9) : AppColors.white.withOpacity(0.28),
+                decoration: included ? TextDecoration.none : TextDecoration.lineThrough,
+                fontWeight: included ? FontWeight.w500 : FontWeight.w400,
               ),
             ),
           ),
@@ -1379,48 +1085,34 @@ class _PricingPageState extends State<PricingPage>
     );
   }
 
-  Widget _divider() =>
-      Container(height: 1, color: AppColors.greyS200);
+  Widget _divider() => Container(height: 1, color: AppColors.greyS200);
 
   // ─── BASIC BOTTOM SHEET ─────────────────────────────────────────────────────
 
- void _showCourseBottomSheet(_Package pkg) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (sheetContext) => _CourseSelectionSheet(
-      pkg: pkg,
-      userCourses: _userSelectedCourses,
-      onActivate: (courseId, courseName) {
-
-        // setState(() {
-        //   _activatedCourse = courseId;
-        //   _activePlanSlug = pkg.slug;
-        // });
-
-        String susb_category = 'Subscription';
-        String send_product_id = courseId.toString();
-        String package_id = pkg.id.toString();
-
-        // BottomSheet close
-        Navigator.pop(sheetContext);
-
-        // Redirect to checkout
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CheckoutPage(
-              contentType: susb_category,
-              contentId: send_product_id,
-              package_id:package_id
-            ),
+  void _showCourseBottomSheet(_Package pkg) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (sheetContext) => _CourseSelectionSheet(
+            pkg: pkg,
+            userCourses: _userSelectedCourses,
+            isPremium: false,
+            onActivate: (courseId, courseName) {
+              Navigator.pop(sheetContext);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) =>
+                          CheckoutPage(contentType: 'Subscription', contentId: courseId, package_id: pkg.id.toString()),
+                ),
+              );
+            },
           ),
-        );
-      },
-    ),
-  );
-}
+    );
+  }
 
   // ─── PREMIUM BOTTOM SHEET ───────────────────────────────────────────────────
 
@@ -1429,47 +1121,34 @@ class _PricingPageState extends State<PricingPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _PremiumSheet(
-        pkg: pkg,
-        onActivate: () {
-          setState(() => _activePlanSlug = pkg.slug);
-           String susb_category = 'Subscription';
-        String send_product_id = 'All';
-        String package_id = pkg.id.toString();
-
-        // BottomSheet close
-        Navigator.pop(context);
-
-        // Redirect to checkout
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CheckoutPage(
-              contentType: susb_category,
-              contentId: send_product_id,
-              package_id:package_id
-            ),
+      builder:
+          (sheetContext) => _CourseSelectionSheet(
+            pkg: pkg,
+            userCourses: _userSelectedCourses,
+            isPremium: true,
+            onActivate: (courseId, courseName) {
+              setState(() => _activePlanSlug = pkg.slug);
+              Navigator.pop(sheetContext);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) =>
+                          CheckoutPage(contentType: 'Subscription', contentId: courseId, package_id: pkg.id.toString()),
+                ),
+              );
+            },
           ),
-        );
-          // Navigator.pop(context);
-          // _showSuccessSnackBar(
-          //     '👑 Premium active! Sab courses unlock ho gaye 🎉');
-        },
-      ),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message,
-            style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.white)),
+        content: Text(message, style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
         backgroundColor: AppColors.tealGreen,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),
       ),
@@ -1477,26 +1156,26 @@ class _PricingPageState extends State<PricingPage>
   }
 }
 
-// ─── COURSE SELECTION BOTTOM SHEET ───────────────────────────────────────────
+// ─── COURSE SELECTION BOTTOM SHEET (shared for Basic & Premium) ──────────────
 
 class _CourseSelectionSheet extends StatefulWidget {
   final _Package pkg;
-  final List<SelectedCourseItem> userCourses; // sirf selected courses API se
+  final List<SelectedCourseItem> userCourses;
   final void Function(String courseId, String courseName) onActivate;
+  final bool isPremium;
 
   const _CourseSelectionSheet({
     required this.pkg,
     required this.userCourses,
     required this.onActivate,
+    this.isPremium = false,
   });
 
   @override
-  State<_CourseSelectionSheet> createState() =>
-      _CourseSelectionSheetState();
+  State<_CourseSelectionSheet> createState() => _CourseSelectionSheetState();
 }
 
-class _CourseSelectionSheetState
-    extends State<_CourseSelectionSheet> {
+class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
   SelectedCourseItem? _selected;
 
   @override
@@ -1504,217 +1183,239 @@ class _CourseSelectionSheetState
     final courses = widget.userCourses;
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.greyS300,
-              borderRadius: BorderRadius.circular(2),
+      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: AppColors.greyS300, borderRadius: BorderRadius.circular(2)),
             ),
-          ),
 
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Course Chuniye 📋',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.darkNavy,
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.isPremium ? 'Select Your Course 👑' : 'Select Your Course 📋',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                         ),
-                      ),
-                      Text(
-                        '1 course — ${widget.pkg.validityDays} din ke liye activate hoga',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.greyS500),
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.greyS1,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(Icons.close,
-                        size: 18, color: AppColors.greyS600),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          Divider(color: AppColors.greyS200),
-
-          // Empty state — agar koi course select nahi hai MyCoursesSelection mein
-          if (courses.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  vertical: 40, horizontal: 24),
-              child: Column(
-                children: [
-                  const Text('😕', style: TextStyle(fontSize: 40)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Koi course select nahi hai',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.darkNavy,
+                        Text(
+                          widget.isPremium
+                              ? 'All courses unlock · ${widget.pkg.validityDays} days validity'
+                              : '1 course · ${widget.pkg.validityDays} days validity',
+                          style: TextStyle(fontSize: 11, color: AppColors.greyS500),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Pehle "My Courses" mein jaake apne courses chuniye, phir yahan activate karo.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.greyS500,
-                      height: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else ...[
-            // Course Grid — API se aaye selected courses
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.7,
-                ),
-                itemCount: courses.length,
-                itemBuilder: (context, index) {
-                  final course = courses[index];
-                  final isSelected =
-                      _selected?.categoryId == course.categoryId;
-                  return _SelectedCourseCard(
-                    course: course,
-                    isSelected: isSelected,
-                    onTap: () =>
-                        setState(() => _selected = course),
-                  );
-                },
-              ),
-            ),
-
-            // Activate button
-            Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 18, 16, 28),
-              child: Column(
-                children: [
                   GestureDetector(
-                    onTap: _selected != null
-                        ? () => widget.onActivate(
-                              _selected!.categoryId.toString(),
-                              _selected!.categoryName,
-                            )
-                        : null,
-                    child: AnimatedContainer(
-                      duration:
-                          const Duration(milliseconds: 250),
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 14),
-                      decoration: BoxDecoration(
-                        gradient: _selected != null
-                            ? LinearGradient(colors: [
-                                AppColors.darkNavy,
-                                AppColors.tealGreen,
-                              ])
-                            : null,
-                        color: _selected != null
-                            ? null
-                            : AppColors.greyS200,
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        boxShadow: _selected != null
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.tealGreen
-                                      .withOpacity(0.3),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 4),
-                                )
-                              ]
-                            : [],
-                      ),
-                      child: Center(
-                        child: Text(
-                          _selected != null
-                              ? '✅ ${_selected!.categoryName} — ${widget.pkg.priceDisplay} Pay Karo'
-                              : 'Pehle Course Chuniye',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: _selected != null
-                                ? AppColors.white
-                                : AppColors.greyS500,
-                          ),
-                        ),
-                      ),
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(20)),
+                      child: Icon(Icons.close, size: 18, color: AppColors.greyS600),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '⚠️  Ek baar select karne ke baad change nahi hoga',
-                    style: TextStyle(
-                        fontSize: 11, color: AppColors.greyS400),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
+
+            // Premium info banner
+            if (widget.isPremium) ...[
+              const SizedBox(height: 10),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: AppColors.lightGold.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.lightGold.withOpacity(0.35)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('👑', style: TextStyle(fontSize: 15)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(fontSize: 11, color: AppColors.greyS700, height: 1.4),
+                          children: [
+                            TextSpan(
+                              text: 'More than Basic! ',
+                              style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                            ),
+                            const TextSpan(text: 'Get '),
+                            TextSpan(
+                              text: 'Selected Courses + Leaderboard + Study Material',
+                              style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.tealGreen),
+                            ),
+                            const TextSpan(
+                              text: '. Basic only gives Mock Test and Quizes with no Leaderboard or Study Material.',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 6),
+            Divider(color: AppColors.greyS200),
+
+            // Empty state
+            if (courses.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                child: Column(
+                  children: [
+                    const Text('😕', style: TextStyle(fontSize: 40)),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No courses selected',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Please go to "My Courses" first and select your courses, then come back to activate.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: AppColors.greyS500, height: 1.5),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+              // Course Grid
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.7,
+                  ),
+                  itemCount: courses.length,
+                  itemBuilder: (context, index) {
+                    final course = courses[index];
+                    final isSelected = _selected?.categoryId == course.categoryId;
+                    return _SelectedCourseCard(
+                      course: course,
+                      isSelected: isSelected,
+                      onTap: () => setState(() => _selected = course),
+                    );
+                  },
+                ),
+              ),
+
+              // Activate button
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 18, 16, MediaQuery.of(context).padding.bottom + 24),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap:
+                          _selected != null
+                              ? () => widget.onActivate(_selected!.categoryId.toString(), _selected!.categoryName)
+                              : null,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient:
+                              _selected != null
+                                  ? LinearGradient(
+                                    colors:
+                                        widget.isPremium
+                                            ? [AppColors.lightGold, AppColors.lightGoldS2]
+                                            : [AppColors.darkNavy, AppColors.tealGreen],
+                                  )
+                                  : null,
+                          color: _selected != null ? null : AppColors.greyS200,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow:
+                              _selected != null
+                                  ? [
+                                    BoxShadow(
+                                      color: (widget.isPremium ? AppColors.lightGold : AppColors.tealGreen).withOpacity(
+                                        0.3,
+                                      ),
+                                      blurRadius: 14,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                  : [],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(widget.isPremium ? '👑' : '✅', style: const TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            Text(
+                              _selected != null
+                                  ? '${_selected!.categoryName} · Pay ${widget.pkg.priceDisplay}'
+                                  : 'Select a Course First',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color:
+                                    _selected != null
+                                        ? (widget.isPremium ? AppColors.darkNavy : AppColors.white)
+                                        : AppColors.greyS500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.isPremium
+                          ? '⚠️  All courses will unlock · Select your primary course'
+                          : '⚠️  Cannot be changed once selected',
+                      style: TextStyle(fontSize: 11, color: AppColors.greyS400),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Maybe Later', style: TextStyle(fontSize: 13, color: AppColors.greyS500)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-// ─── Selected Course Card (API based) ────────────────────────────────────────
+// ─── Selected Course Card ─────────────────────────────────────────────────────
 
 class _SelectedCourseCard extends StatelessWidget {
   final SelectedCourseItem course;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _SelectedCourseCard({
-    required this.course,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _SelectedCourseCard({required this.course, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1723,52 +1424,35 @@ class _SelectedCourseCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: [AppColors.darkNavy, AppColors.tealGreen],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
+          gradient:
+              isSelected
+                  ? LinearGradient(
+                    colors: [AppColors.darkNavy, AppColors.tealGreen],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                  : null,
           color: isSelected ? null : AppColors.greyS1,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.tealGreen
-                : AppColors.greyS200,
-            width: isSelected ? 2 : 1.5,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.tealGreen.withOpacity(0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : [],
+          border: Border.all(color: isSelected ? AppColors.tealGreen : AppColors.greyS200, width: isSelected ? 2 : 1.5),
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(color: AppColors.tealGreen.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4)),
+                  ]
+                  : [],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              // Course icon container
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.white.withOpacity(0.18)
-                      : AppColors.tealGreen.withOpacity(0.08),
+                  color: isSelected ? AppColors.white.withOpacity(0.18) : AppColors.tealGreen.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  Icons.book_outlined,
-                  size: 20,
-                  color: isSelected
-                      ? AppColors.white
-                      : AppColors.tealGreen,
-                ),
+                child: Icon(Icons.book_outlined, size: 20, color: isSelected ? AppColors.white : AppColors.tealGreen),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1783,9 +1467,7 @@ class _SelectedCourseCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: isSelected
-                            ? AppColors.white
-                            : AppColors.darkNavy,
+                        color: isSelected ? AppColors.white : AppColors.darkNavy,
                         height: 1.2,
                       ),
                     ),
@@ -1797,204 +1479,17 @@ class _SelectedCourseCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 9,
-                          color: isSelected
-                              ? AppColors.white.withOpacity(0.7)
-                              : AppColors.greyS500,
+                          color: isSelected ? AppColors.white.withOpacity(0.7) : AppColors.greyS500,
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
-              if (isSelected)
-                Icon(Icons.check_circle_rounded,
-                    color: AppColors.lightGold, size: 16),
+              if (isSelected) Icon(Icons.check_circle_rounded, color: AppColors.lightGold, size: 16),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ─── PREMIUM BOTTOM SHEET ─────────────────────────────────────────────────────
-
-class _PremiumSheet extends StatelessWidget {
-  final _Package pkg;
-  final VoidCallback onActivate;
-
-  const _PremiumSheet(
-      {required this.pkg, required this.onActivate});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.greyS300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          // Gold header strip
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: BoxDecoration(
-              color: AppColors.darkNavy,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color:
-                      AppColors.lightGold.withOpacity(0.3)),
-            ),
-            child: Column(
-              children: [
-                const Text('👑',
-                    style: TextStyle(fontSize: 40)),
-                const SizedBox(height: 8),
-                Text(
-                  '${pkg.name} Plan',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: pkg.priceDisplay,
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.lightGold,
-                        ),
-                      ),
-                      TextSpan(
-                        text:
-                            ' / ${pkg.validityDays} din',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Features list — dynamic from API
-          Padding(
-            padding:
-                const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Column(
-              children: pkg.features
-                  .where((f) => f.isIncluded)
-                  .map(
-                    (f) => Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.greyS1,
-                        borderRadius:
-                            BorderRadius.circular(10),
-                        border: Border.all(
-                            color: AppColors.greyS200),
-                      ),
-                      child: Text(
-                        '✅  ${f.text}',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: AppColors.greyS700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-
-          // CTA
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                MediaQuery.of(context).padding.bottom + 20),
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: onActivate,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 14),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [
-                        AppColors.lightGold,
-                        AppColors.lightGoldS2,
-                      ]),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.lightGold
-                              .withOpacity(0.3),
-                          blurRadius: 14,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-                      children: [
-                        const Text('👑',
-                            style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${pkg.name} Activate Karo — ${pkg.priceDisplay}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.darkNavy,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Baad mein sochenge',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.greyS500),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

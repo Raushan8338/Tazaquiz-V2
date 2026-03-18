@@ -12,6 +12,7 @@ import 'package:tazaquiznew/models/study_material_details_item.dart';
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
 import 'package:tazaquiznew/screens/Paid_quzes_list.dart';
 import 'package:tazaquiznew/screens/leaderboard_page.dart';
+import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
 import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
@@ -28,6 +29,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
   bool _isLoading = true;
   List<StudyMaterialDetailsItem> _allStudyMaterials = [];
   UserModel? _user;
+  String isPackaged = '';
 
   @override
   void initState() {
@@ -128,6 +130,17 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
   Widget _buildCard(StudyMaterialDetailsItem material) {
     final bool isSubscription = material.contentType == 'SUBSCRIPTION';
     final bool hasImage = material.thumbnail.isNotEmpty;
+
+    if (material.is_premium == 1) {
+      // For subscriptions, we consider it "purchased" if the user has access to it
+      isPackaged = 'FREE';
+    } else if (material.is_premium == 2) {
+      // For single materials, we rely on the isPurchased flag from the API
+      isPackaged = 'BASIC';
+    } else {
+      // For non-premium materials, we can consider them purchased by default
+      isPackaged = 'PREMIUM';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -269,7 +282,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                   Icon(isSubscription ? Icons.workspace_premium : Icons.badge_outlined, size: 11, color: Colors.white),
                   const SizedBox(width: 4),
                   Text(
-                    isSubscription ? 'SUBSCRIPTION' : material.contentType.toUpperCase(),
+                    isPackaged.toUpperCase(),
                     style: const TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
@@ -369,12 +382,21 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
               child: _actionBtn(
                 icon: Icons.menu_book_rounded,
                 label: 'Study Material',
-                color: AppColors.darkNavy,
-                onTap:
-                    () => Navigator.push(
+                // Grey out color if premium
+                color:
+                    (material.is_premium == 1 || material.is_premium == 2)
+                        ? Color.fromARGB(255, 125, 124, 124)
+                        : AppColors.darkNavy,
+                onTap: () {
+                  if (material.is_premium == 1 || material.is_premium == 2) {
+                    _showPremiumPopup(context);
+                  } else {
+                    Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => SubjectContentPage(material.materialId.toString())),
-                    ),
+                    );
+                  }
+                },
               ),
             ),
             const SizedBox(width: 10),
@@ -382,14 +404,23 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
               child: _actionBtn(
                 icon: Icons.leaderboard_rounded,
                 label: 'Leaderboard',
-                color: const Color(0xFF6B4EFF),
-                onTap:
-                    () => Navigator.push(
+                // Grey out color if premium
+                color:
+                    (material.is_premium == 1 || material.is_premium == 2)
+                        ? const Color.fromARGB(255, 144, 143, 143)
+                        : const Color(0xFF6B4EFF),
+                onTap: () {
+                  if (material.is_premium == 1 || material.is_premium == 2) {
+                    _showPremiumPopup(context);
+                  } else {
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => LeaderboardPage(courseId: material.materialId, courseName: material.title),
                       ),
-                    ),
+                    );
+                  }
+                },
               ),
             ),
           ],
@@ -398,6 +429,132 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     );
   }
 
+  // Premium Popup
+  void _showPremiumPopup(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: Colors.white,
+            child: Container(
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Top teal header section
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 28),
+                    decoration: BoxDecoration(
+                      color: AppColors.tealGreen,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                          child: const Icon(Icons.workspace_premium_rounded, size: 40, color: Colors.white),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Premium Feature',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text('Unlock the full experience', style: TextStyle(fontSize: 13, color: Colors.white70)),
+                      ],
+                    ),
+                  ),
+
+                  // Body
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        // Feature chips
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _featureChip(Icons.menu_book_rounded, 'Study Material'),
+                            _featureChip(Icons.leaderboard_rounded, 'Leaderboard'),
+                            _featureChip(Icons.lock_open_rounded, 'Exclusive Content'),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        const Text(
+                          'This feature is only available on the Premium Package. Upgrade now to access all features.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Buy Now Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.tealGreen,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage()));
+                              // TODO: Navigate to premium page
+                            //  Navigator.pop(context);
+                            },
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.star_rounded, size: 18),
+                                SizedBox(width: 6),
+                                Text('Buy Now', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Maybe Later
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('Maybe Later', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  // Feature chip helper
+  Widget _featureChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.tealGreen.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.tealGreen),
+          const SizedBox(width: 5),
+          Text(label, style: TextStyle(fontSize: 12, color: AppColors.tealGreen, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
   // ─── SINGLE BUTTON (PDF/Video) ────────────────────────────────────────────
 
   Widget _buildSingleButton(StudyMaterialDetailsItem material) {

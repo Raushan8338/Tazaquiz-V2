@@ -52,6 +52,8 @@ dependencies:
   flutter_local_notifications: ^19.5.0
   persistent_bottom_nav_bar: ^6.2.1
   google_mobile_ads: ^7.0.0
+  marquee_text: ^2.5.0+1
+  new_version_plus: ^1.0.1
 
 dev_dependencies:
   flutter_test:

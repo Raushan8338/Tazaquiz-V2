@@ -42,4 +42,5 @@ class BaseUrl {
   static String fetch_get_packages = "get_packages.php";
   static String fetch_get_quiz_review = "get_quiz_review.php";
   static String fetch_get_leaderboard = "get_leaderboard.php";
+  static String fetch_notice_board = "notice.php";
 }

@@ -203,4 +203,8 @@ class Authrepository {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.fetch_get_leaderboard, data: formData);
   }
+
+  Future<Response> fetchNoticeBord() async {
+    return await _dio.get(BaseUrl.fetch_notice_board);
+  }
 }

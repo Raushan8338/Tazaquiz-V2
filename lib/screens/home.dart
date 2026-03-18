@@ -3,6 +3,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:marquee_text/marquee_direction.dart';
+import 'package:marquee_text/marquee_text.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -52,6 +54,7 @@ class _HomePageState extends State<HomePage> {
   int _quizTotalQuestions = 0;
   int _quizTimeMinutes = 0;
   bool _quizAlreadyDone = false;
+  String noticeMessage = '';
 
   @override
   void initState() {
@@ -64,6 +67,7 @@ class _HomePageState extends State<HomePage> {
     await get_home_page_data();
     await getAppBanner();
     await getNewsPoints();
+    await fetchNoticeBoard();
   }
 
   Future<void> _refreshHome() async => await _loadHome();
@@ -73,6 +77,20 @@ class _HomePageState extends State<HomePage> {
     setState(() {});
     getNotificationCount();
     await getDailyQuizCheckHome();
+  }
+
+  Future<void> fetchNoticeBoard() async {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
+    final responseFuture = await authRepository.fetchNoticeBord();
+    final Map<String, dynamic> apiResponse =
+        responseFuture.data is String ? jsonDecode(responseFuture.data) : responseFuture.data;
+
+    // if (apiResponse['success'] == true) {
+    setState(() {
+      noticeMessage = apiResponse['message'] ?? '';
+    });
+    print("Notice Board Message:");
+    // }
   }
 
   Future<void> getDailyQuizCheckHome() async {
@@ -205,6 +223,7 @@ class _HomePageState extends State<HomePage> {
 
               SliverToBoxAdapter(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     /// Banner
                     HomeBanner(imgLists: _banners),
@@ -212,7 +231,27 @@ class _HomePageState extends State<HomePage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          (noticeMessage == null || noticeMessage.isEmpty)
+                              ? SizedBox.shrink()
+                              : SizedBox(
+                                height: 17, // give it a fixed height
+                                child: MarqueeText(
+                                  text: TextSpan(
+                                    text: noticeMessage,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFEE2929),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  speed: 20,
+                                  textDirection: TextDirection.ltr,
+                                  marqueeDirection: MarqueeDirection.rtl,
+                                ),
+                              ),
+
                           /// Weekly Progress
                           WeeklyProgressWidget(),
 
@@ -229,14 +268,10 @@ class _HomePageState extends State<HomePage> {
                           /// Current Affairs
                           HomeDailyCurrentAffairs(dailyNews: dailyNews),
 
-                          // Mock Tests
-                          if (mockTests.isNotEmpty)
-                            HomeMockTest(
-                              mockTests: mockTests,
-                              homeSections: quizSection!, // ya mockSection alag rakhein
-                            ),
+                          /// Mock Tests
+                          if (mockTests.isNotEmpty) HomeMockTest(mockTests: mockTests, homeSections: quizSection!),
 
-                          // Live Tests
+                          /// Live Tests
                           if (liveTests.isNotEmpty) Home_live_test(liveTests: liveTests, homeSections: quizSection!),
 
                           /// Popular Courses
@@ -247,7 +282,7 @@ class _HomePageState extends State<HomePage> {
                           if (coachingSection != null && coachingProfiles.isNotEmpty)
                             CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
 
-                          /// 🏆 Achievements
+                          /// Achievements
                           _buildAchievementsSection(),
 
                           const SizedBox(height: 24),

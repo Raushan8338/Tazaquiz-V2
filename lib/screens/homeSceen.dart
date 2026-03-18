@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:new_version_plus/new_version_plus.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/home.dart';
 import 'package:tazaquiznew/screens/profileScreen.dart';
@@ -21,6 +22,48 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedNavIndex = index;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    //_determinePosition();
+
+    final newVersion = NewVersionPlus(
+      // iOSId: '',
+      androidId: 'com.tazaquiz.quiz',
+    );
+
+    const simpleBehavior = true;
+    advancedStatusCheck(newVersion);
+    if (simpleBehavior) {}
+    Center(child: CircularProgressIndicator());
+    // Future.delayed(Duration(seconds: 8), () {
+    //   showProgressDailog(context);
+    // });
+  }
+
+  advancedStatusCheck(NewVersionPlus newVersion) async {
+    final status = await newVersion.getVersionStatus();
+
+    if (status != null) {
+      if (status.storeVersion == status.localVersion) {
+        SizedBox();
+      } else {
+        newVersion.showUpdateDialog(
+          context: context,
+          versionStatus: status,
+          dialogTitle: "New Update Found!",
+          dismissButtonText: "Skip",
+          allowDismissal: false,
+          dialogText: "Please update the app from " + "${status.storeVersion}" + " to " + "${status.localVersion}",
+          dismissAction: () {
+            SystemNavigator.pop();
+          },
+          updateButtonText: "Lets update",
+        );
+      }
+    }
   }
 
   @override
