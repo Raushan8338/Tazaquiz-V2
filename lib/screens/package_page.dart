@@ -5,6 +5,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/selected_courses_item.dart';
 import 'package:tazaquiznew/screens/checkout.dart';
+import 'package:tazaquiznew/screens/course_selection.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
@@ -128,7 +129,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
         final all = list.map((e) => SelectedCourseItem.fromJson(e)).toList();
         if (mounted) {
           setState(() {
-            _userSelectedCourses = all.where((c) => c.isSelected).toList();
+            _userSelectedCourses = all;
           });
         }
       }
@@ -1262,7 +1263,7 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                               style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.tealGreen),
                             ),
                             const TextSpan(
-                              text: '. Basic only gives Mock Test and Quizes with no Leaderboard or Study Material.',
+                              text: '. Basic only gives Mock Test and Quizzes with no Leaderboard or Study Material.',
                             ),
                           ],
                         ),
@@ -1279,7 +1280,7 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
             // Empty state
             if (courses.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                 child: Column(
                   children: [
                     const Text('😕', style: TextStyle(fontSize: 40)),
@@ -1293,6 +1294,29 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                       'Please go to "My Courses" first and select your courses, then come back to activate.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, color: AppColors.greyS500, height: 1.5),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Go to My Courses CTA (empty state)
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0)));
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                        decoration: BoxDecoration(color: AppColors.darkNavy, borderRadius: BorderRadius.circular(10)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add_circle_outline_rounded, size: 16, color: AppColors.white),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Go to My Courses',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.white),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1320,6 +1344,46 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                       onTap: () => setState(() => _selected = course),
                     );
                   },
+                ),
+              ),
+
+              // "Want to purchase a different course?" banner
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0)));
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.tealGreen.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.swap_horiz_rounded, size: 18, color: AppColors.tealGreen),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: TextStyle(fontSize: 12, color: AppColors.greyS600, height: 1.4),
+                              children: [
+                                TextSpan(
+                                  text: 'Want to purchase a different course? ',
+                                  style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                                ),
+                                const TextSpan(text: 'Go to "Selected Courses" and select it first.'),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppColors.tealGreen),
+                      ],
+                    ),
+                  ),
                 ),
               ),
 

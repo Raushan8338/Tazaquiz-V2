@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:new_version_plus/new_version_plus.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/home.dart';
 import 'package:tazaquiznew/screens/profileScreen.dart';
@@ -28,7 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     //_determinePosition();
-
     final newVersion = NewVersionPlus(
       // iOSId: '',
       androidId: 'com.tazaquiz.quiz',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/daily_news_modal.dart';
 import 'package:tazaquiznew/screens/blog_Page.dart';
@@ -140,7 +141,7 @@ class HomeDailyCurrentAffairs extends StatelessWidget {
                     children: const [
                       Icon(Icons.menu_book_rounded, color: Colors.white, size: 13),
                       SizedBox(width: 6),
-                      Text(
+                      TranslatedText(
                         'Saari News Padho',
                         style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
@@ -166,7 +167,10 @@ class HomeDailyCurrentAffairs extends StatelessWidget {
           Text(emoji, style: const TextStyle(fontSize: 14)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(text, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500)),
+            child: TranslatedText(
+              text,
+              style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w500),
+            ),
           ),
         ],
       ),

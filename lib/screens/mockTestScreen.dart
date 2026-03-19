@@ -1,13 +1,13 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/language_selectionPage.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'dart:async';
-
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
@@ -23,33 +23,29 @@ class MockTestScreen extends StatefulWidget {
 }
 
 class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProviderStateMixin {
-  // ── Question State ──────────────────────────────────────────────────────────
   int _currentQuestion = 0;
   List<dynamic> _questions = [];
   int totalQuestions = 0;
   Map<String, dynamic> _currentQuestionData = {};
+  // ── ADDED ──────────────────────────────────
+  Map<String, dynamic> _translatedQuestionData = {};
 
-  // ── Mock-specific State ─────────────────────────────────────────────────────
   Map<int, int> _savedAnswers = {};
   Map<int, bool> _markedForReview = {};
   Set<int> _visitedQuestions = {};
 
-  // ── Total Timer ─────────────────────────────────────────────────────────────
   int _totalSeconds = 0;
   Timer? _testTimer;
   bool _isPaused = false;
 
-  // ── UI State ────────────────────────────────────────────────────────────────
   int? _selectedOption;
   bool _isLoading = true;
 
-  // ── Submit Progress State ────────────────────────────────────────────────────
   bool _isSubmitting = false;
   double _submitProgress = 0.0;
   String _submitStatusText = 'Preparing submission...';
   int _submittedCount = 0;
 
-  // ── Animation ───────────────────────────────────────────────────────────────
   late AnimationController _animationController;
   late Animation<double> _pulseAnimation;
 
@@ -66,8 +62,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
     _getUserData();
   }
-
-  // ── Data Loading ─────────────────────────────────────────────────────────────
 
   void _getUserData() async {
     _user = await SessionManager.getUser();
@@ -89,7 +83,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     _questions = apiResponse['questions'] ?? [];
     totalQuestions = _questions.length;
 
-    // ✅ DEBUG: Print full structure of first question to see exact keys
     if (_questions.isNotEmpty) {
       print('=== FULL QUESTION[0] STRUCTURE ===');
       print(jsonEncode(_questions[0]));
@@ -111,6 +104,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     setState(() => _isLoading = false);
   }
 
+  // ── MODIFIED: translate karo ────────────────
   void setQuestionFromApi(int index) {
     final question = _questions[index];
     final List answers = question['answers'] ?? [];
@@ -118,36 +112,50 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
     _visitedQuestions.add(index);
 
+    final raw = {
+      'question': question['question_text'],
+      'options': answers.map((a) => a['answer_text']).toList(),
+      'correctAnswer': correctIndex == -1 ? 0 : correctIndex,
+      'difficulty': question['difficulty_level'] ?? 'Medium',
+      'points': question['points'] ?? 0,
+      'attempt_id': question['attempt_id'] ?? 0,
+      'question_ans_id': question['question_ans_id'] ?? 0,
+      'question_id': question['question_id'] ?? 0,
+      'answer_ids':
+          answers.map((a) {
+            final id =
+                a['id'] ?? a['answer_id'] ?? a['ans_id'] ?? a['ID'] ?? a['answerId'] ?? a['optionId'] ?? a['option_id'];
+            return id?.toString() ?? '0';
+          }).toList(),
+    };
+
     setState(() {
       _currentQuestion = index;
-      _currentQuestionData = {
-        'question': question['question_text'],
-        'options': answers.map((a) => a['answer_text']).toList(),
-        'correctAnswer': correctIndex == -1 ? 0 : correctIndex,
-        'difficulty': question['difficulty_level'] ?? 'Medium',
-        'points': question['points'] ?? 0,
-        'attempt_id': question['attempt_id'] ?? 0,
-        'question_ans_id': question['question_ans_id'] ?? 0,
-        'question_id': question['question_id'] ?? 0,
-        // ✅ FIX: Try all possible key names for answer id
-        'answer_ids':
-            answers.map((a) {
-              final id =
-                  a['id'] ??
-                  a['answer_id'] ??
-                  a['ans_id'] ??
-                  a['ID'] ??
-                  a['answerId'] ??
-                  a['optionId'] ??
-                  a['option_id'];
-              return id?.toString() ?? '0';
-            }).toList(),
-      };
+      _currentQuestionData = raw;
+      _translatedQuestionData = raw; // pehle original
       _selectedOption = _savedAnswers[index];
     });
+
+    _translateCurrentQuestion(raw); // background translate
   }
 
-  // ── Timer ─────────────────────────────────────────────────────────────────────
+  // ── ADDED ──────────────────────────────────
+  Future<void> _translateCurrentQuestion(Map<String, dynamic> raw) async {
+    final lang = TranslationService.instance.currentLanguage;
+    if (lang == 'en') return;
+
+    try {
+      final List<String> optionTexts = (raw['options'] as List).map((o) => o.toString()).toList();
+      final toTranslate = [raw['question'] ?? '', ...optionTexts];
+      final results = await TranslationService.instance.translateBatch(toTranslate.cast<String>());
+
+      if (mounted) {
+        setState(() {
+          _translatedQuestionData = {...raw, 'question': results[0], 'options': results.sublist(1)};
+        });
+      }
+    } catch (_) {}
+  }
 
   void _startTestTimer() {
     _testTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -167,9 +175,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     int h = _totalSeconds ~/ 3600;
     int m = (_totalSeconds % 3600) ~/ 60;
     int s = _totalSeconds % 60;
-    if (h > 0) {
-      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-    }
+    if (h > 0) return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
@@ -179,17 +185,10 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     return AppColors.tealGreen;
   }
 
-  // ── Answer Handling ───────────────────────────────────────────────────────────
-
-  void _selectOption(int index) {
-    setState(() => _selectedOption = index);
-  }
+  void _selectOption(int index) => setState(() => _selectedOption = index);
 
   void _saveAndNext() {
-    if (_selectedOption != null) {
-      _savedAnswers[_currentQuestion] = _selectedOption!;
-    }
-    // ✅ FIX: Last question pe Save karne ke baad submit dialog show karo
+    if (_selectedOption != null) _savedAnswers[_currentQuestion] = _selectedOption!;
     if (_currentQuestion == totalQuestions - 1) {
       setState(() {});
       _showFinalSubmitDialog();
@@ -199,16 +198,12 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   void _saveCurrent() {
-    if (_selectedOption != null) {
-      setState(() => _savedAnswers[_currentQuestion] = _selectedOption!);
-    }
+    if (_selectedOption != null) setState(() => _savedAnswers[_currentQuestion] = _selectedOption!);
   }
 
   void _toggleMarkForReview() {
     _saveCurrent();
-    setState(() {
-      _markedForReview[_currentQuestion] = !(_markedForReview[_currentQuestion] ?? false);
-    });
+    setState(() => _markedForReview[_currentQuestion] = !(_markedForReview[_currentQuestion] ?? false));
   }
 
   void _clearAnswer() {
@@ -224,13 +219,10 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     setQuestionFromApi(index);
   }
 
-  // ── Question Status ───────────────────────────────────────────────────────────
-
   int _questionStatus(int index) {
     bool answered = _savedAnswers.containsKey(index);
     bool marked = _markedForReview[index] == true;
     bool visited = _visitedQuestions.contains(index);
-
     if (answered && marked) return 3;
     if (answered) return 1;
     if (marked) return 2;
@@ -253,12 +245,8 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     }
   }
 
-  // ── Final Submit ──────────────────────────────────────────────────────────────
-
   void _finalSubmit() async {
     _testTimer?.cancel();
-
-    // Show full-screen animated progress overlay
     setState(() {
       _isSubmitting = true;
       _submitProgress = 0.0;
@@ -267,11 +255,8 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     });
 
     Authrepository authRepository = Authrepository(Api_Client.dio);
-
-    // Small delay to let the overlay render smoothly
     await Future.delayed(const Duration(milliseconds: 400));
 
-    // Submit each answered question with progress tracking
     for (int i = 0; i < totalQuestions; i++) {
       final question = _questions[i];
       final List answers = question['answers'] ?? [];
@@ -280,7 +265,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       final bool isCorrect = savedAnswer != -1 && savedAnswer == correctIndex;
       final int points = question['points'] ?? 0;
 
-      // ✅ FIX: answer_id directly from pre-parsed answer_ids list
       String answerId = '0';
       if (savedAnswer != -1 && savedAnswer < answers.length) {
         final ans = answers[savedAnswer] as Map;
@@ -293,7 +277,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ans['optionId'] ??
             ans['option_id'];
         answerId = (ansId != null) ? ansId.toString() : '0';
-        print('=== Q$i ans keys: ${ans.keys.toList()} | answerId resolved: $answerId');
       }
 
       final data = {
@@ -305,8 +288,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         'time_spent': '1',
       };
 
-      print('Submitting Q$i → answer_id: $answerId | is_correct: ${isCorrect ? "1" : "0"} | all data: $data');
-
       try {
         var response = await authRepository.submitQuizAnswers(data);
         print('Response Q$i: ${response.data}');
@@ -314,18 +295,14 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         print('Error Q$i: $e');
       }
 
-      // Update progress after each question
       setState(() {
         _submittedCount = i + 1;
         _submitProgress = (i + 1) / totalQuestions;
         _submitStatusText = 'Submitting question ${i + 1} of $totalQuestions...';
       });
-
-      // Small delay between submissions to avoid rate limiting
       await Future.delayed(const Duration(milliseconds: 80));
     }
 
-    // Final submit step
     setState(() {
       _submitProgress = 0.95;
       _submitStatusText = 'Finalizing your result...';
@@ -342,27 +319,18 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
     final finalData = {'attempt_id': (lastQuestion['attempt_id'] ?? 0).toString(), 'Passingscore': '$totalScore'};
 
-    print('Final submit data: $finalData');
-
     try {
       final responseData = await authRepository.finalSubmitQuiz(finalData);
       final resultRes = jsonDecode(responseData.data);
-      print('Final submit response: $resultRes');
 
-      // Complete the progress bar
       setState(() {
         _submitProgress = 1.0;
         _submitStatusText = 'Test submitted successfully!';
       });
-
       await Future.delayed(const Duration(milliseconds: 700));
-
-      int correctCount = int.tryParse(resultRes['correctCount'].toString()) ?? 0;
-      int total = int.tryParse(resultRes['total_question'].toString()) ?? 0;
 
       if (mounted) {
         setState(() => _isSubmitting = false);
-
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -380,14 +348,12 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       print('Error in final submit: $e');
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Submission failed. Please try again.'), backgroundColor: AppColors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: TranslatedText('Submission failed. Please try again.'), backgroundColor: AppColors.red),
+        );
       }
     }
   }
-
-  // ── Dispose ───────────────────────────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -395,10 +361,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     _animationController.dispose();
     super.dispose();
   }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // BUILD
-  // ─────────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -411,7 +373,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             children: [
               CircularProgressIndicator(color: AppColors.tealGreen),
               const SizedBox(height: 16),
-              Text(
+              TranslatedText(
                 'Loading test...',
                 style: TextStyle(color: AppColors.greyS600, fontSize: 13, fontWeight: FontWeight.w500),
               ),
@@ -423,38 +385,39 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
     return Stack(
       children: [
-        // ── Main Quiz Screen ─────────────────────────────────────────────────
         Scaffold(
           backgroundColor: AppColors.greyS1,
-          body: Column(
+          body: Stack(
             children: [
-              _buildHeader(),
-              _buildProgressBar(),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 10),
-                      _buildQuestionCard(),
-                      _buildOptionsSection(),
-                      _buildActionButtons(),
-                      const SizedBox(height: 20),
-                    ],
+              Column(
+                children: [
+                  _buildHeader(),
+                  _buildProgressBar(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 10),
+                          _buildQuestionCard(),
+                          _buildOptionsSection(),
+                          _buildActionButtons(),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  _buildBottomNav(),
+                ],
               ),
-              _buildBottomNav(),
+              // ── ADDED: Translation toast ──
+              // const TranslationToast(),
             ],
           ),
         ),
-
-        // ── Animated Submit Overlay ───────────────────────────────────────────
         if (_isSubmitting) _buildSubmitOverlay(),
       ],
     );
   }
-
-  // ─── ANIMATED SUBMIT OVERLAY ──────────────────────────────────────────────────
 
   Widget _buildSubmitOverlay() {
     return Container(
@@ -474,7 +437,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Icon
                 Container(
                   width: 64,
                   height: 64,
@@ -491,44 +453,32 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                             child: CircularProgressIndicator(value: null, color: AppColors.tealGreen, strokeWidth: 2.5),
                           ),
                 ),
-
                 const SizedBox(height: 16),
-
-                // Title
-                Text(
+                TranslatedText(
                   _submitProgress >= 1.0 ? 'Test Submitted!' : 'Submitting Test',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
                 ),
-
                 const SizedBox(height: 6),
-
-                // Status text
-                Text(
+                TranslatedText(
                   _submitStatusText,
-                  style: TextStyle(fontSize: 12, color: AppColors.white.withOpacity(0.55), fontWeight: FontWeight.w400),
+                  style: TextStyle(fontSize: 12, color: AppColors.white.withOpacity(0.55)),
                   textAlign: TextAlign.center,
                 ),
-
                 const SizedBox(height: 20),
-
-                // Count row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    TranslatedText(
                       'Questions submitted',
                       style: TextStyle(fontSize: 12, color: AppColors.white.withOpacity(0.55)),
                     ),
-                    Text(
+                    TranslatedText(
                       '$_submittedCount / $totalQuestions',
                       style: TextStyle(fontSize: 13, color: AppColors.tealGreen, fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 10),
-
-                // ✅ Progress bar with LayoutBuilder
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final barWidth = constraints.maxWidth;
@@ -548,7 +498,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                           height: 10,
                           width: barWidth * _submitProgress.clamp(0.0, 1.0),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [AppColors.tealGreen, Color(0xFF00E5CC)]),
+                            gradient: LinearGradient(colors: [AppColors.tealGreen, const Color(0xFF00E5CC)]),
                             borderRadius: BorderRadius.circular(8),
                             boxShadow: [BoxShadow(color: AppColors.tealGreen.withOpacity(0.5), blurRadius: 8)],
                           ),
@@ -557,11 +507,8 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     );
                   },
                 ),
-
                 const SizedBox(height: 12),
-
-                // Percentage
-                Text(
+                TranslatedText(
                   '${(_submitProgress * 100).toInt()}% complete',
                   style: TextStyle(
                     fontSize: 20,
@@ -570,10 +517,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     letterSpacing: -0.5,
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Stats row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -599,10 +543,8 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
-
-                Text(
+                TranslatedText(
                   'Please do not close the app',
                   style: TextStyle(fontSize: 10, color: AppColors.white.withOpacity(0.3)),
                 ),
@@ -619,9 +561,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       children: [
         Icon(icon, color: color, size: 18),
         const SizedBox(height: 5),
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.white)),
+        TranslatedText(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.white)),
         const SizedBox(height: 2),
-        Text(
+        TranslatedText(
           label,
           style: TextStyle(fontSize: 10, color: AppColors.white.withOpacity(0.5), fontWeight: FontWeight.w500),
         ),
@@ -629,107 +571,179 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildOverlayDivider() {
-    return Container(height: 36, width: 1, color: AppColors.white.withOpacity(0.1));
-  }
-
-  // ─── HEADER ──────────────────────────────────────────────────────────────────
+  Widget _buildOverlayDivider() => Container(height: 36, width: 1, color: AppColors.white.withOpacity(0.1));
 
   Widget _buildHeader() {
+    // ── ADDED: language vars ──────────────────
+    final langCode = TranslationService.instance.currentLanguage;
+    final langNative = TranslationService.supportedLanguages[langCode]?['native'] ?? 'English';
+
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
         boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 5))],
       ),
-      child: Row(
+      // ── MODIFIED: Column wrap for language bar ──
+      child: Column(
         children: [
-          GestureDetector(
-            onTap: _showExitDialog,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.close, color: AppColors.white, size: 20),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  widget.testTitle,
-                  13,
-                  AppColors.white,
-                  FontWeight.w700,
-                  2,
-                  TextAlign.left,
-                  0.0,
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _showExitDialog,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.close, color: AppColors.white, size: 20),
                 ),
-                const SizedBox(height: 3),
-                Row(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.subject, style: TextStyle(fontSize: 11, color: AppColors.lightGold)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGold.withOpacity(0.25),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.lightGold.withOpacity(0.5)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.assignment_outlined, color: AppColors.lightGold, size: 10),
-                          const SizedBox(width: 3),
-                          AppRichText.setTextPoppinsStyle(
-                            context,
-                            'MOCK TEST',
-                            9,
-                            AppColors.lightGold,
-                            FontWeight.w900,
-                            1,
-                            TextAlign.left,
-                            0.0,
+                    AppRichText.setTextPoppinsStyle(
+                      context,
+                      widget.testTitle,
+                      13,
+                      AppColors.white,
+                      FontWeight.w700,
+                      2,
+                      TextAlign.left,
+                      0.0,
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Text(widget.subject, style: TextStyle(fontSize: 11, color: AppColors.lightGold)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.lightGold.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.lightGold.withOpacity(0.5)),
                           ),
-                        ],
-                      ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.assignment_outlined, color: AppColors.lightGold, size: 10),
+                              const SizedBox(width: 3),
+                              AppRichText.setTextPoppinsStyle(
+                                context,
+                                'MOCK TEST',
+                                9,
+                                AppColors.lightGold,
+                                FontWeight.w900,
+                                1,
+                                TextAlign.left,
+                                0.0,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              ScaleTransition(
+                scale: _totalSeconds <= 60 ? _pulseAnimation : const AlwaysStoppedAnimation(1.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _getTimerColor().withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _getTimerColor().withOpacity(0.6), width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _isPaused = !_isPaused),
+                        child: Icon(_isPaused ? Icons.play_arrow : Icons.pause, color: AppColors.white, size: 16),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(Icons.timer, color: AppColors.white, size: 14),
+                      const SizedBox(width: 4),
+                      TranslatedText(
+                        _getTimerText(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          ScaleTransition(
-            scale: _totalSeconds <= 60 ? _pulseAnimation : const AlwaysStoppedAnimation(1.0),
+
+          const SizedBox(height: 10),
+
+          // ── ADDED: Language change bar ────────
+          GestureDetector(
+            onTap: () async {
+              _isPaused = true; // pause timer
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
+                ),
+              );
+              if (mounted) {
+                _isPaused = false;
+                _translateCurrentQuestion(_currentQuestionData);
+                setState(() {});
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                color: _getTimerColor().withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _getTimerColor().withOpacity(0.6), width: 1.5),
+                color: AppColors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.white.withOpacity(0.15)),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _isPaused = !_isPaused),
-                    child: Icon(_isPaused ? Icons.play_arrow : Icons.pause, color: AppColors.white, size: 16),
+                  Row(
+                    children: [
+                      Icon(Icons.translate_rounded, size: 14, color: AppColors.white.withOpacity(0.9)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Content Language:  $langNative',
+                        style: TextStyle(
+                          color: AppColors.white.withOpacity(0.9),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.tealGreen.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.white.withOpacity(0.2)),
+                        ),
+                        child: Text(
+                          'Change',
+                          style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Icon(Icons.timer, color: AppColors.white, size: 14),
-                  const SizedBox(width: 4),
+
+                  const SizedBox(height: 4),
+
                   Text(
-                    _getTimerText(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.white,
-                      letterSpacing: 0.5,
-                    ),
+                    'Changing language may take up to 40 seconds. Please wait.',
+                    style: TextStyle(color: AppColors.white.withOpacity(0.7), fontSize: 10),
                   ),
                 ],
               ),
@@ -739,8 +753,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       ),
     );
   }
-
-  // ─── PROGRESS BAR ────────────────────────────────────────────────────────────
 
   Widget _buildProgressBar() {
     int answered = _savedAnswers.length;
@@ -813,13 +825,11 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         children: [
           Icon(icon, color: color, size: 11),
           const SizedBox(width: 3),
-          Text(count, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
+          TranslatedText(count, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );
   }
-
-  // ─── QUESTION CARD ────────────────────────────────────────────────────────────
 
   Widget _buildQuestionCard() {
     bool isMarked = _markedForReview[_currentQuestion] == true;
@@ -897,7 +907,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     children: [
                       Icon(Icons.bookmark, color: AppColors.orange, size: 12),
                       const SizedBox(width: 3),
-                      Text(
+                      TranslatedText(
                         'Review',
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.orange),
                       ),
@@ -907,9 +917,10 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ],
           ),
           const SizedBox(height: 12),
+          // ── MODIFIED: translated question ──
           AppRichText.setTextPoppinsStyle(
             context,
-            _currentQuestionData['question'] ?? '',
+            _translatedQuestionData['question'] ?? '',
             15,
             AppColors.darkNavy,
             FontWeight.w700,
@@ -922,15 +933,15 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     );
   }
 
-  // ─── OPTIONS ──────────────────────────────────────────────────────────────────
-
   Widget _buildOptionsSection() {
+    // ── MODIFIED: translated options ──
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
         children: List.generate(
-          (_currentQuestionData['options'] as List).length,
-          (index) => _buildOptionCard(String.fromCharCode(65 + index), _currentQuestionData['options'][index], index),
+          (_translatedQuestionData['options'] as List).length,
+          (index) =>
+              _buildOptionCard(String.fromCharCode(65 + index), _translatedQuestionData['options'][index], index),
         ),
       ),
     );
@@ -1017,8 +1028,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     );
   }
 
-  // ─── ACTION BUTTONS ───────────────────────────────────────────────────────────
-
   Widget _buildActionButtons() {
     bool hasSelection = _selectedOption != null;
     bool isSaved = _savedAnswers.containsKey(_currentQuestion);
@@ -1049,7 +1058,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                           size: 16,
                         ),
                         const SizedBox(width: 6),
-                        Text(
+                        TranslatedText(
                           isMarked ? 'Marked' : 'Mark Review',
                           style: TextStyle(
                             fontSize: 12,
@@ -1083,7 +1092,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                         size: 16,
                       ),
                       const SizedBox(width: 5),
-                      Text(
+                      TranslatedText(
                         'Clear',
                         style: TextStyle(
                           fontSize: 12,
@@ -1148,8 +1157,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       ),
     );
   }
-
-  // ─── BOTTOM NAVIGATION ────────────────────────────────────────────────────────
 
   Widget _buildBottomNav() {
     bool canGoPrev = _currentQuestion > 0;
@@ -1265,7 +1272,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
               Icon(icon, color: enabled ? AppColors.white : AppColors.greyS400, size: 14),
               const SizedBox(width: 5),
             ],
-            Text(
+            TranslatedText(
               label,
               style: TextStyle(
                 fontSize: 12,
@@ -1285,8 +1292,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       ),
     );
   }
-
-  // ─── QUESTION PALETTE ─────────────────────────────────────────────────────────
 
   void _showQuestionPalette() {
     showModalBottomSheet(
@@ -1361,7 +1366,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                           int status = _questionStatus(index);
                           Color bgColor = _statusColor(status);
                           bool isCurrent = index == _currentQuestion;
-
                           return GestureDetector(
                             onTap: () {
                               Navigator.pop(context);
@@ -1388,7 +1392,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                                         : [],
                               ),
                               child: Center(
-                                child: Text(
+                                child: TranslatedText(
                                   '${index + 1}',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -1468,8 +1472,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       ],
     );
   }
-
-  // ─── FINAL SUBMIT CONFIRM ─────────────────────────────────────────────────────
 
   void _showFinalSubmitDialog() {
     int answered = _savedAnswers.length;
@@ -1588,14 +1590,12 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
-          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+          TranslatedText(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
+          TranslatedText(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
         ],
       ),
     );
   }
-
-  // ─── RESULT STAT ──────────────────────────────────────────────────────────────
 
   Widget _buildResultStat(String label, String value, IconData icon, Color color) {
     return Column(
@@ -1606,14 +1606,12 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
           child: Icon(icon, color: color, size: 22),
         ),
         const SizedBox(height: 6),
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        TranslatedText(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
         const SizedBox(height: 3),
-        Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
+        TranslatedText(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
       ],
     );
   }
-
-  // ─── EXIT DIALOG ──────────────────────────────────────────────────────────────
 
   void _showExitDialog() {
     showDialog(

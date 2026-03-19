@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:tazaquiznew/API/Language_converter/language_selectionPage.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
 import 'package:tazaquiznew/screens/course_selection.dart';
@@ -221,27 +223,44 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(color: Color(0xFF4CAF50), shape: BoxShape.circle),
+                GestureDetector(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
                       ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Active Student',
-                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                      ),
-                    ],
+                    );
+                    if (mounted) setState(() {}); // badge update hoga
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.translate_rounded, size: 12, color: Color(0xFF4CAF50)),
+                        const SizedBox(width: 6),
+                        TranslatedText(
+                          'Language',
+                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          TranslationService.supportedLanguages[TranslationService
+                                  .instance
+                                  .currentLanguage]?['native'] ??
+                              'English',
+                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_drop_down_rounded, size: 14, color: Colors.white70),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -451,6 +470,19 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             'View & upgrade your plan',
             const Color(0xFFFF9800),
             () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage())),
+          ),
+          _buildDivider(),
+          _buildSettingItem(
+            Icons.translate_rounded,
+            'Select Language',
+            'Change the app language',
+            const Color(0xFF00695C),
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
+              ),
+            ),
           ),
           _buildDivider(),
           _buildSettingItem(

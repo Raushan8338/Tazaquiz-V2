@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/API/api_endpoint.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
@@ -123,7 +124,10 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('View All', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                TranslatedText(
+                  'View All',
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                ),
                 SizedBox(width: 4),
                 Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 12),
               ],
@@ -187,7 +191,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                             children: [
                               Icon(Icons.auto_stories_rounded, color: Colors.white, size: 11),
                               SizedBox(width: 5),
-                              Text(
+                              TranslatedText(
                                 'CURRENT AFFAIRS',
                                 style: TextStyle(
                                   color: Colors.white,
@@ -211,7 +215,7 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
                           decoration: const BoxDecoration(color: Color(0xFF4ECDC4), shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 6),
-                        Text(
+                        TranslatedText(
                           '${_posts.length} articles • Updated daily',
                           style: TextStyle(color: Colors.white, fontSize: 12),
                         ),
@@ -335,7 +339,7 @@ class _FeaturedCard extends StatelessWidget {
                     children: [
                       Icon(Icons.star_rounded, color: Colors.white, size: 11),
                       SizedBox(width: 4),
-                      Text(
+                      TranslatedText(
                         'FEATURED',
                         style: TextStyle(
                           color: Colors.white,
@@ -368,7 +372,7 @@ class _FeaturedCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
+                      TranslatedText(
                         post.title,
                         style: const TextStyle(
                           color: Colors.white,
@@ -385,16 +389,19 @@ class _FeaturedCard extends StatelessWidget {
                         children: [
                           const Icon(Icons.person_outline, color: Colors.white70, size: 13),
                           const SizedBox(width: 4),
-                          Text(
+                          TranslatedText(
                             post.author,
                             style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(width: 12),
                           const Icon(Icons.access_time_outlined, color: Colors.white70, size: 12),
                           const SizedBox(width: 4),
-                          Text(post.readTime, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                          TranslatedText(post.readTime, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                           const Spacer(),
-                          Text(post.formattedDate, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                          TranslatedText(
+                            post.formattedDate,
+                            style: const TextStyle(color: Colors.white54, fontSize: 11),
+                          ),
                         ],
                       ),
                     ],
@@ -464,13 +471,13 @@ class _SmallCard extends StatelessWidget {
                         color: post.categoryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(5),
                       ),
-                      child: Text(
+                      child: TranslatedText(
                         post.category,
                         style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: post.categoryColor),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
+                    TranslatedText(
                       post.title,
                       style: const TextStyle(
                         fontSize: 13,
@@ -488,14 +495,14 @@ class _SmallCard extends StatelessWidget {
                         const SizedBox(width: 3),
                         Text(post.readTime, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
                         const Spacer(),
-                        Text(post.formattedDate, style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                        TranslatedText(post.formattedDate, style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text(
+                        TranslatedText(
                           'Read More',
                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: post.categoryColor),
                         ),
@@ -578,7 +585,7 @@ class NewsDetailPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(color: post.categoryColor, borderRadius: BorderRadius.circular(8)),
-                    child: Text(
+                    child: TranslatedText(
                       post.category,
                       style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
                     ),
@@ -586,7 +593,7 @@ class NewsDetailPage extends StatelessWidget {
                   const SizedBox(height: 14),
 
                   // Title
-                  Text(
+                  TranslatedText(
                     post.title,
                     style: const TextStyle(
                       fontSize: 22,
@@ -606,7 +613,7 @@ class NewsDetailPage extends StatelessWidget {
                         CircleAvatar(
                           radius: 18,
                           backgroundColor: post.categoryColor,
-                          child: Text(
+                          child: TranslatedText(
                             post.author.isNotEmpty ? post.author[0].toUpperCase() : 'T',
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
                           ),
@@ -615,7 +622,7 @@ class NewsDetailPage extends StatelessWidget {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            TranslatedText(
                               post.author,
                               style: const TextStyle(
                                 fontSize: 13,
@@ -623,7 +630,7 @@ class NewsDetailPage extends StatelessWidget {
                                 color: Color(0xFF0F172A),
                               ),
                             ),
-                            Text(
+                            TranslatedText(
                               '${post.formattedDate}  •  ${post.readTime}',
                               style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                             ),
@@ -677,7 +684,7 @@ class NewsDetailPage extends StatelessWidget {
                         children: [
                           Icon(Icons.open_in_browser_rounded, size: 18),
                           SizedBox(width: 8),
-                          Text(
+                          TranslatedText(
                             'Website pe Poora Article Padho',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                           ),
@@ -767,17 +774,21 @@ class _ErrorView extends StatelessWidget {
             child: Icon(Icons.wifi_off_rounded, color: Colors.red.shade400, size: 48),
           ),
           const SizedBox(height: 20),
-          const Text(
+           TranslatedText(
             'Oops! Kuch problem aayi',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
           ),
           const SizedBox(height: 8),
-          Text(error, style: TextStyle(fontSize: 12, color: Colors.grey.shade500), textAlign: TextAlign.center),
+          TranslatedText(
+            error,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Dobara Try Karo', style: TextStyle(fontWeight: FontWeight.w700)),
+            label:  TranslatedText('Dobara Try Karo', style: TextStyle(fontWeight: FontWeight.w700)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0D1B2A),
               foregroundColor: Colors.white,

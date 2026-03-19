@@ -565,7 +565,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                             11,
                             _mockPrimary,
                             FontWeight.w600,
-                            2,
+                            10,
                             TextAlign.left,
                             1.3,
                           ),

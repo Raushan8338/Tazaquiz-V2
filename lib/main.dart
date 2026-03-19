@@ -5,12 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 
 /// Background handler (Android / iOS / Web only)
-/// 
+///
 Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
@@ -31,6 +32,7 @@ bool isPushSupported() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await TranslationService.instance.init();
   await MobileAds.instance.initialize();
 
   /// 🔥 Firebase ONLY for supported platforms

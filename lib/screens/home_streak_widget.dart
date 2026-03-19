@@ -20,7 +20,7 @@ class HomeStreakWidget extends StatelessWidget {
     this.totalQuestions = 10,
     this.durationMinutes = 5,
     this.onStartQuiz,
-    required this.checkattempted
+    required this.checkattempted,
   }) : super(key: key);
 
   @override
@@ -31,13 +31,7 @@ class HomeStreakWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
@@ -87,7 +81,7 @@ class HomeStreakWidget extends StatelessWidget {
 
           /// Right – Start Button
           GestureDetector(
-            onTap: (){
+            onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => DailyQuizScreen()));
             },
             child: Container(
@@ -107,21 +101,26 @@ class HomeStreakWidget extends StatelessWidget {
                   ),
                 ],
               ),
-             child: Column(
-  children: [
-    Icon(
-      checkattempted ? Icons.check_circle_rounded : Icons.play_arrow_rounded,
-      color: Colors.white,
-      size: 22,
-    ),
-    const SizedBox(height: 2),
-    AppRichText.setTextPoppinsStyle(
-      context,
-      checkattempted ? 'Done!' : 'Shuru\nKaro',
-      10, Colors.white, FontWeight.w700, 1, TextAlign.center, 0,
-    ),
-  ],
-),
+              child: Column(
+                children: [
+                  Icon(
+                    checkattempted ? Icons.check_circle_rounded : Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  const SizedBox(height: 2),
+                  AppRichText.setTextPoppinsStyle(
+                    context,
+                    checkattempted ? 'Done!' : 'Shuru\nKaro',
+                    10,
+                    Colors.white,
+                    FontWeight.w700,
+                    1,
+                    TextAlign.center,
+                    0,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -132,19 +131,13 @@ class HomeStreakWidget extends StatelessWidget {
   Widget _pill(IconData icon, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 11, color: color),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
         ],
       ),
     );

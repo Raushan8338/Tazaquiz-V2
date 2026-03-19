@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -12,8 +13,7 @@ class WeeklyProgressWidget extends StatefulWidget {
   State<WeeklyProgressWidget> createState() => _WeeklyProgressWidgetState();
 }
 
-class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget>
-    with SingleTickerProviderStateMixin {
+class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget> with SingleTickerProviderStateMixin {
   int totalQuizzes = 0;
   int completedQuizzes = 0;
   double progressValue = 0.0;
@@ -28,13 +28,11 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget>
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _progressAnim = Tween<double>(begin: 0, end: 0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
+    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _progressAnim = Tween<double>(
+      begin: 0,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _getUserData();
   }
 
@@ -73,9 +71,10 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget>
         });
 
         if (hasData) {
-          _progressAnim = Tween<double>(begin: 0, end: progressValue).animate(
-            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-          );
+          _progressAnim = Tween<double>(
+            begin: 0,
+            end: progressValue,
+          ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
           _animController.forward();
         }
       } else {
@@ -105,13 +104,7 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       child: Column(
         children: [
@@ -121,29 +114,20 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget>
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.tealGreen, AppColors.darkNavy],
-                  ),
+                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.trending_up_rounded,
-                    color: Colors.white, size: 14),
+                child: const Icon(Icons.trending_up_rounded, color: Colors.white, size: 14),
               ),
               const SizedBox(width: 8),
-              Text(
+              TranslatedText(
                 'Weekly Progress',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.darkNavy,
-                ),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
               ),
               const Spacer(),
-              _chip('✅ $completedQuizzes', AppColors.tealGreen.withOpacity(0.12),
-                  AppColors.tealGreen),
+              _chip('✅ $completedQuizzes', AppColors.tealGreen.withOpacity(0.12), AppColors.tealGreen),
               const SizedBox(width: 6),
-              _chip('⏳ $remaining', Colors.orange.withOpacity(0.12),
-                  Colors.orange.shade700),
+              _chip('⏳ $remaining', Colors.orange.withOpacity(0.12), Colors.orange.shade700),
               const SizedBox(width: 6),
               _chip('$percent%', AppColors.tealGreen, Colors.white, bold: true),
             ],
@@ -161,8 +145,7 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget>
                   value: _progressAnim.value,
                   minHeight: 7,
                   backgroundColor: Colors.grey.shade200,
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(AppColors.tealGreen),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen),
                 ),
               );
             },
@@ -175,17 +158,10 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget>
   Widget _chip(String label, Color bg, Color textColor, {bool bold = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 10,
-          color: textColor,
-          fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-        ),
+        style: TextStyle(fontSize: 10, color: textColor, fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
       ),
     );
   }

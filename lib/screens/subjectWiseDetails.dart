@@ -561,188 +561,187 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   SizedBox(height: 14),
 
                   // Action Buttons - Enhanced for Paid Content
-                  if (material.is_premium == 1)
-                    Row(
-                      children: [
-                        // Price Display
-                        Expanded(
-                          flex: 2,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.tealGreen.withOpacity(0.15), AppColors.tealGreen.withOpacity(0.08)],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1.5),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '₹',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.tealGreen,
-                                        height: 1.2,
-                                      ),
-                                    ),
-                                    SizedBox(width: 2),
-                                    Text(
-                                      '${material.price ?? '0.0'}',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.darkNavy,
-                                        height: 1.1,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 10),
+                  // if (material.is_premium == 1)
+                  //   Row(
+                  //     children: [
+                  //       // Price Display
+                  //       Expanded(
+                  //         flex: 2,
+                  //         child: Container(
+                  //           padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                  //           decoration: BoxDecoration(
+                  //             gradient: LinearGradient(
+                  //               colors: [AppColors.tealGreen.withOpacity(0.15), AppColors.tealGreen.withOpacity(0.08)],
+                  //             ),
+                  //             borderRadius: BorderRadius.circular(12),
+                  //             border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1.5),
+                  //           ),
+                  //           child: Column(
+                  //             crossAxisAlignment: CrossAxisAlignment.start,
+                  //             mainAxisSize: MainAxisSize.min,
+                  //             children: [
+                  //               Row(
+                  //                 crossAxisAlignment: CrossAxisAlignment.start,
+                  //                 children: [
+                  //                   Text(
+                  //                     '₹',
+                  //                     style: TextStyle(
+                  //                       fontSize: 16,
+                  //                       fontWeight: FontWeight.w800,
+                  //                       color: AppColors.tealGreen,
+                  //                       height: 1.2,
+                  //                     ),
+                  //                   ),
+                  //                   SizedBox(width: 2),
+                  //                   Text(
+                  //                     '${material.price ?? '0.0'}',
+                  //                     style: TextStyle(
+                  //                       fontSize: 16,
+                  //                       fontWeight: FontWeight.w800,
+                  //                       color: AppColors.darkNavy,
+                  //                       height: 1.1,
+                  //                     ),
+                  //                   ),
+                  //                 ],
+                  //               ),
+                  //             ],
+                  //           ),
+                  //         ),
+                  //       ),
+                  //       SizedBox(width: 10),
 
-                        // Enroll Now Button
-                        Expanded(
-                          flex: 3,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.tealGreen, AppColors.darkNavy],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.tealGreen.withOpacity(0.4),
-                                  blurRadius: 12,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => BuyCoursePage(
-                                          contentId: material.materialId.toString(),
-                                          page_API_call: 'STUDY',
-                                        ),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.shopping_bag_rounded, size: 18, color: AppColors.white),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Enroll Now',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.white,
-                                      letterSpacing: 0.5,
+                  //       // Enroll Now Button
+                  //       Expanded(
+                  //         flex: 3,
+                  //         child: Container(
+                  //           decoration: BoxDecoration(
+                  //             gradient: LinearGradient(
+                  //               colors: [AppColors.tealGreen, AppColors.darkNavy],
+                  //               begin: Alignment.topLeft,
+                  //               end: Alignment.bottomRight,
+                  //             ),
+                  //             borderRadius: BorderRadius.circular(12),
+                  //             boxShadow: [
+                  //               BoxShadow(
+                  //                 color: AppColors.tealGreen.withOpacity(0.4),
+                  //                 blurRadius: 12,
+                  //                 offset: Offset(0, 4),
+                  //               ),
+                  //             ],
+                  //           ),
+                  //           child: ElevatedButton(
+                  //             onPressed: () {
+                  //               Navigator.push(
+                  //                 context,
+                  //                 MaterialPageRoute(
+                  //                   builder:
+                  //                       (context) => BuyCoursePage(
+                  //                         contentId: material.materialId.toString(),
+                  //                         page_API_call: 'STUDY',
+                  //                       ),
+                  //                 ),
+                  //               );
+                  //             },
+                  //             style: ElevatedButton.styleFrom(
+                  //               backgroundColor: Colors.transparent,
+                  //               shadowColor: Colors.transparent,
+                  //               padding: EdgeInsets.symmetric(vertical: 16),
+                  //               elevation: 0,
+                  //               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  //             ),
+                  //             child: Row(
+                  //               mainAxisAlignment: MainAxisAlignment.center,
+                  //               children: [
+                  //                 Icon(Icons.shopping_bag_rounded, size: 18, color: AppColors.white),
+                  //                 SizedBox(width: 6),
+                  //                 Text(
+                  //                   'Enroll Now',
+                  //                   style: TextStyle(
+                  //                     fontSize: 14,
+                  //                     fontWeight: FontWeight.w700,
+                  //                     color: AppColors.white,
+                  //                     letterSpacing: 0.5,
+                  //                   ),
+                  //                 ),
+                  //               ],
+                  //             ),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   )
+                  //  else
+                  // Free Preview Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppColors.darkNavy, AppColors.tealGreen],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(color: AppColors.darkNavy.withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4)),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (material.is_premium == 0 && material.isAccessible == false) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => BuyCoursePage(
+                                      contentId: material.materialId.toString(),
+                                      page_API_call: 'STUDY',
                                     ),
-                                  ),
-                                ],
                               ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    // Free Preview Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppColors.darkNavy, AppColors.tealGreen],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(color: AppColors.darkNavy.withOpacity(0.4), blurRadius: 12, offset: Offset(0, 4)),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (material.is_premium == 0 && material.isAccessible == false) {
+                            );
+                          } else {
+                            if (material.contentType != 'Video') {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder:
-                                      (context) => BuyCoursePage(
-                                        contentId: material.materialId.toString(),
-                                        page_API_call: 'STUDY',
-                                      ),
+                                  builder: (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title),
                                 ),
                               );
                             } else {
-                              if (material.contentType != 'Video') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => PDFViewerPage(pdfUrl: material.filePath, title: material.title),
-                                  ),
-                                );
-                              } else {
-                                launchUrl(Uri.parse(material.filePath));
-                              }
+                              launchUrl(Uri.parse(material.filePath));
                             }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
-                              SizedBox(width: 8),
-                              Text(
-                                (material.isAccessible == true)
-                                    ? 'Start Learning'
-                                    : (material.is_premium == 0)
-                                    ? 'SUBSCRIBE NOW'
-                                    : 'Start Learning',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.white,
-                                  letterSpacing: 0.5,
-                                ),
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              (material.isAccessible == true)
+                                  ? 'Start Learning'
+                                  : (material.is_premium == 0)
+                                  ? 'SUBSCRIBE NOW'
+                                  : 'Start Learning',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.white,
+                                letterSpacing: 0.5,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                  ),
                   SizedBox(height: 10),
 
                   // Updated date
