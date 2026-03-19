@@ -70,7 +70,7 @@ class _HomeBannerState extends State<HomeBanner> {
               });
             },
             itemBuilder: (context, index) {
-              print('Banner Images: ${Api_Client.baseUrl + widget.imgLists[index]['banner']}');
+              // print('Banner Images: ${Api_Client.baseUrl + widget.imgLists[index]['banner']}');
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(

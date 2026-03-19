@@ -8,6 +8,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/notification_service.dart';
+import 'package:tazaquiznew/firebase_options.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 
 /// Background handler (Android / iOS / Web only)
@@ -37,7 +38,9 @@ void main() async {
 
   /// 🔥 Firebase ONLY for supported platforms
   if (isPushSupported()) {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+       options: DefaultFirebaseOptions.currentPlatform,
+    );
 
     FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
 
