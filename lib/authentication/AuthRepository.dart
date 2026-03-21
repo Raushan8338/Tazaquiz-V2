@@ -207,4 +207,14 @@ class Authrepository {
   Future<Response> fetchNoticeBord() async {
     return await _dio.get(BaseUrl.fetch_notice_board);
   }
+
+  Future<Response> fetchDailyQuizAttempt(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_daily_quiz_attempts, data: formData);
+  }
+
+  Future<Response> fetchDailyQuizAttemptDetails(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_daily_quiz_attempt_details, data: formData);
+  }
 }

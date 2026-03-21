@@ -58,7 +58,7 @@ class HomeDailyCurrentAffairs extends StatelessWidget {
                           children: [
                             AppRichText.setTextPoppinsStyle(
                               context,
-                              'Aaj Ka Current Affairs',
+                              'Today’s Current Affairs',
                               12,
                               Colors.white,
                               FontWeight.w700,
@@ -88,9 +88,11 @@ class HomeDailyCurrentAffairs extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
+                          Icon(Icons.menu_book_rounded, color: Colors.white, size: 13),
+                          SizedBox(width: 6),
                           AppRichText.setTextPoppinsStyle(
                             context,
-                            'Padho',
+                            'All News',
                             10,
                             Colors.white,
                             FontWeight.w600,
@@ -126,30 +128,30 @@ class HomeDailyCurrentAffairs extends StatelessWidget {
                 // _newsPoint('💰', 'RBI ne repo rate 6.5% par stable rakhi'),
                 // const SizedBox(height: 6),
                 // _newsPoint('🏏', 'India ne T20 series 3-1 se jeeti'),
-                const SizedBox(height: 12),
+                // const SizedBox(height: 12),
 
-                /// ── Saari News Button — full width ──
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.13),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.menu_book_rounded, color: Colors.white, size: 13),
-                      SizedBox(width: 6),
-                      TranslatedText(
-                        'Saari News Padho',
-                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
-                      ),
-                      SizedBox(width: 5),
-                      Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 10),
-                    ],
-                  ),
-                ),
+                // /// ── Saari News Button — full width ──
+                // Container(
+                //   width: double.infinity,
+                //   padding: const EdgeInsets.symmetric(vertical: 9),
+                //   decoration: BoxDecoration(
+                //     color: Colors.white.withOpacity(0.13),
+                //     borderRadius: BorderRadius.circular(9),
+                //   ),
+                //   child: Row(
+                //     mainAxisAlignment: MainAxisAlignment.center,
+                //     children: const [
+                //       Icon(Icons.menu_book_rounded, color: Colors.white, size: 13),
+                //       SizedBox(width: 6),
+                //       TranslatedText(
+                //         'Read All News',
+                //         style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                //       ),
+                //       SizedBox(width: 5),
+                //       Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 10),
+                //     ],
+                //   ),
+                // ),
               ],
             ),
           ),

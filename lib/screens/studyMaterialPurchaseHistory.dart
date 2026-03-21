@@ -2,6 +2,7 @@ import 'dart:ffi';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
@@ -35,6 +36,15 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
   void initState() {
     super.initState();
     _getUserData();
+  }
+
+  String _formatDate(String rawDate) {
+    try {
+      final parsed = DateTime.parse(rawDate);
+      return DateFormat('dd MMM yyyy').format(parsed);
+    } catch (_) {
+      return rawDate;
+    }
   }
 
   Future<void> _getUserData() async {
@@ -192,15 +202,11 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                 const SizedBox(height: 10),
 
                 // Date
-                Row(
-                  children: [
-                    Icon(Icons.access_time_rounded, size: 11, color: AppColors.greyS500),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Added: ${material.createdAt}',
-                      style: TextStyle(fontSize: 10, color: AppColors.greyS500, fontWeight: FontWeight.w500),
-                    ),
-                  ],
+                Text(
+                  material.access_valid_until != null && material.access_valid_until.isNotEmpty
+                      ? 'Valid Until: ${_formatDate(material.access_valid_until)}'
+                      : 'No Expiry',
+                  style: TextStyle(fontSize: 10, color: AppColors.greyS500, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -507,7 +513,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                             onPressed: () {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage()));
                               // TODO: Navigate to premium page
-                            //  Navigator.pop(context);
+                              //  Navigator.pop(context);
                             },
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,

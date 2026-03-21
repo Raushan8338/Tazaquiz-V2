@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/notificationHandler.dart';
 import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 
@@ -19,16 +20,18 @@ Future<void> firebaseBackgroundHandler(RemoteMessage message) async {
   final body = message.data['body'] ?? '';
   final image = message.data['image_url'];
 
-  if (image != null && image.isNotEmpty) {
-    await NotificationService.showBannerNotification(title: title, body: body, imageUrl: image);
-  } else {
-    await NotificationService.showNotification(title: title, body: body);
-  }
+  // if (image != null && image.isNotEmpty) {
+  //   await NotificationService.showBannerNotification(title: title, body: body, imageUrl: image);
+  // } else {
+  //   await NotificationService.showNotification(title: title, body: body);
+  // }
 }
 
 bool isPushSupported() {
   return kIsWeb || Platform.isAndroid || Platform.isIOS;
 }
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +53,7 @@ void main() async {
   }
 
   Api_Client.init();
+  await NotificationPlatformHandler.init();
   runApp(MyApp());
 }
 
@@ -58,6 +62,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(title: 'TazaQuiz', debugShowCheckedModeBanner: false, home: SplashScreen());
+    return MaterialApp(
+      title: 'TazaQuiz',
+      debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
+      home: SplashScreen(),
+    );
   }
 }

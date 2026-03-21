@@ -9,6 +9,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/study_category_item.dart';
 import 'package:tazaquiznew/screens/buyQuizes.dart';
+import 'package:tazaquiznew/screens/mockTestScreen.dart';
 import 'package:tazaquiznew/screens/mock_test_detail_page.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
@@ -46,7 +47,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
   ];
 
   final List<List<Color>> _mockGradients = const [
-      [Color(0xFF0D4B3B), Color(0xFF1A8070)],
+    [Color(0xFF0D4B3B), Color(0xFF1A8070)],
     [Color(0xFF0B3D5E), Color(0xFF1A6D8A)],
     [Color(0xFF1A4D6D), Color(0xFF0D7A6B)],
     [Color(0xFF0C3756), Color(0xFF28A194)],
@@ -77,7 +78,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Future<void> _fetchLevels() async {
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
-      
+
       Response response = await auth.fetchStudyLevels();
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
@@ -107,7 +108,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
       print('Quiz List API response: ${categoryId.toString()}');
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
-    
+
         setState(() {
           _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
           _isFetchingQuizzes = false;
@@ -172,6 +173,8 @@ class _QuizListScreenState extends State<QuizListScreen> {
       backgroundColor: AppColors.darkNavy,
       elevation: 0,
       automaticallyImplyLeading: false,
+      leadingWidth: 40, // ✅ default 56 hai, kam karo
+      titleSpacing: 0, // ✅ title aur leading ke beech gap zero
       leading:
           widget.pageId == '1'
               ? IconButton(
@@ -193,10 +196,10 @@ class _QuizListScreenState extends State<QuizListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isMockTest ? 'Mock Tests' : 'Live Quizzes',
+            isMockTest ? 'Mock Tests' : 'Live / Upcoming Quizzes',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
               fontFamily: 'Poppins',
             ),
@@ -207,38 +210,83 @@ class _QuizListScreenState extends State<QuizListScreen> {
           ),
         ],
       ),
-      actions:
-          !isMockTest
-              ? [
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
-                  ),
-                  onPressed:
-                      () => showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => _buildFilterSheet(),
-                      ),
+      actions: [
+        /// ✅ Mock Test Button — only on Live/Quiz screen
+        if (!isMockTest)
+          GestureDetector(
+            onTap: () {
+              // 👇 Replace with your Mock Test screen navigation
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  // quiz_type=2 for mock tests — aapke QuizListScreen mein filter pass karo
+                  builder: (context) => QuizListScreen('1', '4'),
                 ),
-                const SizedBox(width: 4),
-              ]
-              : [],
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0D6E6E), Color(0xFF14A3A3)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0D6E6E).withOpacity(0.45),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text('📝', style: TextStyle(fontSize: 13)),
+                  SizedBox(width: 5),
+                  Text(
+                    'Mock Test',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Poppins',
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        /// Filter button — only on Live/Quiz screen
+        //  if (!isMockTest)
+        IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
+          ),
+          onPressed:
+              () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => _buildFilterSheet(),
+              ),
+        ),
+
+        const SizedBox(width: 4),
+      ],
       flexibleSpace: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors:
-                isMockTest
-                    ? [AppColors.darkNavy, const Color(0xFF0D4B3B)]
-                    : [AppColors.darkNavy, const Color(0xFF0D4B3B)],
+            colors: [AppColors.darkNavy, const Color(0xFF0D4B3B)],
           ),
         ),
       ),
@@ -434,12 +482,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: sel ? null : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
               ),
-              child: Text(
-                cat.name,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                  color: sel ? Colors.white : AppColors.greyS700,
+              child: Center(
+                child: Text(
+                  cat.name,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                    color: sel ? Colors.white : AppColors.greyS700,
+                  ),
                 ),
               ),
             ),

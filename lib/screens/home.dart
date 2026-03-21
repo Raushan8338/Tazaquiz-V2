@@ -49,7 +49,7 @@ class _HomePageState extends State<HomePage> {
   HomeSection? courseSection;
   HomeSection? coachingSection;
   DailyNewsModel? dailyNews;
-  String _quizTitle = 'Aaj Ka Quiz';
+  String _quizTitle = "Today's Quiz";
   String _quizSubtitle = 'Current Affairs + GK + Science';
   int _quizTotalQuestions = 0;
   int _quizTimeMinutes = 0;
@@ -103,7 +103,7 @@ class _HomePageState extends State<HomePage> {
     if (apiResponse['success'] == true) {
       final d = apiResponse['data'];
       setState(() {
-        _quizTitle = d['title'] ?? 'Aaj Ka Quiz';
+        _quizTitle = d['title'] ?? "Today's Quiz";
         _quizSubtitle = d['subtitle'] ?? '';
         _quizTotalQuestions = d['total_questions'] ?? 0;
         _quizTimeMinutes = d['time_minutes'] ?? 0;

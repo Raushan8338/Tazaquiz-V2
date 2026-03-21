@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
@@ -21,9 +23,17 @@ class NotificationService {
 
     await _notifications.initialize(
       settings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Notification click handle karo
-        _handleNotificationClick(response);
+      // onDidReceiveNotificationResponse: (NotificationResponse response) {
+      //   // Notification click handle karo
+      //   _handleNotificationClick(response);
+      // },
+      onDidReceiveNotificationResponse: (response) {
+        if (response.actionId == 'start_quiz') {
+          String? quizId = response.payload;
+
+          // 👉 Navigate to Quiz Screen
+          // navigatorKey.currentState?.pushNamed('/quiz', arguments: quizId);
+        }
       },
     );
 
@@ -51,17 +61,43 @@ class NotificationService {
     // Example: Navigator.push(...) quiz page pe
   }
 
-  // Simple notification
-  static Future<void> showNotification({required String title, required String body, String? payload}) async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+  static Future<void> showNotification({
+    required String title,
+    required String body,
+    String? payload,
+    String? imageUrl, // 👈 NEW
+  }) async {
+    BigPictureStyleInformation? bigPictureStyle;
+
+    // ✅ Image from URL
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      final largeIcon = await _downloadAndSaveFile(imageUrl, 'largeIcon');
+      final bigPicture = await _downloadAndSaveFile(imageUrl, 'bigPicture');
+
+      bigPictureStyle = BigPictureStyleInformation(
+        FilePathAndroidBitmap(bigPicture),
+        largeIcon: FilePathAndroidBitmap(largeIcon),
+        contentTitle: title,
+        summaryText: body,
+      );
+    }
+
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'tazaquiz_channel',
       'TazaQuiz Notifications',
       channelDescription: 'Notifications for TazaQuiz',
       importance: Importance.high,
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
-      largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
-      color: Color(0xFF4F46E5),
+      color: const Color(0xFF4F46E5),
+
+      // ✅ Apply Image Style
+      styleInformation: bigPictureStyle,
+
+      // ✅ Action Buttons
+      actions: <AndroidNotificationAction>[
+        const AndroidNotificationAction('start_quiz', 'Start Quiz', showsUserInterface: true),
+      ],
     );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -70,10 +106,45 @@ class NotificationService {
       presentSound: true,
     );
 
-    const NotificationDetails details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+    final NotificationDetails details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
-    await _notifications.show(DateTime.now().millisecond, title, body, details, payload: payload);
+    await _notifications.show(DateTime.now().millisecondsSinceEpoch ~/ 1000, title, body, details, payload: payload);
   }
+
+  static Future<String> _downloadAndSaveFile(String url, String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/$fileName';
+
+    final response = await http.get(Uri.parse(url));
+    final file = File(filePath);
+    await file.writeAsBytes(response.bodyBytes);
+
+    return filePath;
+  }
+
+  // Simple notification
+  // static Future<void> showNotification({required String title, required String body, String? payload}) async {
+  //   const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+  //     'tazaquiz_channel',
+  //     'TazaQuiz Notifications',
+  //     channelDescription: 'Notifications for TazaQuiz',
+  //     importance: Importance.high,
+  //     priority: Priority.high,
+  //     icon: '@mipmap/ic_launcher',
+  //     largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+  //     color: Color(0xFF4F46E5),
+  //   );
+
+  //   const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+  //     presentAlert: true,
+  //     presentBadge: true,
+  //     presentSound: true,
+  //   );
+
+  //   const NotificationDetails details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+  //   await _notifications.show(DateTime.now().millisecond, title, body, details, payload: payload);
+  // }
 
   // 🎯 BANNER NOTIFICATION WITH IMAGE
   static Future<void> showBannerNotification({
@@ -197,7 +268,7 @@ class NotificationService {
 
       // Check notification type from data
       final String type = message.data['type'] ?? 'default';
-      final String? imageUrl = message.data['image_url'];
+      final String? imageUrl = message.data['image'];
       final String? quizId = message.data['quiz_id'];
 
       if (type == 'live_quiz') {
@@ -208,21 +279,14 @@ class NotificationService {
           imageUrl: imageUrl,
           quizId: quizId,
         );
-      } else if (imageUrl != null) {
-        // Banner notification with image
-        showBannerNotification(
-          title: message.notification?.title ?? 'TazaQuiz',
-          body: message.notification?.body ?? '',
-          imageUrl: imageUrl,
-          payload: quizId,
-        );
       } else {
         // Simple notification
-        showNotification(
-          title: message.notification?.title ?? 'TazaQuiz',
-          body: message.notification?.body ?? '',
-          payload: quizId,
-        );
+        // showNotification(
+        //   title: message.notification?.title ?? 'TazaQuiz',
+        //   body: message.notification?.body ?? '',
+        //   payload: quizId,
+        //   imageUrl: imageUrl,
+        // );
       }
     });
   }

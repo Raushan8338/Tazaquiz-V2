@@ -137,7 +137,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
   Widget _buildCategoryTabs() {
     return Container(
       height: 54,
-      color: Color(0xFFF0F2F8), // ← white background
+      color: AppColors.white, // ← white background
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

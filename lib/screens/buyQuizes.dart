@@ -84,9 +84,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
-      print('Fetching quiz details with data: $data');
       final responseFuture = await authRepository.get_quizId_wise_details(data);
-      print('Quiz details response: ${responseFuture.data}');
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
@@ -127,14 +125,35 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     });
   }
 
+  // ✅ UPDATED: Under 24h = countdown, 24h+ = date
   String _getCountdownText() {
     if (_remainingSeconds <= 0) return "LIVE NOW!";
-    int h = _remainingSeconds ~/ 3600;
-    int m = (_remainingSeconds % 3600) ~/ 60;
-    int s = _remainingSeconds % 60;
-    if (h > 0) return "${h}h ${m}m ${s}s";
-    if (m > 0) return "${m}m ${s}s";
-    return "${s}s";
+
+    if (_remainingSeconds < 86400) {
+      int h = _remainingSeconds ~/ 3600;
+      int m = (_remainingSeconds % 3600) ~/ 60;
+      int s = _remainingSeconds % 60;
+      if (h > 0) return "${h}h ${m}m ${s}s";
+      if (m > 0) return "${m}m ${s}s";
+      return "${s}s";
+    } else {
+      try {
+        final startDt = DateTime.parse(_currentQuiz!.startDateTime.trim().replaceAll(' ', 'T'));
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final h = startDt.hour % 12 == 0 ? 12 : startDt.hour % 12;
+        final m = startDt.minute.toString().padLeft(2, '0');
+        final ampm = startDt.hour >= 12 ? 'PM' : 'AM';
+        return '${startDt.day} ${months[startDt.month - 1]}, $h:$m $ampm';
+      } catch (_) {
+        return _currentQuiz!.startDateTime;
+      }
+    }
+  }
+
+  // ✅ UPDATED: Label changes based on time remaining
+  String _getCountdownLabel() {
+    if (_remainingSeconds < 86400) return 'Starts in  ';
+    return 'Starts on  ';
   }
 
   void _handleStartQuiz() {
@@ -648,7 +667,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       11,
                       AppColors.darkNavy,
                       FontWeight.w600,
-                      2,
+                      10,
                       TextAlign.left,
                       1.3,
                     ),
@@ -657,6 +676,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               ),
             ),
           ],
+
+          // ✅ UPDATED countdown box
           if (_remainingSeconds > 0) ...[
             const SizedBox(height: 12),
             Container(
@@ -674,7 +695,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   const SizedBox(width: 8),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Starts in  ',
+                    _getCountdownLabel(), // ✅ 'Starts in' or 'Starts on'
                     12,
                     const Color(0xFFB45309).withOpacity(0.7),
                     FontWeight.w500,
@@ -683,7 +704,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     0,
                   ),
                   Text(
-                    _getCountdownText(),
+                    _getCountdownText(), // ✅ countdown or date
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -720,8 +741,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          //  _buildStatBox('❓', _currentQuiz?.totalQuestions.toString() ?? '—', 'Questions'),
-          //  const SizedBox(width: 10),
           _buildStatBox('⏱️', _currentQuiz?.timeLimit.isEmpty == false ? _currentQuiz!.timeLimit : '—', 'Minutes'),
           const SizedBox(width: 10),
           _buildStatBox('🏆', _currentQuiz?.totalMarks.toString() ?? '—', 'Marks'),
@@ -870,7 +889,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   const SizedBox(height: 10),
                   _buildUsageRow(
                     icon: Icons.quiz_outlined,
-                    label: 'Live Quiz',
+                    label: 'Live / Upcoming Quiz',
                     used: 1,
                     total: 1,
                     color: const Color(0xFFE53935),
@@ -1599,6 +1618,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // ✅ UPDATED: Starts in / Starts on based on time
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -1612,7 +1632,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   const Icon(Icons.schedule_rounded, color: Color(0xFFB45309), size: 16),
                   const SizedBox(width: 8),
                   Text(
-                    'Quiz starts in  ',
+                    _getCountdownLabel(), // ✅ 'Starts in' or 'Starts on'
                     style: TextStyle(
                       fontSize: 12,
                       color: const Color(0xFFB45309).withOpacity(0.75),
@@ -1620,7 +1640,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     ),
                   ),
                   Text(
-                    _getCountdownText(),
+                    _getCountdownText(), // ✅ countdown or date
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,

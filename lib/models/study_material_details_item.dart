@@ -28,6 +28,7 @@ class StudyMaterialDetailsItem {
   // 🔥 NEW OPTIONAL FLAGS (SAFE)
   final bool isPurchased;
   final bool isAccessible;
+  final String access_valid_until; // 🔥 Optional: Access expiry date (if applicable)
 
   StudyMaterialDetailsItem({
     required this.materialId,
@@ -59,6 +60,7 @@ class StudyMaterialDetailsItem {
     // 🔥 DEFAULT SAFE VALUES
     this.isPurchased = false,
     this.isAccessible = false,
+    this.access_valid_until = '',
   });
 
   factory StudyMaterialDetailsItem.fromJson(Map<String, dynamic> json) {
@@ -96,6 +98,7 @@ class StudyMaterialDetailsItem {
       // 🔥 SAFE PARSING (agar na aaye to false)
       isPurchased: _toBool(json['is_purchased']),
       isAccessible: _toBool(json['is_accessible']),
+      access_valid_until: json['access_valid_until']?.toString() ?? '',
     );
   }
 
@@ -130,6 +133,7 @@ class StudyMaterialDetailsItem {
       // 🔥 OPTIONAL
       'is_purchased': isPurchased,
       'is_accessible': isAccessible,
+      'access_valid_until': access_valid_until,
     };
   }
 }

@@ -43,4 +43,6 @@ class BaseUrl {
   static String fetch_get_quiz_review = "get_quiz_review.php";
   static String fetch_get_leaderboard = "get_leaderboard.php";
   static String fetch_notice_board = "notice.php";
+  static String fetch_daily_quiz_attempts = "daily_get_attempts.php";
+  static String fetch_daily_quiz_attempt_details = "daily_get_quiz_detail.php";
 }

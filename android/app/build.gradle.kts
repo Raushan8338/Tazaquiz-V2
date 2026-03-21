@@ -24,8 +24,8 @@ android {
         applicationId = "com.tazaquiz.quiz"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 27
-        versionName = "1.2.15"
+        versionCode = 28
+        versionName = "1.2.16"
         multiDexEnabled = true
     }
 
@@ -59,6 +59,7 @@ android {
 
 dependencies {
        coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+       implementation("com.google.firebase:firebase-messaging:23.4.1")
 }
 
 flutter {
