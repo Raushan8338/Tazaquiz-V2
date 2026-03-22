@@ -35,6 +35,11 @@ class _QuizListScreenState extends State<QuizListScreen> {
   List<QuizItem> _quizzes = [];
   UserModel? _user;
 
+  // ── Pagination ─────────────────────────────────────────────────────
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+
   bool get isMockTest => widget.PageType == '4';
   Color get _accent => isMockTest ? const Color(0xFF3949AB) : AppColors.tealGreen;
 
@@ -78,7 +83,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Future<void> _fetchLevels() async {
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
-
       Response response = await auth.fetchStudyLevels();
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
@@ -89,28 +93,44 @@ class _QuizListScreenState extends State<QuizListScreen> {
           ];
           _isLoading = false;
         });
-        await _fetchQuizzes(0);
+        await _fetchQuizzes(0, page: 1);
       }
     } catch (e) {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _fetchQuizzes(int categoryId) async {
-    setState(() => _isFetchingQuizzes = true);
+  // ── Fetch quizzes with pagination ──────────────────────────────────
+  Future<void> _fetchQuizzes(int categoryId, {int page = 1}) async {
+    if (page == 1) setState(() => _isFetchingQuizzes = true);
+
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
       final response = await auth.fetch_Quiz_List({
         'Pagetype': widget.PageType,
         'category_id': categoryId.toString(),
         'user_id': _user!.id.toString(),
+        'page': page.toString(), // ✅
+        'limit': '5', // ✅
       });
-      print('Quiz List API response: ${categoryId.toString()}');
+
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
+        final bool hasMore = response.data['hasMore'] ?? false;
+
+        debugPrint("📦 Quiz Page: $page | Items: ${list.length} | hasMore: $hasMore");
 
         setState(() {
-          _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
+          if (page == 1) {
+            _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
+          } else {
+            final existingIds = _quizzes.map((e) => e.quizId).toSet();
+            final newItems =
+                list.map((e) => QuizItem.fromJson(e)).where((e) => !existingIds.contains(e.quizId)).toList();
+            _quizzes.addAll(newItems);
+          }
+          _currentPage = page;
+          _hasMore = hasMore;
           _isFetchingQuizzes = false;
         });
       }
@@ -119,12 +139,18 @@ class _QuizListScreenState extends State<QuizListScreen> {
     }
   }
 
+  // ── Load more ──────────────────────────────────────────────────────
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    debugPrint("🔄 Loading more quizzes... page ${_currentPage + 1}");
+    setState(() => _isLoadingMore = true);
+    await _fetchQuizzes(_selectedCategoryId, page: _currentPage + 1);
+    if (mounted) setState(() => _isLoadingMore = false);
+  }
+
   List<QuizItem> get _filtered {
     if (isMockTest) return _quizzes;
-
-    // Ended hide karo hamesha
     final active = _quizzes.where((q) => q.isLive || q.quizStatus == 'upcoming').toList();
-
     if (_selectedFilter == 'live') return active.where((q) => q.isLive).toList();
     if (_selectedFilter == 'upcoming') return active.where((q) => q.quizStatus == 'upcoming' && !q.isLive).toList();
     return active;
@@ -143,8 +169,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── BUILD ────────────────────────────────────────────────────────────────
-
+  // ─── BUILD ────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -166,15 +191,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── APP BAR ──────────────────────────────────────────────────────────────
-
+  // ─── APP BAR ──────────────────────────────────────────────────────
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: AppColors.darkNavy,
       elevation: 0,
       automaticallyImplyLeading: false,
-      leadingWidth: 40, // ✅ default 56 hai, kam karo
-      titleSpacing: 0, // ✅ title aur leading ke beech gap zero
+      leadingWidth: 40,
+      titleSpacing: 0,
       leading:
           widget.pageId == '1'
               ? IconButton(
@@ -211,19 +235,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
         ],
       ),
       actions: [
-        /// ✅ Mock Test Button — only on Live/Quiz screen
         if (!isMockTest)
           GestureDetector(
-            onTap: () {
-              // 👇 Replace with your Mock Test screen navigation
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  // quiz_type=2 for mock tests — aapke QuizListScreen mein filter pass karo
-                  builder: (context) => QuizListScreen('1', '4'),
-                ),
-              );
-            },
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => QuizListScreen('1', '4'))),
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -261,9 +275,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
               ),
             ),
           ),
-
-        /// Filter button — only on Live/Quiz screen
-        //  if (!isMockTest)
         IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
@@ -278,23 +289,21 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 builder: (_) => _buildFilterSheet(),
               ),
         ),
-
         const SizedBox(width: 4),
       ],
       flexibleSpace: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.darkNavy, const Color(0xFF0D4B3B)],
+            colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
           ),
         ),
       ),
     );
   }
 
-  // ─── FILTER BOTTOM SHEET ──────────────────────────────────────────────────
-
+  // ─── FILTER SHEET ─────────────────────────────────────────────────
   Widget _buildFilterSheet() {
     String tempFilter = _selectedFilter;
     return StatefulBuilder(
@@ -445,8 +454,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── CATEGORY TABS ────────────────────────────────────────────────────────
-
+  // ─── CATEGORY TABS ────────────────────────────────────────────────
   Widget _buildCategoryTabs() {
     if (_isLoading) return const SizedBox(height: 52);
     return Container(
@@ -461,8 +469,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
           final bool sel = _selectedCategoryId == cat.category_id;
           return GestureDetector(
             onTap: () async {
-              setState(() => _selectedCategoryId = cat.category_id);
-              await _fetchQuizzes(cat.category_id);
+              if (_selectedCategoryId == cat.category_id) return;
+              setState(() {
+                _selectedCategoryId = cat.category_id;
+                _currentPage = 1; // ✅ reset
+                _hasMore = true; // ✅ reset
+                _quizzes = []; // ✅ clear
+              });
+              await _fetchQuizzes(cat.category_id, page: 1);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -499,69 +513,72 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── CONTENT ──────────────────────────────────────────────────────────────
-
+  // ─── CONTENT ──────────────────────────────────────────────────────
   Widget _buildContent() {
-    const int adAfterIndex = 4;
-
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final quiz = _filtered[index];
-              final colors = _gradients[index % _gradients.length];
-              return _buildCard(quiz, colors);
-            }, childCount: _filtered.length.clamp(0, adAfterIndex + 1)),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 300 && !_isLoadingMore && _hasMore) {
+          _loadMore();
+        }
+        return false;
+      },
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // ── All quiz cards ──────────────────────────────────────
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final quiz = _filtered[index];
+                final colors = _gradients[index % _gradients.length];
+                return _buildCard(quiz, colors);
+              }, childCount: _filtered.length),
+            ),
           ),
-        ),
 
-        if (isBannerLoaded && bannerService.bannerAd != null)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  height: bannerService.bannerAd!.size.height.toDouble(),
-                  width: bannerService.bannerAd!.size.width.toDouble(),
-                  child: AdWidget(ad: bannerService.bannerAd!),
+          // ── Banner Ad ───────────────────────────────────────────
+          if (isBannerLoaded && bannerService.bannerAd != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    height: bannerService.bannerAd!.size.height.toDouble(),
+                    width: bannerService.bannerAd!.size.width.toDouble(),
+                    child: AdWidget(ad: bannerService.bannerAd!),
+                  ),
                 ),
               ),
             ),
-          ),
 
-        if (_filtered.length > adAfterIndex + 1)
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final dataIndex = adAfterIndex + 1 + index;
-                final quiz = _filtered[dataIndex];
-                final colors = _gradients[dataIndex % _gradients.length];
-                return _buildCard(quiz, colors);
-              }, childCount: _filtered.length - adAfterIndex - 1),
-            ),
+          // ── Bottom loader ────────────────────────────────────────
+          SliverToBoxAdapter(
+            child:
+                _isLoadingMore
+                    ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                    : !_hasMore
+                    ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: Text('✅ All quizzes loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ),
+                    )
+                    : const SizedBox(height: 80),
           ),
-
-        const SliverToBoxAdapter(child: SizedBox(height: 20)),
-      ],
+        ],
+      ),
     );
   }
 
-  // ─── CARD ─────────────────────────────────────────────────────────────────
-
+  // ─── CARD ─────────────────────────────────────────────────────────
   Widget _buildCard(QuizItem quiz, List<Color> colors) {
-    // final bool isLive = quiz.isLive;
-    // final bool isUpcoming = quiz.quizStatus == 'upcoming' && !isLive;
-    print('Quiz Status: ${quiz.quizStatus}');
-
     final bool isLive = quiz.quizStatus == 'live';
     final bool isUpcoming = quiz.quizStatus == 'upcoming';
-    print('is live status: $isLive');
-
     final bool hasBanner = quiz.banner != null && quiz.banner!.isNotEmpty;
 
     return GestureDetector(
@@ -575,7 +592,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
         ),
         child: Row(
           children: [
-            // ── Left panel — fixed size ───────────────────────────
             ClipRRect(
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
               child: SizedBox(
@@ -587,8 +603,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         : _buildGradientPanel(quiz, colors, isLive, isUpcoming),
               ),
             ),
-
-            // ── Right content ─────────────────────────────────────
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -629,8 +643,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-
-                    // Button
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 9),
@@ -660,8 +672,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── BANNER PANEL ─────────────────────────────────────────────────────────
-
+  // ─── BANNER PANEL ─────────────────────────────────────────────────
   Widget _buildBannerPanel(QuizItem quiz, List<Color> colors, bool isLive, bool isUpcoming) {
     return SizedBox(
       width: 95,
@@ -700,8 +711,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── GRADIENT PANEL ───────────────────────────────────────────────────────
-
+  // ─── GRADIENT PANEL ───────────────────────────────────────────────
   Widget _buildGradientPanel(QuizItem quiz, List<Color> colors, bool isLive, bool isUpcoming) {
     return SizedBox(
       width: 95,
@@ -722,8 +732,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 decoration: BoxDecoration(color: Colors.white.withOpacity(0.07), shape: BoxShape.circle),
               ),
             ),
-
-            // ── Icon + Badge CENTER ──
             Positioned.fill(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -744,7 +752,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 ],
               ),
             ),
-
             if (quiz.isPaid && !quiz.isPurchased)
               Positioned(
                 top: 6,
@@ -757,8 +764,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── STATUS BADGE ─────────────────────────────────────────────────────────
-
+  // ─── STATUS BADGE ─────────────────────────────────────────────────
   Widget _statusBadge(bool isLive, bool isUpcoming, bool isAttempted) {
     Color color;
     String label;
@@ -796,8 +802,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── HELPERS ──────────────────────────────────────────────────────────────
-
+  // ─── HELPERS ──────────────────────────────────────────────────────
   IconData _btnIcon(QuizItem quiz, bool isLive) {
     if (isMockTest) return quiz.is_attempted ? Icons.bar_chart_rounded : Icons.edit_outlined;
     if (!quiz.isAccessible) return Icons.lock_outline;
@@ -806,7 +811,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
   }
 
   String _btnText(QuizItem quiz, bool isLive) {
-    print('quiz.isAccessible: ${quiz.isAccessible}, quiz.is_attempted: ${quiz.is_attempted}');
     if (isMockTest) return quiz.is_attempted ? 'View Result' : 'Start Test';
     if (!quiz.isAccessible) return 'Subscribe to Unlock';
     if (isLive) return 'Join Now';
@@ -851,8 +855,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
   }
 }
 
-// ─── DOT PATTERN ──────────────────────────────────────────────────────────────
-
+// ─── DOT PATTERN ──────────────────────────────────────────────────────
 class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

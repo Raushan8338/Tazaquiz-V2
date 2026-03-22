@@ -4,12 +4,10 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
-
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/models/study_category_item.dart';
 import 'package:tazaquiznew/screens/buyStudyM.dart';
-import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 
 class StudyMaterialScreen extends StatefulWidget {
   String pageId;
@@ -21,9 +19,14 @@ class StudyMaterialScreen extends StatefulWidget {
 
 class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
   List<CategoryItem> _categoryItems = [];
+  List<StudyMaterialItem> _studyMaterials = [];
   int _selectedCategoryId = 0;
   bool _isLoading = true;
-  List<StudyMaterialItem> _studyMaterials = [];
+
+  // ── Pagination ─────────────────────────────────────────────────────
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
 
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
@@ -43,12 +46,22 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
     super.dispose();
   }
 
-  _getdata() async {
+  // ── Initial load ───────────────────────────────────────────────────
+  Future<void> _getdata() async {
     await fetchStudyLevels();
-    await fetchStudyCategory(0);
-    setState(() {});
+    await fetchStudyCategory(0, page: 1);
   }
 
+  // ── Load more ──────────────────────────────────────────────────────
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    debugPrint("🔄 Loading more... page ${_currentPage + 1}");
+    setState(() => _isLoadingMore = true);
+    await fetchStudyCategory(_selectedCategoryId, page: _currentPage + 1);
+    if (mounted) setState(() => _isLoadingMore = false);
+  }
+
+  // ── Fetch categories (tabs) ────────────────────────────────────────
   Future<void> fetchStudyLevels() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
     Response response = await authRepository.fetchStudyLevels();
@@ -59,20 +72,46 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
           CategoryItem(category_id: 0, name: 'All'),
           ...list.map((e) => CategoryItem.fromJson(e)).toList(),
         ];
-        _isLoading = false;
       });
     }
   }
 
-  Future<List<StudyMaterialItem>> fetchStudyCategory(int categoryId) async {
+  // ── Fetch study materials (paginated) ─────────────────────────────
+  Future<void> fetchStudyCategory(int categoryId, {int page = 1}) async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    final responseFuture = await authRepository.fetchStudyCategory({'category_id': categoryId.toString()});
-    if (responseFuture.statusCode == 200) {
-      final List list = responseFuture.data['data'] ?? [];
-      _studyMaterials = list.map((e) => StudyMaterialItem.fromJson(e)).toList();
-      return _studyMaterials;
+
+    Response response = await authRepository.fetchStudyCategory({'category_id': categoryId, 'page': page, 'limit': 6});
+
+    debugPrint("🌐 Response: ${response.data}");
+
+    if (response.statusCode == 200) {
+      final List list = response.data['data'] ?? [];
+      final bool hasMore = response.data['hasMore'] ?? false;
+
+      debugPrint("📦 Page: $page | Items: ${list.length} | hasMore: $hasMore");
+
+      if (list.isEmpty) {
+        setState(() {
+          _hasMore = false;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      setState(() {
+        if (page == 1) {
+          _studyMaterials = list.map((e) => StudyMaterialItem.fromJson(e)).toList();
+        } else {
+          final existingIds = _studyMaterials.map((e) => e.id).toSet();
+          final newItems =
+              list.map((e) => StudyMaterialItem.fromJson(e)).where((e) => !existingIds.contains(e.id)).toList();
+          _studyMaterials.addAll(newItems);
+        }
+        _currentPage = page;
+        _hasMore = hasMore;
+        _isLoading = false;
+      });
     }
-    return [];
   }
 
   @override
@@ -120,7 +159,6 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
             ),
           ),
         ),
-        // ── Category tabs — white background ──
         bottom: PreferredSize(preferredSize: const Size.fromHeight(54), child: _buildCategoryTabs()),
       ),
       body:
@@ -132,12 +170,11 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
     );
   }
 
-  // ─── CATEGORY TABS — WHITE ────────────────────────────────────────────────
-
+  // ── Category tabs ──────────────────────────────────────────────────
   Widget _buildCategoryTabs() {
     return Container(
       height: 54,
-      color: AppColors.white, // ← white background
+      color: AppColors.white,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -148,16 +185,15 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
 
           return GestureDetector(
             onTap: () async {
+              if (_selectedCategoryId == cat.category_id) return;
               setState(() {
                 _selectedCategoryId = cat.category_id;
                 _isLoading = true;
+                _currentPage = 1;
+                _hasMore = true;
+                _studyMaterials = [];
               });
-              final data = await fetchStudyCategory(cat.category_id);
-              if (!mounted) return;
-              setState(() {
-                _studyMaterials = data;
-                _isLoading = false;
-              });
+              await fetchStudyCategory(cat.category_id, page: 1);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -186,51 +222,21 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
     );
   }
 
-  // ─── BODY WITH GRID + AD ──────────────────────────────────────────────────
-
+  // ── Body ───────────────────────────────────────────────────────────
   Widget _buildBody() {
-    const int adAfterIndex = 3;
-
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        // ── Pehle 4 items ──
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.75,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildGridCard(_studyMaterials[index]),
-              childCount: _studyMaterials.length.clamp(0, adAfterIndex + 1),
-            ),
-          ),
-        ),
-
-        // ── Banner Ad ──
-        if (isBannerLoaded && bannerService.bannerAd != null)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  height: bannerService.bannerAd!.size.height.toDouble(),
-                  width: bannerService.bannerAd!.size.width.toDouble(),
-                  child: AdWidget(ad: bannerService.bannerAd!),
-                ),
-              ),
-            ),
-          ),
-
-        // ── Baaki items ──
-        if (_studyMaterials.length > adAfterIndex + 1)
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 300 && !_isLoadingMore && _hasMore) {
+          _loadMore();
+        }
+        return false;
+      },
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // ── All items in single grid ──────────────────────────
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -238,20 +244,52 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                 mainAxisSpacing: 12,
                 childAspectRatio: 0.75,
               ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final dataIndex = adAfterIndex + 1 + index;
-                return _buildGridCard(_studyMaterials[dataIndex]);
-              }, childCount: _studyMaterials.length - adAfterIndex - 1),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _buildGridCard(_studyMaterials[index]),
+                childCount: _studyMaterials.length,
+              ),
             ),
           ),
 
-        const SliverToBoxAdapter(child: SizedBox(height: 20)),
-      ],
+          // ── Banner Ad ─────────────────────────────────────────
+          if (isBannerLoaded && bannerService.bannerAd != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    height: bannerService.bannerAd!.size.height.toDouble(),
+                    width: double.infinity,
+                    child: AdWidget(ad: bannerService.bannerAd!),
+                  ),
+                ),
+              ),
+            ),
+
+          // ── Bottom loader / end message ───────────────────────
+          SliverToBoxAdapter(
+            child:
+                _isLoadingMore
+                    ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                    : !_hasMore
+                    ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: Text('✅ All items loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ),
+                    )
+                    : const SizedBox(height: 80),
+          ),
+        ],
+      ),
     );
   }
 
-  // ─── GRID CARD ────────────────────────────────────────────────────────────
-
+  // ── Grid card ──────────────────────────────────────────────────────
   Widget _buildGridCard(StudyMaterialItem material) {
     final bool hasIcon = material.boardIcon != null && material.boardIcon!.isNotEmpty;
 
@@ -272,7 +310,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Full image header ─────────────────────────────────
+            // ── Image ──────────────────────────────────────────
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               child: SizedBox(
@@ -289,14 +327,13 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
               ),
             ),
 
-            // ── Card Body ─────────────────────────────────────────
+            // ── Content ────────────────────────────────────────
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       material.title,
                       style: const TextStyle(
@@ -309,8 +346,6 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-
-                    // Description
                     Expanded(
                       child: Text(
                         material.description,
@@ -319,8 +354,6 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-
-                    // Explore button
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -350,8 +383,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
     );
   }
 
-  // ─── GRADIENT FALLBACK ────────────────────────────────────────────────────
-
+  // ── Gradient fallback ──────────────────────────────────────────────
   Widget _buildGradientFallback(String title) {
     return Container(
       decoration: BoxDecoration(
@@ -378,8 +410,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
     );
   }
 
-  // ─── EMPTY STATE ──────────────────────────────────────────────────────────
-
+  // ── Empty state ────────────────────────────────────────────────────
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -396,8 +427,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
     );
   }
 
-  // ─── HELPERS ──────────────────────────────────────────────────────────────
-
+  // ── Gradient colors ────────────────────────────────────────────────
   List<Color> _getGradientColors(String subject) {
     switch (subject.toLowerCase()) {
       case 'mathematics':

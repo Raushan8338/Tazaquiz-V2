@@ -62,13 +62,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
     setState(() => _isLoading = true);
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final responseFuture = await authRepository.fetchDailyQuizAttempt({
+      final response = await authRepository.fetchDailyQuizAttempt({
         'user_id': _user!.id,
         'limit': _limit.toString(),
         'offset': _offset.toString(),
       });
-      if (responseFuture.statusCode == 200) {
-        final jsonData = responseFuture.data;
+
+      if (response.statusCode == 200) {
+        final jsonData = response.data;
         final List newData = jsonData['data'];
         setState(() {
           _attempts.addAll(newData.map((e) => QuizAttempt.fromJson(e)));
@@ -130,9 +131,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return const Color(0xFFEF5350);
   }
 
-  Color _gradeBg(int score, int total) {
-    return _gradeColor(score, total).withOpacity(0.08);
-  }
+  Color _gradeBg(int score, int total) => _gradeColor(score, total).withOpacity(0.08);
 
   @override
   Widget build(BuildContext context) {
@@ -174,6 +173,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
                   itemCount: _attempts.length + 1,
                   itemBuilder: (context, index) {
+                    // ── Bottom loader ──────────────────────
                     if (index == _attempts.length) {
                       if (_isLoading) {
                         return const Padding(
@@ -235,7 +235,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         ),
                         child: Column(
                           children: [
-                            /// Top colored accent bar
+                            // ── Accent bar ──────────────
                             Container(
                               height: 4,
                               decoration: BoxDecoration(
@@ -247,7 +247,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               padding: const EdgeInsets.all(16),
                               child: Row(
                                 children: [
-                                  /// Score Ring
+                                  // ── Score ring ─────────
                                   Stack(
                                     alignment: Alignment.center,
                                     children: [
@@ -258,27 +258,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                           value: a.score / a.total,
                                           strokeWidth: 5,
                                           backgroundColor: gradeColor.withOpacity(0.12),
-                                          valueColor: AlwaysStoppedAnimation<Color>(gradeColor),
+                                          valueColor: AlwaysStoppedAnimation(gradeColor),
                                         ),
                                       ),
-                                      Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            '$pct%',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w800,
-                                              color: gradeColor,
-                                            ),
-                                          ),
-                                        ],
+                                      Text(
+                                        '$pct%',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: gradeColor),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(width: 16),
 
-                                  /// Info
+                                  // ── Info ───────────────
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
