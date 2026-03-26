@@ -27,11 +27,13 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
   final RewardedAdService rewardedAdService = RewardedAdService();
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
+
   Color get _mockPrimary => AppColors.darkNavy;
   Color get _mockSecondary => AppColors.darkNavy.withOpacity(0.85);
   Color get _mockAccent => AppColors.tealGreen;
   Color get _mockGold => AppColors.lightGold;
   static Color _mockBg = Color(0xFFF0F2F8);
+
   UserModel? _user;
   bool _isLoading = true;
   bool _isPurchased = false;
@@ -76,6 +78,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
+       print('Fetching quiz details with data: $data');
       final responseFuture = await authRepository.get_quizId_wise_details(data);
 
       if (responseFuture.statusCode == 200) {
@@ -103,10 +106,20 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   void _handleStartMockTest() {
     if (_currentQuiz == null) return;
+
     if (!_currentQuiz!.accessStatus) {
       _showAccessDialog();
       return;
     }
+
+    // ── CHANGED: Free users jinka attempt already ho chuka hai ──
+    // unhe seedha subscription page pe bhejo — no rewarded ad
+    if (_isFree && _attempted) {
+      _handleSubscribe();
+      return;
+    }
+
+    // Pehli baar free test de raha hai → rewarded ad dikhao
     if (_isFree) {
       rewardedAdService.showAd(() => _navigateToMockTest());
     } else {
@@ -144,12 +157,13 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         buttonText = 'Upgrade Plan';
         break;
       case 'upgrade_required':
-        message = 'You have used all your attempts for this month. Upgrade to continue!';
-        buttonText = 'Activate Now';
-        break;
+        // ── CHANGED: seedha subscribe page pe le jao ──
+        Navigator.pop(context);
+        _handleSubscribe();
+        return;
       case 'plan_expired':
-        message = 'Your plan has expired. Please renew to regain access!';
-        buttonText = 'Renew Plan';
+        message = 'Your plan has expired. Renew your subscription to regain access to all mock tests.';
+        buttonText = 'Renew Now';
         break;
       default:
         message = _currentQuiz!.accessMessage ?? 'You do not have access.';
@@ -327,11 +341,9 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     String subtitle;
     IconData icon;
 
-    if (_isFree) {
-      message = '🎉 This Mock Test is completely FREE!';
-      subtitle = 'No subscription required';
-      icon = Icons.celebration_outlined;
-    } else if (_isPurchased) {
+    // ── CHANGED: FREE badge logic hataya ──
+    // Sirf purchased/plan-included status dikhao
+    if (_isPurchased) {
       message = '✅ Access Unlocked!';
       subtitle = 'You are subscribed to this mock test';
       icon = Icons.verified;
@@ -493,14 +505,9 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         color: _mockGold,
                         bgColor: _mockGold.withOpacity(0.2),
                       ),
-                    if (_isFree)
-                      _buildTag(
-                        icon: Icons.lock_open,
-                        label: 'FREE',
-                        color: Color(0xFF69F0AE),
-                        bgColor: Color(0xFF69F0AE).withOpacity(0.2),
-                      )
-                    else
+                    // ── CHANGED: FREE badge completely remove kiya ──
+                    // Sirf PREMIUM badge dikhao agar paid hai
+                    if (!_isFree)
                       _buildTag(
                         icon: Icons.workspace_premium,
                         label: 'PREMIUM',
@@ -624,8 +631,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       padding: EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          //   _buildStatBox('❓', _currentQuiz?.totalQuestions.toString() ?? '—', 'Questions'),
-          //   SizedBox(width: 10),
           _buildStatBox('⏱️', _currentQuiz?.timeLimit.isEmpty == false ? _currentQuiz!.timeLimit : '—', 'Minutes'),
           SizedBox(width: 10),
           _buildStatBox('🏆', _currentQuiz?.totalMarks.toString() ?? '—', 'Marks'),
@@ -648,7 +653,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
           children: [
             Text(emoji, style: TextStyle(fontSize: 20)),
             SizedBox(height: 5),
-            Text('', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _mockPrimary)),
             Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _mockPrimary)),
             SizedBox(height: 2),
             Text(label, style: TextStyle(fontSize: 9.5, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
@@ -740,6 +744,8 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
   }
 
   Widget _buildTestInfoSection() {
+    final hasStart = _currentQuiz!.startDateTime.isNotEmpty;
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
       padding: EdgeInsets.all(16),
@@ -753,25 +759,43 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         children: [
           _buildSectionHead(Icons.info_outline_rounded, 'Test Details', isGreen: false),
           SizedBox(height: 14),
-          _buildDetailRow(Icons.calendar_today_outlined, 'Available', 'Anytime — take it at your own pace'),
-          if (_currentQuiz!.startDateTime.isNotEmpty)
+          _buildDetailRow(Icons.all_inclusive_rounded, 'Available', 'Anytime — attempt at your own pace'),
+          if (hasStart)
             _buildDetailRow(
               Icons.play_circle_outline,
               'Start Date',
               _formatDateTime(_currentQuiz!.startDateTime).split('  •  ').first,
             ),
-          if (_currentQuiz!.endDateTime.isNotEmpty)
-            _buildDetailRow(
-              Icons.stop_circle_outlined,
-              'End Date',
-              _formatDateTime(_currentQuiz!.endDateTime).split('  •  ').first,
-            ),
+          // End date intentionally NOT shown
           if (_currentQuiz!.timeLimit.isNotEmpty)
             _buildDetailRow(Icons.timer_outlined, 'Duration', '${_currentQuiz!.timeLimit} Minutes'),
           _buildDetailRow(
             Icons.repeat_rounded,
             'Attempts',
             _attempted ? 'Already attempted once' : 'One attempt allowed',
+          ),
+          SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: _mockAccent.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _mockAccent.withOpacity(0.25)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.school_outlined, size: 14, color: _mockAccent),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Designed to simulate actual exam conditions — same pattern, same time pressure.',
+                    style: TextStyle(fontSize: 11, color: _mockPrimary, fontWeight: FontWeight.w500, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -799,202 +823,39 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   Widget _buildSubscriptionSection() {
     final error = _currentQuiz?.accessError ?? '';
-    if (error == 'upgrade_required') {
-      return _buildFreeUserSection();
-    } else {
-      return _buildPremiumSection();
-    }
-  }
-
-  Widget _buildFreeUserSection() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: _mockPrimary.withOpacity(0.18), blurRadius: 20, offset: Offset(0, 6))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(18),
-              decoration: BoxDecoration(gradient: LinearGradient(colors: [_mockPrimary, _mockSecondary])),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF69F0AE).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Color(0xFF69F0AE).withOpacity(0.4)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.lock_open, color: Color(0xFF69F0AE), size: 15),
-                        SizedBox(width: 6),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Free Plan',
-                          12,
-                          Color(0xFF69F0AE),
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Monthly Attempt\nLimit Reached!',
-                    16,
-                    AppColors.white,
-                    FontWeight.w800,
-                    2,
-                    TextAlign.left,
-                    1.3,
-                  ),
-                  SizedBox(height: 4),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Your next free attempt resets next month',
-                    11,
-                    AppColors.white.withOpacity(0.7),
-                    FontWeight.w400,
-                    1,
-                    TextAlign.left,
-                    0,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              color: AppColors.white,
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    "This month's usage",
-                    12,
-                    AppColors.darkNavy,
-                    FontWeight.w700,
-                    1,
-                    TextAlign.left,
-                    0,
-                  ),
-                  SizedBox(height: 12),
-                  _buildUsageRow(
-                    icon: Icons.assignment_outlined,
-                    label: 'Mock Test',
-                    used: 1,
-                    total: 1,
-                    color: Color(0xFFE53935),
-                  ),
-                  SizedBox(height: 10),
-                  _buildUsageRow(
-                    icon: Icons.quiz_outlined,
-                    label: 'Live Quiz',
-                    used: 1,
-                    total: 1,
-                    color: Color(0xFFE53935),
-                  ),
-                  SizedBox(height: 16),
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _mockPrimary.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _mockPrimary.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.workspace_premium, color: _mockPrimary, size: 18),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Upgrade to a basic plan — get unlimited mock tests for your course!',
-                            11,
-                            AppColors.darkNavy,
-                            FontWeight.w500,
-                            2,
-                            TextAlign.left,
-                            1.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUsageRow({
-    required IconData icon,
-    required String label,
-    required int used,
-    required int total,
-    required Color color,
-  }) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(7),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, color: color, size: 16),
-        ),
-        SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(label, style: TextStyle(fontSize: 12, color: AppColors.darkNavy, fontWeight: FontWeight.w600)),
-                  Text('$used / $total', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700)),
-                ],
-              ),
-              SizedBox(height: 5),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: used / total,
-                  backgroundColor: color.withOpacity(0.15),
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
-                  minHeight: 6,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+    // ── CHANGED: upgrade_required → seedha premium section ──
+    // Free user ka alag section hata diya
+    return _buildPremiumSection();
   }
 
   Widget _buildPremiumSection() {
     final error = _currentQuiz?.accessError ?? '';
-    final message =
-        error == 'plan_expired'
-            ? 'Your plan has expired!\nRenew to regain access.'
-            : 'This mock test is not in\nyour current course.';
-    final subtitle =
-        error == 'plan_expired'
-            ? 'Renew your plan — access will be restored'
-            : 'Go Premium — unlimited access to all courses';
+
+    String headline;
+    String subtitle;
+    String badgeLabel;
+    Color badgeColor;
+    IconData badgeIcon;
+
+    if (error == 'plan_expired') {
+      headline = 'Your plan has expired!\nRenew to regain full access.';
+      subtitle = 'Your previous plan has ended — renew now to continue';
+      badgeLabel = 'Plan Expired';
+      badgeColor = Colors.orange.shade300;
+      badgeIcon = Icons.warning_amber_rounded;
+    } else if (error == 'upgrade_required') {
+      headline = 'You\'ve used your\nfree attempt this month.';
+      subtitle = 'Subscribe to a plan for unlimited mock tests';
+      badgeLabel = 'Subscription Required';
+      badgeColor = _mockGold;
+      badgeIcon = Icons.workspace_premium;
+    } else {
+      headline = 'This mock test is not\nin your current plan.';
+      subtitle = 'Upgrade your plan for access to all mock tests';
+      badgeLabel = 'Upgrade Required';
+      badgeColor = _mockGold;
+      badgeIcon = Icons.workspace_premium;
+    }
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
@@ -1013,7 +874,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [_mockPrimary, _mockSecondary],
+                  colors:
+                      error == 'plan_expired'
+                          ? [Colors.orange.shade800, Colors.orange.shade600]
+                          : [_mockPrimary, _mockSecondary],
                 ),
               ),
               child: Column(
@@ -1022,49 +886,31 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _mockGold.withOpacity(0.2),
+                      color: badgeColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _mockGold.withOpacity(0.4)),
+                      border: Border.all(color: badgeColor.withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.workspace_premium, color: _mockGold, size: 15),
+                        Icon(badgeIcon, color: badgeColor, size: 15),
                         SizedBox(width: 6),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Upgrade Required',
-                          12,
-                          _mockGold,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0,
+                        Text(
+                          badgeLabel,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: badgeColor),
                         ),
                       ],
                     ),
                   ),
                   SizedBox(height: 12),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    message,
-                    16,
-                    AppColors.white,
-                    FontWeight.w800,
-                    2,
-                    TextAlign.left,
-                    1.3,
+                  Text(
+                    headline,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white, height: 1.3),
                   ),
                   SizedBox(height: 4),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
+                  Text(
                     subtitle,
-                    11,
-                    AppColors.white.withOpacity(0.7),
-                    FontWeight.w400,
-                    1,
-                    TextAlign.left,
-                    0,
+                    style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.75), fontWeight: FontWeight.w400),
                   ),
                 ],
               ),
@@ -1074,33 +920,65 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
               padding: EdgeInsets.all(14),
               child: Column(
                 children: [
-                  _buildBenefit(
-                    Icons.assignment_outlined,
-                    'Full Mock Test Series',
-                    'Unlimited practice with real exam patterns',
-                    _mockPrimary,
-                  ),
-                  SizedBox(height: 8),
-                  _buildBenefit(
-                    Icons.analytics_outlined,
-                    'Detailed Performance Analysis',
-                    'Identify your topic-wise weak areas',
-                    _mockAccent,
-                  ),
-                  SizedBox(height: 8),
-                  _buildBenefit(
-                    Icons.compare_arrows_rounded,
-                    'Answer Review & Comparison',
-                    'View solutions for incorrect answers',
-                    _mockPrimary,
-                  ),
-                  SizedBox(height: 8),
-                  _buildBenefit(
-                    Icons.leaderboard_outlined,
-                    'All India Rank',
-                    'Compare your performance nationwide',
-                    _mockAccent,
-                  ),
+                  if (error == 'plan_expired') ...[
+                    // Plan expired — show renew benefits
+                    _buildBenefit(
+                      Icons.restore_rounded,
+                      'Instant Access Restored',
+                      'All your mock tests unlock immediately after renewal',
+                      Colors.orange.shade700,
+                    ),
+                    SizedBox(height: 8),
+                    _buildBenefit(
+                      Icons.history_rounded,
+                      'Previous Attempts Preserved',
+                      'Your past results and analysis remain intact',
+                      _mockPrimary,
+                    ),
+                    SizedBox(height: 8),
+                    _buildBenefit(
+                      Icons.assignment_outlined,
+                      'Full Mock Test Series',
+                      'Resume from where you left off — no data lost',
+                      _mockAccent,
+                    ),
+                    SizedBox(height: 8),
+                    _buildBenefit(
+                      Icons.leaderboard_outlined,
+                      'All India Rank',
+                      'Continue competing with students nationwide',
+                      _mockPrimary,
+                    ),
+                  ] else ...[
+                    // Upgrade required / course mismatch
+                    _buildBenefit(
+                      Icons.assignment_outlined,
+                      'Full Mock Test Series',
+                      'Unlimited practice with real exam patterns',
+                      _mockPrimary,
+                    ),
+                    SizedBox(height: 8),
+                    _buildBenefit(
+                      Icons.analytics_outlined,
+                      'Detailed Performance Analysis',
+                      'Identify your topic-wise weak areas',
+                      _mockAccent,
+                    ),
+                    SizedBox(height: 8),
+                    _buildBenefit(
+                      Icons.compare_arrows_rounded,
+                      'Answer Review & Comparison',
+                      'View solutions for every incorrect answer',
+                      _mockPrimary,
+                    ),
+                    SizedBox(height: 8),
+                    _buildBenefit(
+                      Icons.leaderboard_outlined,
+                      'All India Rank',
+                      'Compare your performance nationwide',
+                      _mockAccent,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1271,12 +1149,16 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         children: [
           _buildSectionHead(Icons.info_outline_rounded, 'Important Information', isGreen: false),
           SizedBox(height: 10),
-          _buildInfoRow(Icons.touch_app_rounded, 'Single attempt only — make it count'),
-          _buildInfoRow(Icons.swap_horiz_rounded, 'Navigate freely — no forced question order'),
-          _buildInfoRow(Icons.bookmark_border_rounded, 'Mark for review and revisit before submitting'),
-          _buildInfoRow(Icons.wifi_rounded, 'Stable internet connection required'),
-          _buildInfoRow(Icons.bar_chart_rounded, 'Detailed analysis available after submission'),
-          _buildInfoRow(Icons.timer_outlined, 'Timer keeps running — even when paused'),
+          _buildInfoRow(Icons.touch_app_rounded, 'One attempt only — make every question count'),
+          _buildInfoRow(Icons.swap_horiz_rounded, 'Navigate freely — jump to any question anytime'),
+          _buildInfoRow(Icons.bookmark_border_rounded, 'Mark for review — revisit flagged questions before submitting'),
+          _buildInfoRow(Icons.timer_outlined, 'Timer runs continuously — does not stop even on pause'),
+          _buildInfoRow(Icons.wifi_rounded, 'Stable internet connection required throughout the test'),
+          _buildInfoRow(
+            Icons.bar_chart_rounded,
+            'Detailed performance analysis available immediately after submission',
+          ),
+          _buildInfoRow(Icons.block_rounded, 'Once submitted, the attempt cannot be retaken'),
         ],
       ),
     );
@@ -1355,12 +1237,13 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         btnColors = [_mockPrimary, _mockSecondary];
         onTap = _navigateToMockTest;
       } else if (error == 'plan_expired') {
-        btnLabel = 'Renew Plan';
+        btnLabel = 'Renew Plan Now';
         btnIcon = Icons.refresh_rounded;
-        btnColors = [Colors.orange.shade600, Colors.orange.shade900];
+        btnColors = [Colors.orange.shade700, Colors.orange.shade900];
         onTap = _handleSubscribe;
       } else if (error == 'upgrade_required') {
-        btnLabel = 'Activate Now';
+        // ── CHANGED: seedha subscribe page ──
+        btnLabel = 'Subscribe Now';
         btnIcon = Icons.workspace_premium_rounded;
         btnColors = [_mockPrimary, _mockSecondary];
         onTap = _handleSubscribe;
@@ -1392,7 +1275,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     Icon(Icons.info_outline_rounded, size: 12, color: _mockPrimary.withOpacity(0.5)),
                     SizedBox(width: 5),
                     Text(
-                      'Timer starts once the test begins',
+                      'Timer starts as soon as the test begins',
                       style: TextStyle(fontSize: 10, color: _mockPrimary.withOpacity(0.6), fontWeight: FontWeight.w500),
                     ),
                   ],
