@@ -43,6 +43,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
       });
       print('Review response: ${res.data}');
       print('Review status: ${widget.attemptId.toString()}');
+      print('Review status: ${widget.userId.toString()}');
       if (res.statusCode == 200) {
         setState(() {
           _data = QuizReviewResponse.fromJson(res.data);

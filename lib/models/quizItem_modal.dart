@@ -18,7 +18,7 @@ class QuizItem {
   final String subscription_description;
   final int subscription_id;
 
-  final bool isPaid;
+
   final double price;
   final bool isPurchased;
   final bool isAccessible;
@@ -35,7 +35,11 @@ class QuizItem {
   final bool accessStatus;
   final String? accessError;
   final String? accessMessage;
+  final String? effectivePlan;
   final int? pendingAttemptId;
+
+  final String? passing_score;
+  final String? questionCount;
 
   QuizItem({
     required this.quizId,
@@ -50,7 +54,6 @@ class QuizItem {
     required this.quizStatus,
     this.is_attempted = false,
     this.subscription_id = 0,
-    this.isPaid = false,
     this.price = 0.0,
     required this.isPurchased,
     required this.isAccessible,
@@ -69,7 +72,10 @@ class QuizItem {
     this.accessStatus = true,
     this.accessError,
     this.accessMessage,
+    this.effectivePlan,
     this.pendingAttemptId,
+    this.passing_score,
+    this.questionCount,
   });
   factory QuizItem.fromJson(Map<String, dynamic> json) {
     int _toInt(dynamic v) => int.tryParse(v?.toString() ?? '') ?? 0;
@@ -106,7 +112,6 @@ class QuizItem {
       is_attempted: _toBool(json['is_attempted']),
 
       subscription_id: _toInt(json['subscription_id']),
-      isPaid: _toBool(json['isPaid']),
       price: _toDouble(json['price']),
 
       isPurchased: _toBool(json['isPurchased'] ?? json['is_purchased']),
@@ -126,8 +131,10 @@ class QuizItem {
       subscription_price: _toDouble(json['subscription_price']),
       subscription_description: json['subscription_description']?.toString() ?? '',
 
-      totalQuestions: _toInt(json['total_questions'] ?? json['questionCount']),
-      totalMarks: _toInt(json['total_marks'] ?? json['passing_score']),
+      totalQuestions: _toInt(json['total_questions']),
+      totalMarks: _toInt(json['total_marks']),
+
+       
 
       pageType: _toInt(json['pageType']),
 
@@ -135,8 +142,11 @@ class QuizItem {
       accessStatus: _toBool(json['access_status']),
       accessError: json['access_error']?.toString(),
       accessMessage: json['access_message']?.toString(),
+      effectivePlan: json['effective_plan']?.toString(),
 
       pendingAttemptId: _toInt(json['pending_attempt_id'] ?? json['pendingAttemptId']),
+      passing_score: json['passwing_score']?.toString(),
+      questionCount: json['question_count']?.toString(),
     );
   }
   Map<String, dynamic> toJson() {
@@ -153,7 +163,6 @@ class QuizItem {
       'quiz_status': quizStatus,
       'is_attempted': is_attempted,
       'subscription_id': subscription_id,
-      'isPaid': isPaid,
       'price': price,
       'is_purchased': isPurchased,
       'is_accessible': isAccessible,
@@ -171,7 +180,10 @@ class QuizItem {
       'access_status': accessStatus,
       'access_error': accessError,
       'access_message': accessMessage,
+      'effectivePlan': effectivePlan,
       'pending_attempt_id': pendingAttemptId,
+      'passing_score': passing_score,
+      'question_count': questionCount,
     };
   }
 }

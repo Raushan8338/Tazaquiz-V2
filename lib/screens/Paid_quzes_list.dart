@@ -9,6 +9,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/study_category_item.dart';
 import 'package:tazaquiznew/screens/buyQuizes.dart';
+import 'package:tazaquiznew/screens/mock_test_detail_page.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 class Paid_QuizListScreen extends StatefulWidget {
@@ -150,12 +151,26 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   }
 
   void _goToDetail(QuizItem quiz) {
+
+    if (isMockTest) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MockTestDetailPage(quizId: quiz.quizId), // ✅ paid = subscribed
+        ),
+      );
+      return;
+    }
+    else {
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: true), // ✅ paid = subscribed
       ),
     );
+    }
+
   }
 
   // ─── BUILD ────────────────────────────────────────────────────────────────

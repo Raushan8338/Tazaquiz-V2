@@ -200,19 +200,22 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
     _handleLogin(user?.email);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: SingleChildScrollView(
-        child: Container(
-          height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
-          child: Column(children: [_buildTopIllustration(), Expanded(child: _buildLoginForm())]),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: AppColors.white,
+    body: SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildTopIllustration(),
+            _buildLoginForm(),
+          ],
         ),
       ),
-    );
-  }
-
+    ),
+  );
+}
   Widget _buildTopIllustration() {
     return Container(
       height: 310,
@@ -310,61 +313,73 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildLoginForm() {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Padding(
-        padding: EdgeInsets.all(28),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 0),
-              Center(
-                child: AppRichText.setTextPoppinsStyle(
-                  context,
-                  'Welcome Back!',
-                  23,
-                  AppColors.darkNavy,
-                  FontWeight.w900,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
-              ),
-              SizedBox(height: 8),
-              Center(
-                child: AppRichText.setTextPoppinsStyle(
-                  context,
-                  'Sign in to continue learning',
-                  13,
-                  AppColors.greyS600,
-                  FontWeight.normal,
-                  1,
-                  TextAlign.left,
-                  0.0,
-                ),
-              ),
-              SizedBox(height: 25),
+ Widget _buildLoginForm() {
+  return FadeTransition(
+    opacity: _fadeAnimation,
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // 🔥 IMPORTANT
+          children: [
 
-              _buildPhoneFields(),
-              SizedBox(height: 24),
-              _buildLoginButton(),
+            Center(
+              child: AppRichText.setTextPoppinsStyle(
+                context,
+                'Welcome Back!',
+                23,
+                AppColors.darkNavy,
+                FontWeight.w900,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+            ),
 
-              SizedBox(height: 24),
-              _buildOrDivider(),
-              SizedBox(height: 24),
-              _buildSocialButtons(),
-              Spacer(),
-              _buildSignUpPrompt(),
-              SizedBox(height: 16),
-            ],
-          ),
+            const SizedBox(height: 8),
+
+            Center(
+              child: AppRichText.setTextPoppinsStyle(
+                context,
+                'Sign in to continue learning',
+                13,
+                AppColors.greyS600,
+                FontWeight.normal,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            _buildPhoneFields(),
+
+            const SizedBox(height: 24),
+
+            _buildLoginButton(),
+
+            const SizedBox(height: 24),
+
+            _buildOrDivider(),
+
+            const SizedBox(height: 24),
+
+            _buildSocialButtons(),
+
+            const SizedBox(height: 30), // 🔥 Spacer हटाया
+
+            _buildSignUpPrompt(),
+
+            const SizedBox(height: 20),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPhoneFields() {
     return Column(

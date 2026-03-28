@@ -616,7 +616,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   const SizedBox(height: 6),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Subscribe and get unlimited access',
+                    'Activate and get unlimited access',
                     12,
                     Colors.white.withOpacity(0.65),
                     FontWeight.w400,
@@ -971,7 +971,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   }
 
   Widget _buildBottomBar(bool canStart) {
-    final String btnLabel = canStart ? 'Start Learning' : 'Subscribe Now';
+    final String btnLabel = canStart ? 'Start Learning' : 'Activate Now';
     final IconData btnIcon = canStart ? Icons.play_circle_filled : Icons.workspace_premium;
     const List<Color> btnColors = [AppColors.tealGreen, AppColors.darkNavy];
     const Color textColor = AppColors.white;

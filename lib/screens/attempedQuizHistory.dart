@@ -534,7 +534,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
             MaterialPageRoute(
               builder:
                   (_) => QuizReviewPage(
-                    attemptId: int.tryParse(quiz.quizId.toString()) ?? 0,
+                    attemptId: int.tryParse(quiz.id.toString()) ?? 0,
                     userId: int.tryParse(_user!.id.toString()) ?? 0,
                     quizTitle: quiz.quizTitle,
                     pageType: widget.pageType,

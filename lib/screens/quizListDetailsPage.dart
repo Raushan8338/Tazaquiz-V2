@@ -110,8 +110,8 @@ class _QuizListScreenState extends State<QuizListScreen> {
         'Pagetype': widget.PageType,
         'category_id': categoryId.toString(),
         'user_id': _user!.id.toString(),
-        'page': page.toString(), // ✅
-        'limit': '5', // ✅
+        'page': page.toString(),
+        'limit': '5',
       });
 
       if (response.statusCode == 200) {
@@ -125,8 +125,10 @@ class _QuizListScreenState extends State<QuizListScreen> {
             _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
           } else {
             final existingIds = _quizzes.map((e) => e.quizId).toSet();
-            final newItems =
-                list.map((e) => QuizItem.fromJson(e)).where((e) => !existingIds.contains(e.quizId)).toList();
+            final newItems = list
+                .map((e) => QuizItem.fromJson(e))
+                .where((e) => !existingIds.contains(e.quizId))
+                .toList();
             _quizzes.addAll(newItems);
           }
           _currentPage = page;
@@ -156,15 +158,32 @@ class _QuizListScreenState extends State<QuizListScreen> {
     return active;
   }
 
+  // ✅ Lock logic: sirf tab lock karo jab paid ho, purchase na hua ho, aur attempt bhi na hua ho
+  bool _isLocked(QuizItem quiz) {
+    return quiz.isAccessible && !quiz.isPurchased && !quiz.is_attempted;
+  }
+
   void _goToDetail(QuizItem quiz) {
+    // if (_isLocked(quiz)) {
+    //   Navigator.push(
+    //     context,
+    //     MaterialPageRoute(builder: (_) => BuyQuizesScreen()),
+    //   );
+    //   return;
+    // }
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (_) =>
-                isMockTest
-                    ? MockTestDetailPage(quizId: quiz.quizId, is_subscribed: false)
-                    : QuizDetailPage(quizId: quiz.quizId, is_subscribed: false),
+        builder: (_) => isMockTest
+            ? MockTestDetailPage(
+                quizId: quiz.quizId
+               
+              )
+            : QuizDetailPage(
+                quizId: quiz.quizId,
+                is_subscribed: quiz.isPurchased || !quiz.isAccessible,
+              ),
       ),
     );
   }
@@ -179,10 +198,13 @@ class _QuizListScreenState extends State<QuizListScreen> {
         children: [
           _buildCategoryTabs(),
           Expanded(
-            child:
-                _isFetchingQuizzes
-                    ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_accent)))
-                    : _filtered.isEmpty
+            child: _isFetchingQuizzes
+                ? Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(_accent),
+                    ),
+                  )
+                : _filtered.isEmpty
                     ? _buildEmptyState()
                     : _buildContent(),
           ),
@@ -199,23 +221,25 @@ class _QuizListScreenState extends State<QuizListScreen> {
       automaticallyImplyLeading: false,
       leadingWidth: 40,
       titleSpacing: 0,
-      leading:
-          widget.pageId == '1'
-              ? IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+      leading: widget.pageId == '1'
+          ? IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                onPressed: () => Navigator.pop(context),
-              )
-              : Padding(
-                padding: const EdgeInsets.all(10),
-                child: Text(isMockTest ? '📝' : '⚡', style: const TextStyle(fontSize: 20)),
+                child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
               ),
+              onPressed: () => Navigator.pop(context),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(10),
+              child: Text(
+                isMockTest ? '📝' : '⚡',
+                style: const TextStyle(fontSize: 20),
+              ),
+            ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -237,7 +261,10 @@ class _QuizListScreenState extends State<QuizListScreen> {
       actions: [
         if (!isMockTest)
           GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => QuizListScreen('1', '4'))),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => QuizListScreen('1', '4')),
+            ),
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -278,16 +305,18 @@ class _QuizListScreenState extends State<QuizListScreen> {
         IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: AppColors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
           ),
-          onPressed:
-              () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => _buildFilterSheet(),
-              ),
+          onPressed: () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => _buildFilterSheet(),
+          ),
         ),
         const SizedBox(width: 4),
       ],
@@ -320,7 +349,10 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 margin: const EdgeInsets.only(top: 12),
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -332,7 +364,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                            gradient: const LinearGradient(
+                              colors: [AppColors.tealGreen, AppColors.darkNavy],
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
@@ -340,7 +374,11 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         const SizedBox(width: 12),
                         const Text(
                           'Filter Quizzes',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkNavy,
+                          ),
                         ),
                         const Spacer(),
                         IconButton(
@@ -383,17 +421,26 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           decoration: BoxDecoration(
                             color: sel ? c.withOpacity(0.08) : const Color(0xFFF5F5F5),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: sel ? c : Colors.transparent, width: 1.5),
+                            border: Border.all(
+                              color: sel ? c : Colors.transparent,
+                              width: 1.5,
+                            ),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: sel ? c.withOpacity(0.15) : Colors.grey.withOpacity(0.1),
+                                  color: sel
+                                      ? c.withOpacity(0.15)
+                                      : Colors.grey.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(f['icon'] as IconData, color: sel ? c : AppColors.greyS600, size: 18),
+                                child: Icon(
+                                  f['icon'] as IconData,
+                                  color: sel ? c : AppColors.greyS600,
+                                  size: 18,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -432,13 +479,19 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                          gradient: const LinearGradient(
+                            colors: [AppColors.tealGreen, AppColors.darkNavy],
+                          ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
                           child: Text(
                             'Apply Filter',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -472,9 +525,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
               if (_selectedCategoryId == cat.category_id) return;
               setState(() {
                 _selectedCategoryId = cat.category_id;
-                _currentPage = 1; // ✅ reset
-                _hasMore = true; // ✅ reset
-                _quizzes = []; // ✅ clear
+                _currentPage = 1;
+                _hasMore = true;
+                _quizzes = [];
               });
               await _fetchQuizzes(cat.category_id, page: 1);
             },
@@ -483,15 +536,13 @@ class _QuizListScreenState extends State<QuizListScreen> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                gradient:
-                    sel
-                        ? LinearGradient(
-                          colors:
-                              isMockTest
-                                  ? [const Color(0xFF1a237e), AppColors.darkNavy]
-                                  : [AppColors.tealGreen, AppColors.darkNavy],
-                        )
-                        : null,
+                gradient: sel
+                    ? LinearGradient(
+                        colors: isMockTest
+                            ? [const Color(0xFF1a237e), AppColors.darkNavy]
+                            : [AppColors.tealGreen, AppColors.darkNavy],
+                      )
+                    : null,
                 color: sel ? null : const Color(0xFFF0F2F8),
                 borderRadius: BorderRadius.circular(20),
                 border: sel ? null : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
@@ -517,7 +568,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Widget _buildContent() {
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification scrollInfo) {
-        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 300 && !_isLoadingMore && _hasMore) {
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 300 &&
+            !_isLoadingMore &&
+            _hasMore) {
           _loadMore();
         }
         return false;
@@ -525,15 +578,17 @@ class _QuizListScreenState extends State<QuizListScreen> {
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // ── All quiz cards ──────────────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final quiz = _filtered[index];
-                final colors = _gradients[index % _gradients.length];
-                return _buildCard(quiz, colors);
-              }, childCount: _filtered.length),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final quiz = _filtered[index];
+                  final colors = _gradients[index % _gradients.length];
+                  return _buildCard(quiz, colors);
+                },
+                childCount: _filtered.length,
+              ),
             ),
           ),
 
@@ -555,19 +610,21 @@ class _QuizListScreenState extends State<QuizListScreen> {
 
           // ── Bottom loader ────────────────────────────────────────
           SliverToBoxAdapter(
-            child:
-                _isLoadingMore
+            child: _isLoadingMore
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : !_hasMore
                     ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                    : !_hasMore
-                    ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: Text('✅ All quizzes loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ),
-                    )
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(
+                          child: Text(
+                            '✅ All quizzes loaded',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ),
+                      )
                     : const SizedBox(height: 80),
           ),
         ],
@@ -580,6 +637,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
     final bool isLive = quiz.quizStatus == 'live';
     final bool isUpcoming = quiz.quizStatus == 'upcoming';
     final bool hasBanner = quiz.banner != null && quiz.banner!.isNotEmpty;
+    final bool locked = _isLocked(quiz);
+
+    // ✅ Progress: 0.0 to 1.0 — quiz.progressPercent field se aayega
+    // Agar QuizItem mein progressPercent nahi hai to 1.0 default (fully attempted)
+    final double progress =0.0;
+    //  isMockTest && quiz.is_attempted
+    //     ? (quiz.progressPercent ?? 1.0).clamp(0.0, 1.0)
+    //     : 0.0;
 
     return GestureDetector(
       onTap: () => _goToDetail(quiz),
@@ -588,84 +653,158 @@ class _QuizListScreenState extends State<QuizListScreen> {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
-              child: SizedBox(
-                width: 95,
-                height: 120,
-                child:
-                    hasBanner
+            // ── Main card row ──────────────────────────────────────
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(16),
+                    // ✅ agar progress bar show hogi to bottom-left corner flat rakho
+                    bottomLeft: Radius.circular(
+                      (isMockTest && quiz.is_attempted) ? 0 : 16,
+                    ),
+                  ),
+                  child: SizedBox(
+                    width: 95,
+                    height: 120,
+                    child: hasBanner
                         ? _buildBannerPanel(quiz, colors, isLive, isUpcoming)
                         : _buildGradientPanel(quiz, colors, isLive, isUpcoming),
-              ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          quiz.title,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkNavy,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (quiz.description.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            quiz.description,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.greyS600,
+                              height: 1.4,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 5,
+                          runSpacing: 4,
+                          children: [
+                            if (quiz.difficultyLevel.isNotEmpty)
+                              _chip(Icons.signal_cellular_alt, quiz.difficultyLevel, AppColors.tealGreen),
+                            if (quiz.timeLimit.isNotEmpty && quiz.timeLimit != '0')
+                              _chip(Icons.timer_outlined, '${quiz.timeLimit} min', AppColors.greyS600),
+                            if (!isMockTest && quiz.startsInText.isNotEmpty && !isLive)
+                              _chip(Icons.schedule, quiz.startsInText, Colors.orange),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // ✅ Button — ALWAYS original gradient color (no grey)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: colors),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(_btnIcon(quiz, isLive, locked), color: Colors.white, size: 14),
+                              const SizedBox(width: 5),
+                              Text(
+                                _btnText(quiz, isLive, locked),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+
+            // ✅ Progress Bar — sirf mock test mein jab is_attempted = true
+            if (isMockTest && quiz.is_attempted)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      quiz.title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.darkNavy,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (quiz.description.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        quiz.description,
-                        style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1.4),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 5,
-                      runSpacing: 4,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        if (quiz.difficultyLevel.isNotEmpty)
-                          _chip(Icons.signal_cellular_alt, quiz.difficultyLevel, AppColors.tealGreen),
-                        if (quiz.timeLimit.isNotEmpty && quiz.timeLimit != '0')
-                          _chip(Icons.timer_outlined, '${quiz.timeLimit} min', AppColors.greyS600),
-                        if (!isMockTest && quiz.startsInText.isNotEmpty && !isLive)
-                          _chip(Icons.schedule, quiz.startsInText, Colors.orange),
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle_outline, size: 11, color: colors[1]),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Attempted',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.greyS600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '${(progress * 100).toInt()}% Complete',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: colors[1],
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: colors),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(_btnIcon(quiz, isLive), color: Colors.white, size: 14),
-                          const SizedBox(width: 5),
-                          Text(
-                            _btnText(quiz, isLive),
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
-                          ),
-                        ],
+                    const SizedBox(height: 5),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 5,
+                        backgroundColor: Colors.grey.withOpacity(0.15),
+                        valueColor: AlwaysStoppedAnimation<Color>(colors[1]),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -683,7 +822,8 @@ class _QuizListScreenState extends State<QuizListScreen> {
           Image.network(
             quiz.banner!,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildGradientPanel(quiz, colors, isLive, isUpcoming),
+            errorBuilder: (_, __, ___) =>
+                _buildGradientPanel(quiz, colors, isLive, isUpcoming),
           ),
           Container(
             decoration: BoxDecoration(
@@ -698,13 +838,19 @@ class _QuizListScreenState extends State<QuizListScreen> {
             bottom: 8,
             left: 0,
             right: 0,
-            child: Center(child: _statusBadge(isLive, isUpcoming, quiz.is_attempted)),
+            child: Center(
+              child: _statusBadge(isLive, isUpcoming, quiz.is_attempted),
+            ),
           ),
-          if (quiz.isPaid && !quiz.isPurchased)
+          if (quiz.isAccessible && !quiz.isPurchased)
             Positioned(
               top: 6,
               right: 6,
-              child: Icon(Icons.workspace_premium, color: Colors.white.withOpacity(0.9), size: 14),
+              child: Icon(
+                Icons.workspace_premium,
+                color: Colors.white.withOpacity(0.9),
+                size: 14,
+              ),
             ),
         ],
       ),
@@ -718,7 +864,11 @@ class _QuizListScreenState extends State<QuizListScreen> {
       height: 120,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: colors,
+          ),
         ),
         child: Stack(
           children: [
@@ -729,7 +879,10 @@ class _QuizListScreenState extends State<QuizListScreen> {
               child: Container(
                 width: 55,
                 height: 55,
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.07), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.07),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
             Positioned.fill(
@@ -743,20 +896,32 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.35),
+                        width: 1.5,
+                      ),
                     ),
-                    child: Center(child: Text(isMockTest ? '📝' : '⚡', style: const TextStyle(fontSize: 22))),
+                    child: Center(
+                      child: Text(
+                        isMockTest ? '📝' : '⚡',
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   _statusBadge(isLive, isUpcoming, quiz.is_attempted),
                 ],
               ),
             ),
-            if (quiz.isPaid && !quiz.isPurchased)
+            if (quiz.isAccessible && !quiz.isPurchased)
               Positioned(
                 top: 6,
                 right: 6,
-                child: Icon(Icons.workspace_premium, color: Colors.white.withOpacity(0.8), size: 13),
+                child: Icon(
+                  Icons.workspace_premium,
+                  color: Colors.white.withOpacity(0.8),
+                  size: 13,
+                ),
               ),
           ],
         ),
@@ -782,7 +947,10 @@ class _QuizListScreenState extends State<QuizListScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -791,11 +959,19 @@ class _QuizListScreenState extends State<QuizListScreen> {
               width: 5,
               height: 5,
               margin: const EdgeInsets.only(right: 3),
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
             ),
           Text(
             label,
-            style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
+            style: const TextStyle(
+              fontSize: 7,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: 0.3,
+            ),
           ),
         ],
       ),
@@ -803,16 +979,17 @@ class _QuizListScreenState extends State<QuizListScreen> {
   }
 
   // ─── HELPERS ──────────────────────────────────────────────────────
-  IconData _btnIcon(QuizItem quiz, bool isLive) {
+
+  IconData _btnIcon(QuizItem quiz, bool isLive, bool locked) {
+    if (locked) return Icons.lock_outline;
     if (isMockTest) return quiz.is_attempted ? Icons.bar_chart_rounded : Icons.edit_outlined;
-    if (!quiz.isAccessible) return Icons.lock_outline;
     if (isLive) return Icons.play_arrow_rounded;
     return Icons.arrow_forward_rounded;
   }
 
-  String _btnText(QuizItem quiz, bool isLive) {
+  String _btnText(QuizItem quiz, bool isLive, bool locked) {
+    if (locked) return 'Subscribe to Unlock';
     if (isMockTest) return quiz.is_attempted ? 'View Result' : 'Start Test';
-    if (!quiz.isAccessible) return 'Subscribe to Unlock';
     if (isLive) return 'Join Now';
     return 'View Details';
   }
@@ -820,13 +997,19 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Widget _chip(IconData icon, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 3),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+          ),
         ],
       ),
     );
@@ -845,10 +1028,17 @@ class _QuizListScreenState extends State<QuizListScreen> {
           const SizedBox(height: 16),
           Text(
             isMockTest ? 'Koi Mock Test nahi mila' : 'No quizzes found',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.greyS600),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.greyS600,
+            ),
           ),
           const SizedBox(height: 6),
-          Text('Try a different category', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
+          Text(
+            'Try a different category',
+            style: TextStyle(fontSize: 12, color: AppColors.greyS600),
+          ),
         ],
       ),
     );
@@ -859,10 +1049,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
 class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.white.withOpacity(0.06)
-          ..strokeWidth = 1;
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.06)
+      ..strokeWidth = 1;
     const spacing = 14.0;
     for (double x = 0; x < size.width; x += spacing) {
       for (double y = 0; y < size.height; y += spacing) {

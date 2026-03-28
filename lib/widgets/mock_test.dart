@@ -166,7 +166,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => MockTestDetailPage(quizId: quiz.quizId, is_subscribed: false),
+                      builder: (context) => MockTestDetailPage(quizId: quiz.quizId),
                     ),
                   );
                 },
@@ -344,7 +344,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                                           MaterialPageRoute(
                                             builder:
                                                 (context) =>
-                                                    MockTestDetailPage(quizId: quiz.quizId, is_subscribed: false),
+                                                    MockTestDetailPage(quizId: quiz.quizId),
                                           ),
                                         );
                                       },

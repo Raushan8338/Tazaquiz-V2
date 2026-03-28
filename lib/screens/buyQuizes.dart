@@ -13,6 +13,49 @@ import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
+// ─── Design tokens ────────────────────────────────────────────────────────────
+class _DS {
+  // Radii
+  static const double r8  = 8;
+  static const double r12 = 12;
+  static const double r16 = 16;
+  static const double r20 = 20;
+
+  // Font sizes — tightly scoped
+  static const double fsXxs = 9.5;
+  static const double fsXs  = 10.5;
+  static const double fsSm  = 11.5;
+  static const double fsMd  = 13.0;
+  static const double fsLg  = 15.0;
+  static const double fsXl  = 17.0;
+  static const double fsXxl = 20.0;
+
+  // Spacing
+  static const double sp4  = 4;
+  static const double sp6  = 6;
+  static const double sp8  = 8;
+  static const double sp10 = 10;
+  static const double sp12 = 12;
+  static const double sp14 = 14;
+  static const double sp16 = 16;
+  static const double sp20 = 20;
+  static const double sp24 = 24;
+
+  // Palette
+  static const Color navy     = Color(0xFF0D1B3E);
+  static const Color navyMid  = Color(0xFF1A2F5A);
+  static const Color teal     = Color(0xFF00BFA5);
+  static const Color tealDark = Color(0xFF00897B);
+  static const Color gold     = Color(0xFFF5A623);
+  static const Color red      = Color(0xFFE53935);
+  static const Color surface  = Color(0xFFF4F6FB);
+  static const Color card     = Colors.white;
+  static const Color border   = Color(0xFFE2E8F4);
+  static const Color textPri  = Color(0xFF0D1B3E);
+  static const Color textSec  = Color(0xFF6B7A99);
+  static const Color textHint = Color(0xFFADB5CC);
+}
+
 class QuizDetailPage extends StatefulWidget {
   final String quizId;
   final bool is_subscribed;
@@ -23,7 +66,8 @@ class QuizDetailPage extends StatefulWidget {
   _QuizDetailPageState createState() => _QuizDetailPageState();
 }
 
-class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProviderStateMixin {
+class _QuizDetailPageState extends State<QuizDetailPage>
+    with SingleTickerProviderStateMixin {
   final RewardedAdService rewardedAdService = RewardedAdService();
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
@@ -44,21 +88,46 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
+  bool get _hasFullAccess =>
+      (_currentQuiz?.isPurchased ?? false) &&
+      (_currentQuiz?.isAccessible ?? false) &&
+      (_currentQuiz?.accessStatus ?? false);
+
+  // Show ads ONLY for free (non-subscribed) users
+  bool get _shouldShowAds => !widget.is_subscribed && !_hasFullAccess;
+
+  String get _planDisplayName {
+    final plan = (_currentQuiz?.effectivePlan ?? '').toLowerCase();
+    switch (plan) {
+      case 'free':        return 'Free Plan';
+      case 'basic':       return 'Basic Plan';
+      case 'premium':     return 'Premium Plan';
+      case 'full_access': return 'Full Access';
+      default:
+        if (plan.isNotEmpty) {
+          return '${plan[0].toUpperCase()}${plan.substring(1)} Plan';
+        }
+        return 'Your Plan';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
-    rewardedAdService.loadAd();
-    bannerService.loadAd(() {
-      setState(() => isBannerLoaded = true);
-    });
+    _fadeController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 500));
+    _fadeAnimation =
+        CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+
+    // Ads completely removed — no ads for any user on this page
+    rewardedAdService.loadAd(); // keep for quiz navigation flow only
+
     _getUserData();
     _startPulse();
   }
 
   void _startPulse() {
-    _pulseTimer = Timer.periodic(const Duration(milliseconds: 800), (_) {
+    _pulseTimer = Timer.periodic(const Duration(milliseconds: 900), (_) {
       if (mounted) setState(() => _livePulse = !_livePulse);
     });
   }
@@ -79,25 +148,34 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     _fadeController.forward();
     setState(() {});
   }
+    Color get _primary   => AppColors.darkNavy;
+  Color get _secondary => AppColors.darkNavy.withOpacity(0.85);
+  Color get _accent    => AppColors.tealGreen;
+  Color get _gold      => AppColors.lightGold;
+  static const Color _bg = Color(0xFFF0F2F8);
 
   Future<void> fetchQuizDetails(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
-      final responseFuture = await authRepository.get_quizId_wise_details(data);
+      final data = {
+        'quiz_id': widget.quizId.toString(),
+        'user_id': userid.toString()
+      };
+      final responseFuture =
+          await authRepository.get_quizId_wise_details(data);
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
         if (responseData['status'] == true && responseData['data'] != null) {
           _currentQuiz = QuizItem.fromJson(responseData['data']);
           setState(() {
-            _isPurchased = _currentQuiz!.isPurchased;
-            _isAccessible = _currentQuiz!.accessStatus;
-            _attempted = _currentQuiz!.is_attempted;
-            _isFree = _currentQuiz!.price == 0 || !_currentQuiz!.isPaid;
-            _isLive = _currentQuiz!.isLive;
-            _isPremium = _currentQuiz!.is_premium;
-            _product_sub_id = _currentQuiz!.subscription_id;
+            _isPurchased      = _currentQuiz!.isPurchased;
+            _isAccessible     = _currentQuiz!.accessStatus;
+            _attempted        = _currentQuiz!.is_attempted;
+            _isFree           = !_currentQuiz!.isAccessible;
+            _isLive           = _currentQuiz!.isLive;
+            _isPremium        = _currentQuiz!.is_premium;
+            _product_sub_id   = _currentQuiz!.subscription_id;
             _remainingSeconds = _currentQuiz!.startsInSeconds;
           });
           if (_remainingSeconds > 0) _startCountdown();
@@ -125,10 +203,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     });
   }
 
-  // ✅ UPDATED: Under 24h = countdown, 24h+ = date
   String _getCountdownText() {
     if (_remainingSeconds <= 0) return "LIVE NOW!";
-
     if (_remainingSeconds < 86400) {
       int h = _remainingSeconds ~/ 3600;
       int m = (_remainingSeconds % 3600) ~/ 60;
@@ -138,10 +214,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       return "${s}s";
     } else {
       try {
-        final startDt = DateTime.parse(_currentQuiz!.startDateTime.trim().replaceAll(' ', 'T'));
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        final h = startDt.hour % 12 == 0 ? 12 : startDt.hour % 12;
-        final m = startDt.minute.toString().padLeft(2, '0');
+        final startDt = DateTime.parse(
+            _currentQuiz!.startDateTime.trim().replaceAll(' ', 'T'));
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        final h    = startDt.hour % 12 == 0 ? 12 : startDt.hour % 12;
+        final m    = startDt.minute.toString().padLeft(2, '0');
         final ampm = startDt.hour >= 12 ? 'PM' : 'AM';
         return '${startDt.day} ${months[startDt.month - 1]}, $h:$m $ampm';
       } catch (_) {
@@ -150,19 +227,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     }
   }
 
-  // ✅ UPDATED: Label changes based on time remaining
-  String _getCountdownLabel() {
-    if (_remainingSeconds < 86400) return 'Starts in  ';
-    return 'Starts on  ';
-  }
+  String _getCountdownLabel() =>
+      _remainingSeconds < 86400 ? 'Starts in  ' : 'Starts on  ';
 
   void _handleStartQuiz() {
     if (_currentQuiz == null) return;
-    if (!_currentQuiz!.accessStatus) {
-      _showAccessDialog();
-      return;
-    }
-    if (_isFree) {
+    if (!_hasFullAccess) { _showAccessDialog(); return; }
+    if (_isFree && _shouldShowAds) {
       rewardedAdService.showAd(() => _navigateToQuiz());
     } else {
       _navigateToQuiz();
@@ -173,12 +244,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => LiveTestScreen(
-              testTitle: _currentQuiz!.title.toString(),
-              subject: _currentQuiz!.difficultyLevel.toString(),
-              Quiz_id: widget.quizId.toString(),
-            ),
+        builder: (context) => LiveTestScreen(
+          testTitle: _currentQuiz!.title.toString(),
+          subject:   _currentQuiz!.difficultyLevel.toString(),
+          Quiz_id:   widget.quizId.toString(),
+        ),
       ),
     );
   }
@@ -190,104 +260,164 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
     switch (_currentQuiz!.accessError) {
       case 'attempt_pending':
-        message = 'You have a pending attempt. Please complete it first.';
+        message    = 'You have a pending attempt. Please complete it first.';
         buttonText = 'Resume Attempt';
         showResume = true;
         break;
       case 'course_mismatch':
-        message = 'You can only access quizzes from your enrolled course. Upgrade your plan!';
+        message    = 'This test belongs to a different course. Upgrade your plan!';
         buttonText = 'Upgrade Plan';
         break;
       case 'upgrade_required':
-        message = 'You have used all your attempts for this month. Upgrade to continue!';
+        message    = 'You have used all your attempts for this month. Upgrade to continue!';
         buttonText = 'Activate Now';
         break;
       case 'plan_expired':
-        message = 'Your plan has expired. Please renew to regain access!';
+        message    = 'Your plan has expired. Please renew to regain access!';
         buttonText = 'Renew Plan';
         break;
       default:
-        message = _currentQuiz!.accessMessage ?? 'You do not have access.';
+        message    = _currentQuiz!.accessMessage ?? 'You do not have access.';
         buttonText = 'Upgrade Plan';
     }
 
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Access Required', style: TextStyle(fontWeight: FontWeight.w800)),
-            content: Text(message, style: const TextStyle(fontSize: 13)),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.tealGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  if (showResume) {
-                    _navigateToQuiz();
-                  } else {
-                    _handleSubscribe();
-                  }
-                },
-                child: Text(buttonText),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_DS.r16)),
+        backgroundColor: _DS.card,
+        title: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: _DS.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.lock_outline_rounded, color: _DS.red, size: 18),
           ),
+          const SizedBox(width: 10),
+          const Text('Access Required',
+              style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: _DS.textPri)),
+        ]),
+        content: Text(message,
+            style: const TextStyle(
+                fontSize: 13.5,
+                color: _DS.textSec,
+                height: 1.5)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel',
+                  style: TextStyle(color: _DS.textSec, fontSize: 13))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _DS.teal,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              showResume ? _navigateToQuiz() : _handleSubscribe();
+            },
+            child: Text(buttonText,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          ),
+        ],
+      ),
     );
   }
 
   void _handleSubscribe() {
     if (_currentQuiz == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
-      if (value == true) _getUserData();
-    });
+    Navigator.push(context,
+            MaterialPageRoute(builder: (context) => PricingPage()))
+        .then((value) { if (value == true) _getUserData(); });
   }
 
   Color _getStatusColor() {
     switch (_currentQuiz?.quizStatus.toLowerCase()) {
-      case 'live':
-        return const Color(0xFFE53935);
-      case 'upcoming':
-        return const Color(0xFFF59E0B);
-      case 'completed':
-        return const Color(0xFF6B7280);
-      default:
-        return AppColors.tealGreen;
+      case 'live':      return _DS.red;
+      case 'upcoming':  return _DS.gold;
+      case 'completed': return _DS.textSec;
+      default:          return _DS.teal;
     }
   }
 
   IconData _getStatusIcon() {
     switch (_currentQuiz?.quizStatus.toLowerCase()) {
-      case 'live':
-        return Icons.radio_button_checked;
-      case 'upcoming':
-        return Icons.schedule;
-      case 'completed':
-        return Icons.check_circle;
-      default:
-        return Icons.circle;
+      case 'live':      return Icons.radio_button_checked;
+      case 'upcoming':  return Icons.schedule_rounded;
+      case 'completed': return Icons.check_circle_rounded;
+      default:          return Icons.circle;
     }
   }
 
+  String _formatDateTime(String raw) {
+    try {
+      final dt = DateTime.parse(raw.trim().replaceAll(' ', 'T'));
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      final h    = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final m    = dt.minute.toString().padLeft(2, '0');
+      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}  •  $h:$m $ampm';
+    } catch (_) { return raw; }
+  }
+
+  // ─── Shared card decoration ──────────────────────────────────────────────
+  BoxDecoration _cardDecor({double radius = _DS.r16}) => BoxDecoration(
+    color: _DS.card,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: _DS.border),
+    boxShadow: [
+      BoxShadow(
+          color: _DS.navy.withOpacity(0.04),
+          blurRadius: 12,
+          offset: const Offset(0, 3))
+    ],
+  );
+
+  // ─── Small label style ───────────────────────────────────────────────────
+  TextStyle get _labelStyle => const TextStyle(
+      fontSize: _DS.fsXs,
+      fontWeight: FontWeight.w600,
+      color: _DS.textSec,
+      letterSpacing: 0.4);
+
+  TextStyle get _valueStyle => const TextStyle(
+      fontSize: _DS.fsMd,
+      fontWeight: FontWeight.w700,
+      color: _DS.textPri);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  BUILD
+  // ═══════════════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF0F2F8),
+        backgroundColor: _DS.surface,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen), strokeWidth: 3),
-              const SizedBox(height: 16),
-              Text(
-                'Loading quiz...',
-                style: TextStyle(color: AppColors.greyS600, fontSize: 13, fontWeight: FontWeight.w500),
+              SizedBox(
+                width: 36, height: 36,
+                child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(_DS.teal),
+                    strokeWidth: 2.5),
               ),
+              const SizedBox(height: 14),
+              const Text('Loading test details…',
+                  style: TextStyle(
+                      color: _DS.textSec,
+                      fontSize: _DS.fsMd,
+                      fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -296,17 +426,18 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
     if (_currentQuiz == null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF0F2F8),
-        appBar: AppBar(backgroundColor: AppColors.darkNavy, title: const Text('Error')),
-        body: const Center(child: Text('Quiz not found')),
+        backgroundColor: _DS.surface,
+        appBar: AppBar(
+            backgroundColor: _DS.navy,
+            title: const Text('Error')),
+        body: const Center(child: Text('Test not found')),
       );
     }
 
-    final bool canStartQuiz = _currentQuiz!.accessStatus;
-    final bool isAvailable = _isLive && canStartQuiz;
+    final bool canStartQuiz = _hasFullAccess;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F8),
+      backgroundColor: _DS.surface,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: CustomScrollView(
@@ -315,25 +446,49 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             _buildSliverAppBar(),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 100),
+                padding: const EdgeInsets.only(bottom: 110),
                 child: Column(
                   children: [
-                    const SizedBox(height: 14),
-                    if (canStartQuiz) _buildStatusBanner(),
-                    if (canStartQuiz) const SizedBox(height: 10),
-                    if (_isLive && canStartQuiz) _buildLiveBanner(),
-                    if (_isLive && canStartQuiz) const SizedBox(height: 10),
-                    _buildCourseInfo(),
-                    const SizedBox(height: 10),
-                    _buildQuizHeader(),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 16),
+
+                    // Access status banner
+                    _buildAccessBanner(),
+                    const SizedBox(height: 12),
+
+                    // Live banner — only for subscribed users with access
+                    if (_isLive && canStartQuiz) ...[
+                      _buildLiveBanner(),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Combined course + test header card
+                    _buildCombinedHeader(),
+                    const SizedBox(height: 12),
+
+                    // Stats row
                     _buildStatsRow(),
-                    const SizedBox(height: 10),
-                    if (isBannerLoaded && bannerService.bannerAd != null) _buildBannerAd(),
-                    if (!canStartQuiz) _buildSubscriptionSection() else _buildScheduleSection(),
-                    const SizedBox(height: 10),
-                    if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 10)],
-                    if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), const SizedBox(height: 10)],
+                    const SizedBox(height: 12),
+
+                    // Subscription or schedule section
+                    if (!canStartQuiz)
+                      _buildSubscriptionSection()
+                    else
+                      _buildScheduleSection(),
+                    const SizedBox(height: 12),
+
+                    // Description
+                    if (_currentQuiz!.description.isNotEmpty) ...[
+                      _buildDescriptionCard(),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Instructions
+                    if (_currentQuiz!.instruction.isNotEmpty) ...[
+                      _buildInstructionsCard(),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Info card
                     _buildInfoCard(),
                   ],
                 ),
@@ -342,584 +497,894 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(canStartQuiz, isAvailable),
+      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  //  SLIVER APP BAR
+  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      expandedHeight: 55,
+      expandedHeight: 52,
       pinned: true,
-      backgroundColor: AppColors.darkNavy,
+      backgroundColor: _DS.navy,
       elevation: 0,
       leading: IconButton(
         icon: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-          child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(9)),
+          child: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 16),
         ),
         onPressed: () => Navigator.pop(context),
       ),
-      title: AppRichText.setTextPoppinsStyle(
-        context,
+      title: Text(
         _currentQuiz?.title ?? '',
-        12,
-        AppColors.white,
-        FontWeight.w700,
-        2,
-        TextAlign.left,
-        1.2,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.1,
+        ),
       ),
-      flexibleSpace: FlexibleSpaceBar(background: Container(color: AppColors.darkNavy)),
+      flexibleSpace: FlexibleSpaceBar(
+          background: Container(color: _DS.navy)),
     );
   }
 
-  Widget _buildStatusBanner() {
-    String message;
-    String subtitle;
-    IconData icon;
-    List<Color> colors;
+  // ═══════════════════════════════════════════════════════════════════════
+  //  ACCESS BANNER — clean, informative, not overly decorative
+  // ═══════════════════════════════════════════════════════════════════════
+  Widget _buildAccessBanner() {
+    final quiz  = _currentQuiz!;
+    final error = quiz.accessError ?? '';
+    final msg   = quiz.accessMessage ?? '';
 
-    if (_isFree) {
-      message = '🎉 This Quiz is FREE!';
-      subtitle = 'No subscription required';
-      icon = Icons.celebration_outlined;
-      colors = [AppColors.tealGreen, AppColors.darkNavy];
-    } else if (_isPurchased) {
-      message = '✅ You are subscribed!';
-      subtitle = 'Full access unlocked';
-      icon = Icons.verified;
-      colors = [AppColors.tealGreen, AppColors.darkNavy];
+    _AccessBannerCfg cfg;
+
+    if (_hasFullAccess) {
+      cfg = quiz.isPurchased
+          ? _AccessBannerCfg(
+              gradient: [const Color(0xFF00897B), const Color(0xFF004D40)],
+              icon: Icons.verified_rounded,
+              badge: _planDisplayName,
+              headline: 'Full Access Unlocked',
+              subLine: msg.isNotEmpty ? msg : 'You can attempt this test anytime.',
+              statusLabel: 'GRANTED',
+              statusColor: const Color(0xFF69F0AE),
+              locked: false,
+            )
+          : _AccessBannerCfg(
+              gradient: [const Color(0xFF1976D2), const Color(0xFF0D47A1)],
+              icon: Icons.lock_open_rounded,
+              badge: _planDisplayName,
+              headline: 'Free Test — Open to All',
+              subLine: msg.isNotEmpty ? msg : 'This test is free to attempt.',
+              statusLabel: 'FREE',
+              statusColor: const Color(0xFF82B1FF),
+              locked: false,
+            );
     } else {
-      message = '🔓 Accessible for you!';
-      subtitle = 'Included in your plan';
-      icon = Icons.lock_open_rounded;
-      colors = [AppColors.lightGold, AppColors.lightGoldS2];
+      switch (error) {
+        case 'upgrade_required':
+          cfg = _AccessBannerCfg(
+            gradient: [const Color(0xFFBF360C), const Color(0xFF870000)],
+            icon: Icons.lock_clock_rounded,
+            badge: _planDisplayName,
+            headline: 'Monthly Limit Reached',
+            subLine: msg.isNotEmpty ? msg : "You've used all free attempts this month.",
+            statusLabel: 'LOCKED',
+            statusColor: const Color(0xFFFF6E6E),
+            locked: true,
+          );
+          break;
+        case 'plan_expired':
+          cfg = _AccessBannerCfg(
+            gradient: [const Color(0xFF6A1B9A), const Color(0xFF38006B)],
+            icon: Icons.workspace_premium_rounded,
+            badge: _planDisplayName,
+            headline: 'Plan Expired',
+            subLine: msg.isNotEmpty ? msg : 'Renew your plan to regain full access.',
+            statusLabel: 'EXPIRED',
+            statusColor: const Color(0xFFCE93D8),
+            locked: true,
+          );
+          break;
+        case 'purchase_required':
+          cfg = _AccessBannerCfg(
+            gradient: [const Color(0xFF1A237E), const Color(0xFF0D1340)],
+            icon: Icons.shopping_bag_rounded,
+            badge: _planDisplayName,
+            headline: 'Course Purchase Required',
+            subLine: msg.isNotEmpty ? msg : 'Purchase this course to unlock access.',
+            statusLabel: 'LOCKED',
+            statusColor: const Color(0xFF9FA8DA),
+            locked: true,
+          );
+          break;
+        case 'attempt_pending':
+          cfg = _AccessBannerCfg(
+            gradient: [const Color(0xFF00695C), const Color(0xFF003D33)],
+            icon: Icons.pending_actions_rounded,
+            badge: _planDisplayName,
+            headline: 'Pending Attempt Found',
+            subLine: msg.isNotEmpty ? msg : 'Complete your ongoing attempt first.',
+            statusLabel: 'PENDING',
+            statusColor: const Color(0xFFFFD740),
+            locked: true,
+          );
+          break;
+        default:
+          cfg = _AccessBannerCfg(
+            gradient: [const Color(0xFF263238), const Color(0xFF0D1B2A)],
+            icon: Icons.block_rounded,
+            badge: _planDisplayName,
+            headline: 'Access Restricted',
+            subLine: msg.isNotEmpty ? msg : 'You do not have access to this test.',
+            statusLabel: 'LOCKED',
+            statusColor: const Color(0xFFB0BEC5),
+            locked: true,
+          );
+      }
     }
 
+    // ── Ultra-compact single-row banner strip ───────────────────────────────
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: colors),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: colors[0].withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 5))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: Colors.white, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  message,
-                  12,
-                  AppColors.white,
-                  FontWeight.w700,
-                  1,
-                  TextAlign.left,
-                  0,
-                ),
-                const SizedBox(height: 2),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  subtitle,
-                  10,
-                  AppColors.white.withOpacity(0.8),
-                  FontWeight.w400,
-                  1,
-                  TextAlign.left,
-                  0,
-                ),
-              ],
-            ),
+        borderRadius: BorderRadius.circular(_DS.r8),
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: cfg.gradient,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: cfg.gradient.first.withOpacity(0.22),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        child: Row(
+          children: [
+            Icon(cfg.icon, color: Colors.white, size: 15),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    cfg.headline,
+                    style: const TextStyle(
+                      fontSize: _DS.fsSm,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    cfg.locked ? _getLockedActionHint() : cfg.subLine,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white.withOpacity(0.78),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.22),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 5, height: 5,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: cfg.statusColor,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(cfg.statusLabel,
+                      style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: cfg.statusColor,
+                          letterSpacing: 0.7)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
+  String _getLockedActionHint() {
+    switch (_currentQuiz?.accessError ?? '') {
+      case 'upgrade_required': return 'Tap "Activate Now" below to upgrade your plan';
+      case 'plan_expired':     return 'Tap "Activate Now" below to renew your plan';
+      case 'purchase_required':return 'Tap "Activate Now" below to purchase this course';
+      case 'attempt_pending':  return 'Tap "Resume Attempt" below to continue';
+      default:                 return 'Tap the button below to get access';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  LIVE BANNER
+  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildLiveBanner() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Colors.red.shade600, Colors.red.shade900]),
+        color: _DS.red,
+        borderRadius: BorderRadius.circular(_DS.r12),
+        boxShadow: [
+          BoxShadow(
+              color: _DS.red.withOpacity(0.35),
+              blurRadius: 14,
+              offset: const Offset(0, 5))
+        ],
+      ),
+      child: Row(
+        children: [
+          AnimatedOpacity(
+            opacity: _livePulse ? 1.0 : 0.3,
+            duration: const Duration(milliseconds: 450),
+            child: Container(
+              width: 10, height: 10,
+              decoration: const BoxDecoration(
+                  color: Colors.white, shape: BoxShape.circle),
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'LIVE NOW — Join immediately, test has started!',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: _DS.fsMd,
+                  fontWeight: FontWeight.w700),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.22),
+                borderRadius: BorderRadius.circular(8)),
+            child: const Text('JOIN',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: _DS.fsXs,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  COMBINED HEADER — course breadcrumb + tags + title + description
+  //  Everything in one cohesive card
+  // ═══════════════════════════════════════════════════════════════════════
+  Widget _buildCombinedHeader() {
+    final materialName = _currentQuiz?.Material_name ?? '';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: _cardDecor(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          // ── Course strip — dark navy gradient top accent ──────────────
+          if (materialName.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_DS.navy, _DS.navyMid],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(_DS.r16),
+                  topRight: Radius.circular(_DS.r16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.library_books_rounded,
+                        color: Colors.white, size: 15),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'COURSE',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white.withOpacity(0.55),
+                            letterSpacing: 0.9,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          materialName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: _DS.fsMd,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _DS.gold.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: _DS.gold.withOpacity(0.4)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.menu_book_rounded,
+                          size: 10, color: _DS.gold),
+                      const SizedBox(width: 4),
+                      const Text('Series',
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: _DS.gold)),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+
+          // ── Main content area ─────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                // Status + difficulty + free/premium tags
+                Wrap(
+                  spacing: 6, runSpacing: 6,
+                  children: [
+                    _buildTag(
+                        icon: _getStatusIcon(),
+                        label: _currentQuiz!.quizStatus.toUpperCase(),
+                        color: _getStatusColor()),
+                    if (_currentQuiz!.difficultyLevel.isNotEmpty)
+                      _buildTag(
+                          icon: Icons.signal_cellular_alt_rounded,
+                          label: _currentQuiz!.difficultyLevel,
+                          color: _DS.navy),
+                    _isFree
+                        ? _buildTag(icon: Icons.lock_open_rounded, label: 'FREE', color: _DS.teal)
+                        : _buildTag(icon: Icons.workspace_premium_rounded, label: 'PREMIUM', color: _DS.gold),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // ── Test title — firm size, clean weight ─────────────────
+                Text(
+                  _currentQuiz!.Category_name,
+                  style: const TextStyle(
+                    fontSize: 15,           // ✅ firm, not massive
+                    fontWeight: FontWeight.w800,
+                    color: _DS.textPri,
+                    height: 1.35,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+
+                // ── Series description — full text, clean style ──────────
+                if (_currentQuiz!.subscription_description.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _DS.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _DS.border),
+                    ),
+                    child: Text(
+                      _currentQuiz!.subscription_description,
+                      // ✅ Full description — no maxLines, no ellipsis
+                      style: const TextStyle(
+                        fontSize: _DS.fsSm,
+                        fontWeight: FontWeight.w400,
+                        color: _DS.textSec,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // ── Countdown timer ───────────────────────────────────────
+                if (_remainingSeconds > 0) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFAEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: const Color(0xFFFBD038), width: 1.2),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+
+                         Row(
+                           mainAxisAlignment: MainAxisAlignment.start,
+                           children: [
+                             Icon(Icons.schedule_rounded,
+                                color: Color(0xFFB45309), size: 14),
+                           
+                         
+                        const SizedBox(width: 7),
+                        Text(
+                          _getCountdownLabel(),
+                          style: const TextStyle(
+                              fontSize: _DS.fsMd,
+                              color: Color(0xFFB45309),
+                              fontWeight: FontWeight.w500),
+                        ),
+                           ],
+                          ),
+                        Text(
+                          _getCountdownText(),
+                          style: const TextStyle(
+                              fontSize: _DS.fsLg,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFB45309),
+                              letterSpacing: 0.2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTag({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withOpacity(0.2))),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                  letterSpacing: 0.3)),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  STATS GRID — 2x2: Duration, Total Marks, Total Questions, Passing Score
+  // ═══════════════════════════════════════════════════════════════════════
+ Widget _buildStatsRow() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            _buildStatCard(
+              icon: Icons.timer_outlined,
+              iconBg: const Color(0xFFFFF8EC),
+              iconColor: const Color(0xFFBA7517),
+              value: _currentQuiz?.timeLimit.isEmpty == false
+                  ? '${_currentQuiz!.timeLimit} min'
+                  : '—',
+              label: 'Duration',
+            ),
+            const SizedBox(width: 10),
+            _buildStatCard(
+              icon: Icons.emoji_events_outlined,
+              iconBg: const Color(0xFFE1F5EE),
+              iconColor: const Color(0xFF0F6E56),
+              value: _currentQuiz?.totalMarks.toString() ?? '—',
+              label: 'Total Marks',
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _buildStatCard(
+              icon: Icons.help_outline_rounded,
+              iconBg: const Color(0xFFEEF1F9),
+              iconColor: const Color(0xFF1A2F5A),
+              value: _currentQuiz?.totalQuestions != null
+                  ? '${_currentQuiz!.totalQuestions}'
+                  : '—',
+              label: 'Questions',
+            ),
+            const SizedBox(width: 10),
+            _buildStatCard(
+              icon: Icons.verified_outlined,
+              iconBg: const Color(0xFFEEEDFE),
+              iconColor: const Color(0xFF534AB7),
+              value: _currentQuiz?.passing_score != null
+                  ? '${_currentQuiz!.passing_score}'
+                  : '—',
+              label: 'Passing Marks',
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildStatCard({
+  required IconData icon,
+  required Color iconBg,
+  required Color iconColor,
+  required String value,
+  required String label,
+}) {
+  return Expanded(
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.4), blurRadius: 14, offset: const Offset(0, 5))],
+        border: Border.all(color: _primary.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: _primary.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-            child: AnimatedOpacity(
-              opacity: _livePulse ? 1.0 : 0.3,
-              duration: const Duration(milliseconds: 400),
-              child: const Icon(Icons.fiber_manual_record, color: Colors.white, size: 18),
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(11),
             ),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  '🔴  LIVE NOW! Join Immediately',
-                  12,
-                  AppColors.white,
-                  FontWeight.w800,
-                  1,
-                  TextAlign.left,
-                  0,
-                ),
-                const SizedBox(height: 2),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  'Test has started — don\'t miss it!',
-                  10,
-                  AppColors.white.withOpacity(0.8),
-                  FontWeight.w400,
-                  1,
-                  TextAlign.left,
-                  0,
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-            child: AppRichText.setTextPoppinsStyle(
-              context,
-              'JOIN',
-              10,
-              AppColors.white,
-              FontWeight.w800,
-              1,
-              TextAlign.center,
-              0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCourseInfo() {
-    final materialName = _currentQuiz?.Material_name ?? '';
-    if (materialName.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.lightGold.withOpacity(0.35)),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.lightGold.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Icon(Icons.library_books_outlined, color: AppColors.lightGold, size: 17),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
                 Text(
-                  'MATERIAL NAME',
+                  value,
                   style: TextStyle(
-                    fontSize: 9,
-                    color: AppColors.greyS600,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
+                    color: _primary,
+                    height: 1.1,
                   ),
                 ),
                 const SizedBox(height: 3),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  materialName,
-                  13,
-                  AppColors.darkNavy,
-                  FontWeight.w700,
-                  2,
-                  TextAlign.left,
-                  1.2,
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.greyS600,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ],
             ),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  String _formatDateTime(String raw) {
-    try {
-      final dt = DateTime.parse(raw.trim().replaceAll(' ', 'T'));
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-      final m = dt.minute.toString().padLeft(2, '0');
-      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-      return '${dt.day} ${months[dt.month - 1]} ${dt.year}  •  $h:$m $ampm';
-    } catch (_) {
-      return raw;
-    }
-  }
-
-  Widget _buildQuizHeader() {
-    final quizTitle = _currentQuiz!.Category_name;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 7,
-            runSpacing: 6,
-            children: [
-              _buildTag(
-                icon: _getStatusIcon(),
-                label: _currentQuiz!.quizStatus.toUpperCase(),
-                color: _getStatusColor(),
-              ),
-              if (_currentQuiz!.difficultyLevel.isNotEmpty)
-                _buildTag(
-                  icon: Icons.signal_cellular_alt,
-                  label: _currentQuiz!.difficultyLevel,
-                  color: AppColors.tealGreen,
-                ),
-              if (_isFree)
-                _buildTag(icon: Icons.lock_open, label: 'FREE', color: AppColors.tealGreen)
-              else
-                _buildTag(icon: Icons.workspace_premium, label: 'PREMIUM', color: AppColors.lightGold),
-            ],
-          ),
-          const SizedBox(height: 12),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            quizTitle,
-            20,
-            AppColors.darkNavy,
-            FontWeight.w800,
-            3,
-            TextAlign.left,
-            1.3,
-          ),
-          const SizedBox(height: 12),
-          if (_currentQuiz!.subscription_description.isNotEmpty) ...[
-            Row(
-              children: [
-                Icon(Icons.folder_open_outlined, size: 12, color: AppColors.greyS600),
-                const SizedBox(width: 5),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  'Series / Course',
-                  10,
-                  AppColors.greyS600,
-                  FontWeight.w600,
-                  1,
-                  TextAlign.left,
-                  0,
-                ),
-              ],
-            ),
-            const SizedBox(height: 5),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.darkNavy.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.darkNavy.withOpacity(0.08)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.menu_book_rounded, size: 13, color: AppColors.tealGreen),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: AppRichText.setTextPoppinsStyle(
-                      context,
-                      _currentQuiz!.subscription_description,
-                      11,
-                      AppColors.darkNavy,
-                      FontWeight.w600,
-                      10,
-                      TextAlign.left,
-                      1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // ✅ UPDATED countdown box
-          if (_remainingSeconds > 0) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFCD34D), width: 1.5),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.schedule_rounded, color: Color(0xFFB45309), size: 16),
-                  const SizedBox(width: 8),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    _getCountdownLabel(), // ✅ 'Starts in' or 'Starts on'
-                    12,
-                    const Color(0xFFB45309).withOpacity(0.7),
-                    FontWeight.w500,
-                    1,
-                    TextAlign.left,
-                    0,
-                  ),
-                  Text(
-                    _getCountdownText(), // ✅ countdown or date
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFB45309),
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTag({required IconData icon, required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(7)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 10, color: color),
-          const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.3)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          _buildStatBox('⏱️', _currentQuiz?.timeLimit.isEmpty == false ? _currentQuiz!.timeLimit : '—', 'Minutes'),
-          const SizedBox(width: 10),
-          _buildStatBox('🏆', _currentQuiz?.totalMarks.toString() ?? '—', 'Marks'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatBox(String emoji, String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3))],
-        ),
-        child: Column(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(height: 5),
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.darkNavy)),
-            const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 9.5, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
-          ],
-        ),
-      ),
-    );
-  }
-
+  // ═══════════════════════════════════════════════════════════════════════
+  //  BANNER AD — only shown to non-subscribed users
+  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildBannerAd() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(_DS.r12),
         child: SizedBox(
           height: bannerService.bannerAd!.size.height.toDouble(),
-          width: bannerService.bannerAd!.size.width.toDouble(),
-          child: AdWidget(ad: bannerService.bannerAd!),
+          width:  bannerService.bannerAd!.size.width.toDouble(),
+          child:  AdWidget(ad: bannerService.bannerAd!),
         ),
       ),
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  //  SUBSCRIPTION SECTION
+  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildSubscriptionSection() {
     final error = _currentQuiz?.accessError ?? '';
-    if (error == 'upgrade_required') {
-      return _buildFreeUserSection();
-    } else {
-      return _buildPremiumSection();
-    }
+    return error == 'upgrade_required'
+        ? _buildFreeUserSection()
+        : _buildPremiumSection();
   }
 
   Widget _buildFreeUserSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.18), blurRadius: 20, offset: const Offset(0, 6))],
+        borderRadius: BorderRadius.circular(_DS.r20),
+        boxShadow: [
+          BoxShadow(
+              color: _DS.navy.withOpacity(0.14),
+              blurRadius: 20,
+              offset: const Offset(0, 6))
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(_DS.r20),
         child: Column(
           children: [
+            // ── Header ─────────────────────────────────────────────────
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0B1340), Color(0xFF1a3a5c)])),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [_DS.navy, Color(0xFF1A3A5C)],
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Lock icon circle
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.tealGreen.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.4)),
+                      color: _DS.teal.withOpacity(0.18),
+                      shape: BoxShape.circle,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: const Icon(Icons.lock_clock_rounded,
+                        color: _DS.teal, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.lock_open, color: AppColors.tealGreen, size: 15),
-                        const SizedBox(width: 6),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Free Plan',
-                          12,
-                          AppColors.tealGreen,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0,
+                        // ✅ Single line title — full width, wraps naturally
+                        const Text(
+                          'Free Attempt Used — Upgrade to Continue',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              height: 1.35),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Subscribe for unlimited monthly attempts.",
+                          style: TextStyle(
+                              fontSize: _DS.fsXs,
+                              color: Colors.white.withOpacity(0.68),
+                              fontWeight: FontWeight.w400),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Monthly Attempt\nLimit Reached!',
-                    16,
-                    AppColors.white,
-                    FontWeight.w800,
-                    2,
-                    TextAlign.left,
-                    1.3,
-                  ),
-                  const SizedBox(height: 4),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'Your next free attempt resets next month',
-                    11,
-                    AppColors.white.withOpacity(0.7),
-                    FontWeight.w400,
-                    1,
-                    TextAlign.left,
-                    0,
                   ),
                 ],
               ),
             ),
+
+            // ── "What You Get" benefits grid ────────────────────────────
             Container(
-              color: AppColors.white,
-              padding: const EdgeInsets.all(16),
+              color: _DS.card,
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    'This month\'s usage',
-                    12,
-                    AppColors.darkNavy,
-                    FontWeight.w700,
-                    1,
-                    TextAlign.left,
-                    0,
+                  _buildSectionLabel('WHAT YOU GET AFTER SUBSCRIBING'),
+                  const SizedBox(height: 14),
+
+                  // Benefits in rows of 2 — icon + emoji style (MockTest design)
+                  _buildBenefitGrid([
+                    _BenefitEntry(
+                        emoji: '📝',
+                        icon: Icons.quiz_outlined,
+                        title: 'Unlimited Mock Tests',
+                        desc: 'Full-length exam-pattern tests every day',
+                        color: _DS.navy),
+                    _BenefitEntry(
+                        emoji: '📰',
+                        icon: Icons.newspaper_rounded,
+                        title: 'Daily Current Affairs',
+                        desc: 'Fresh GK & news updates daily',
+                        color: const Color(0xFF1565C0)),
+                    _BenefitEntry(
+                        emoji: '🧩',
+                        icon: Icons.psychology_outlined,
+                        title: 'Practice Quizzes',
+                        desc: 'Topic-wise quizzes for concept clarity',
+                        color: _DS.teal),
+                    _BenefitEntry(
+                        emoji: '📚',
+                        icon: Icons.menu_book_rounded,
+                        title: 'Study Material',
+                        desc: 'PDFs, notes & video lessons',
+                        color: const Color(0xFFE65100)),
+                    _BenefitEntry(
+                        emoji: '📊',
+                        icon: Icons.analytics_outlined,
+                        title: 'Analytics',
+                        desc: 'Track weak areas & progress',
+                        color: const Color(0xFF6A1B9A)),
+                    _BenefitEntry(
+                        emoji: '🏆',
+                        icon: Icons.leaderboard_rounded,
+                        title: 'All India Rank',
+                        desc: 'Compare score nationwide',
+                        color: _DS.gold),
+                  ]),
+
+                  const SizedBox(height: 16),
+
+                  // CTA strip
+                  Container(
+                    padding: const EdgeInsets.all(13),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [
+                        _DS.teal.withOpacity(0.09),
+                        _DS.navy.withOpacity(0.04)
+                      ]),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: _DS.teal.withOpacity(0.28), width: 1.2),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                            color: _DS.teal.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Icons.bolt_rounded,
+                            color: _DS.teal, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('One plan. Everything included.',
+                                style: TextStyle(
+                                    fontSize: _DS.fsMd,
+                                    fontWeight: FontWeight.w800,
+                                    color: _DS.textPri)),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Subscribe once and unlock your full exam preparation toolkit.',
+                              style: TextStyle(
+                                  fontSize: _DS.fsXs,
+                                  color: _DS.textSec,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ]),
                   ),
+                ],
+              ),
+            ),
+
+            // ── Usage meter ────────────────────────────────────────────
+            Container(
+              color: _DS.card,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Divider(color: _DS.border),
+                  const SizedBox(height: 8),
+                  _buildSectionLabel("THIS MONTH'S USAGE"),
                   const SizedBox(height: 12),
                   _buildUsageRow(
-                    icon: Icons.assignment_outlined,
-                    label: 'Mock Test',
-                    used: 1,
-                    total: 1,
-                    color: const Color(0xFFE53935),
-                  ),
+                      icon: Icons.assignment_outlined,
+                      label: 'Mock Test',
+                      used: 1, total: 1,
+                      color: _DS.red),
                   const SizedBox(height: 10),
                   _buildUsageRow(
-                    icon: Icons.quiz_outlined,
-                    label: 'Live / Upcoming Quiz',
-                    used: 1,
-                    total: 1,
-                    color: const Color(0xFFE53935),
-                  ),
-                  const SizedBox(height: 16),
+                      icon: Icons.quiz_outlined,
+                      label: 'Live / Upcoming Test',
+                      used: 1, total: 1,
+                      color: _DS.red),
+                  const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.tealGreen.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
+                      color: _DS.teal.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _DS.teal.withOpacity(0.25)),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.workspace_premium, color: AppColors.tealGreen, size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
-                            'Upgrade to a basic plan — get unlimited attempts for your course!',
-                            11,
-                            AppColors.darkNavy,
-                            FontWeight.w500,
-                            2,
-                            TextAlign.left,
-                            1.3,
-                          ),
+                    child: Row(children: [
+                      const Icon(Icons.workspace_premium_rounded,
+                          color: _DS.teal, size: 16),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Upgrade to Basic — get unlimited attempts for your course!',
+                          style: TextStyle(
+                              fontSize: _DS.fsSm,
+                              color: _DS.textPri,
+                              fontWeight: FontWeight.w500,
+                              height: 1.4),
                         ),
-                      ],
-                    ),
+                      ),
+                    ]),
                   ),
                 ],
               ),
@@ -928,6 +1393,87 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         ),
       ),
     );
+  }
+
+  // ── Benefit grid helper (2 per row, icon + emoji card style) ─────────────
+  Widget _buildBenefitGrid(List<_BenefitEntry> items) {
+    final rows = <Widget>[];
+    for (int i = 0; i < items.length; i += 2) {
+      rows.add(Row(
+        children: [
+          Expanded(child: _buildBenefitEntryCard(items[i])),
+          const SizedBox(width: 10),
+          Expanded(
+              child: i + 1 < items.length
+                  ? _buildBenefitEntryCard(items[i + 1])
+                  : const SizedBox()),
+        ],
+      ));
+      if (i + 2 < items.length) rows.add(const SizedBox(height: 10));
+    }
+    return Column(children: rows);
+  }
+
+  Widget _buildBenefitEntryCard(_BenefitEntry item) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: item.color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: item.color.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                  color: item.color.withOpacity(0.13),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Icon(item.icon, color: item.color, size: 15),
+            ),
+            const SizedBox(width: 6),
+            Text(item.emoji, style: const TextStyle(fontSize: 16)),
+          ]),
+          const SizedBox(height: 8),
+          Text(item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: _DS.textPri,
+                  height: 1.2)),
+          const SizedBox(height: 4),
+          Text(item.desc,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 9.5,
+                  color: _DS.textSec,
+                  fontWeight: FontWeight.w400,
+                  height: 1.4)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Row(children: [
+      Container(
+        width: 3, height: 14,
+        decoration: BoxDecoration(
+            color: _DS.teal,
+            borderRadius: BorderRadius.circular(2)),
+      ),
+      const SizedBox(width: 8),
+      Text(label,
+          style: _labelStyle.copyWith(
+              fontSize: 10,
+              color: _DS.textSec,
+              letterSpacing: 0.6)),
+    ]);
   }
 
   Widget _buildUsageRow({
@@ -937,413 +1483,415 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     required int total,
     required Color color,
   }) {
-    return Row(
-      children: [
+    return Row(children: [
+      Container(
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+            color: color.withOpacity(0.09),
+            borderRadius: BorderRadius.circular(8)),
+        child: Icon(icon, color: color, size: 15),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: _DS.fsMd,
+                        color: _DS.textPri,
+                        fontWeight: FontWeight.w600)),
+                Text('$used / $total',
+                    style: TextStyle(
+                        fontSize: _DS.fsMd,
+                        color: color,
+                        fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 5),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: used / total,
+                backgroundColor: color.withOpacity(0.12),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                minHeight: 5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildPremiumSection() {
+    final error    = _currentQuiz?.accessError ?? '';
+    final message  = error == 'plan_expired'
+        ? 'Your plan has expired.\nRenew to regain access.'
+        : 'This test is not in\nyour current course.';
+    final subtitle = error == 'plan_expired'
+        ? 'Renew your plan — access will be restored immediately.'
+        : 'Go Premium — unlimited access to all courses.';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(_DS.r20),
+        border: Border.all(color: _DS.border),
+        boxShadow: [
+          BoxShadow(
+              color: _DS.navy.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4))
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(_DS.r20),
+        child: Column(children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [_DS.navy, Color(0xFF1A3A5C)],
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _DS.gold.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: _DS.gold.withOpacity(0.4)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.workspace_premium_rounded,
+                        color: _DS.gold, size: 13),
+                    const SizedBox(width: 6),
+                    Text('Upgrade Required',
+                        style: TextStyle(
+                            fontSize: _DS.fsXs,
+                            fontWeight: FontWeight.w700,
+                            color: _DS.gold)),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                Text(message,
+                    style: const TextStyle(
+                        fontSize: _DS.fsXl,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        height: 1.3)),
+                const SizedBox(height: 5),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: _DS.fsSm,
+                        color: Colors.white.withOpacity(0.7))),
+              ],
+            ),
+          ),
+          Container(
+            color: _DS.card,
+            padding: const EdgeInsets.all(16),
+            child: Column(children: [
+              _buildBenefit(Icons.all_inclusive_rounded,
+                  'Unlimited Test Access',
+                  'Attempt all tests without limits', _DS.gold),
+              const SizedBox(height: 8),
+              _buildBenefit(Icons.menu_book_rounded,
+                  'Complete Study Material',
+                  'PDFs, videos, notes & practice sets', _DS.teal),
+              const SizedBox(height: 8),
+              _buildBenefit(Icons.school_rounded,
+                  'Expert Guidance',
+                  'Learn from experienced teachers', _DS.gold),
+              const SizedBox(height: 8),
+              _buildBenefit(Icons.bar_chart_rounded,
+                  'Performance Analytics',
+                  'Track your progress with detailed reports', _DS.teal),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildBenefit(
+      IconData icon, String title, String subtitle, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _DS.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _DS.border),
+      ),
+      child: Row(children: [
         Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(9)),
           child: Icon(icon, color: color, size: 16),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(label, style: TextStyle(fontSize: 12, color: AppColors.darkNavy, fontWeight: FontWeight.w600)),
-                  Text('$used / $total', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700)),
-                ],
-              ),
-              const SizedBox(height: 5),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: used / total,
-                  backgroundColor: color.withOpacity(0.15),
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
-                  minHeight: 6,
-                ),
-              ),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: _DS.fsMd,
+                      fontWeight: FontWeight.w700,
+                      color: _DS.textPri)),
+              const SizedBox(height: 2),
+              Text(subtitle,
+                  style: const TextStyle(
+                      fontSize: _DS.fsXs,
+                      color: _DS.textSec,
+                      height: 1.35)),
             ],
           ),
         ),
-      ],
+        Icon(Icons.check_circle_rounded, color: _DS.teal, size: 15),
+      ]),
     );
   }
 
-  Widget _buildPremiumSection() {
-    final error = _currentQuiz?.accessError ?? '';
-    final message =
-        error == 'plan_expired'
-            ? 'Your plan has expired!\nRenew to regain access.'
-            : 'This quiz is not in\nyour current course.';
-    final subtitle =
-        error == 'plan_expired'
-            ? 'Renew your plan — access will be restored'
-            : 'Go Premium — unlimited access to all courses';
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.18), blurRadius: 20, offset: const Offset(0, 6))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF0B1340), Color(0xFF1a3a5c)],
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGold.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.lightGold.withOpacity(0.4)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 15),
-                        const SizedBox(width: 6),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Upgrade Required',
-                          12,
-                          AppColors.lightGold,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    message,
-                    16,
-                    AppColors.white,
-                    FontWeight.w800,
-                    2,
-                    TextAlign.left,
-                    1.3,
-                  ),
-                  const SizedBox(height: 4),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    subtitle,
-                    11,
-                    AppColors.white.withOpacity(0.7),
-                    FontWeight.w400,
-                    1,
-                    TextAlign.left,
-                    0,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              color: AppColors.white,
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                children: [
-                  _buildBenefit(
-                    Icons.all_inclusive,
-                    'Unlimited Quiz Access',
-                    'Attempt all quizzes without limits',
-                    AppColors.lightGold,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildBenefit(
-                    Icons.menu_book,
-                    'Complete Study Material',
-                    'PDFs, videos, notes & practice sets',
-                    AppColors.tealGreen,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildBenefit(
-                    Icons.school,
-                    'Expert Guidance',
-                    'Learn from experienced teachers',
-                    AppColors.lightGold,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildBenefit(
-                    Icons.bar_chart,
-                    'Performance Analytics',
-                    'Track progress with detailed reports',
-                    AppColors.tealGreen,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBenefit(IconData icon, String title, String subtitle, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: const Color(0xFF0B1340).withOpacity(0.06)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(9)),
-            child: Icon(icon, color: color, size: 16),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  title,
-                  12,
-                  AppColors.darkNavy,
-                  FontWeight.w700,
-                  1,
-                  TextAlign.left,
-                  0,
-                ),
-                const SizedBox(height: 2),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  subtitle,
-                  10,
-                  AppColors.greyS600,
-                  FontWeight.w400,
-                  2,
-                  TextAlign.left,
-                  1.2,
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.check_circle, color: AppColors.tealGreen, size: 16),
-        ],
-      ),
-    );
-  }
-
+  // ═══════════════════════════════════════════════════════════════════════
+  //  SCHEDULE SECTION — label left, date+time right in same row
+  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildScheduleSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 14, offset: const Offset(0, 4))],
-      ),
+      decoration: _cardDecor(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(Icons.access_time_rounded, 'Quiz Schedule', isGreen: true),
+          _buildSectionHead(Icons.calendar_today_rounded, 'Test Schedule'),
           const SizedBox(height: 14),
-          _buildScheduleCard(
+
+          // ── Starts At row ───────────────────────────────────────────
+          _buildScheduleRow(
             icon: Icons.play_circle_outline_rounded,
-            label: 'Starts At',
+            label: 'Start',
             rawDateTime: _currentQuiz!.startDateTime,
-            color: AppColors.tealGreen,
-            bgColor: AppColors.tealGreen.withOpacity(0.07),
+            color: _DS.teal,
           ),
+
+          // ── Ends At row ─────────────────────────────────────────────
           if (_currentQuiz!.endDateTime.isNotEmpty) ...[
             const SizedBox(height: 10),
-            _buildScheduleCard(
+            _buildScheduleRow(
               icon: Icons.stop_circle_outlined,
-              label: 'Ends At',
+              label: 'End',
               rawDateTime: _currentQuiz!.endDateTime,
-              color: const Color(0xFFE53935),
-              bgColor: const Color(0xFFE53935).withOpacity(0.06),
+              color: _DS.red,
             ),
           ],
+
+          // ── Duration row ─────────────────────────────────────────────
           if (_currentQuiz!.timeLimit.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.lightGold.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.lightGold.withOpacity(0.25)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGold.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.timer_outlined, color: AppColors.lightGold, size: 16),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Duration',
-                        style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${_currentQuiz!.timeLimit} Minutes',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightGold.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '⏱ Timed Test',
-                      style: TextStyle(fontSize: 10, color: AppColors.lightGold, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
+            _buildScheduleRow(
+              icon: Icons.timer_outlined,
+              label: 'Duration',
+              rawDateTime: '',
+              color: _DS.gold,
+              overrideValue: '${_currentQuiz!.timeLimit} min',
             ),
           ],
+
+          // ── Exam simulation note ────────────────────────────────────
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: _DS.teal.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _DS.teal.withOpacity(0.2)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.school_outlined, size: 14, color: _DS.teal),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Designed to simulate actual exam conditions — same pattern, same time pressure.',
+                    style: TextStyle(
+                        fontSize: _DS.fsSm,
+                        color: _DS.textPri,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildScheduleCard({
+  // ── Single schedule row: icon + label LEFT | date · time RIGHT (all inline) ──
+  Widget _buildScheduleRow({
     required IconData icon,
     required String label,
     required String rawDateTime,
     required Color color,
-    required Color bgColor,
+    String? overrideValue,
   }) {
-    String formatted = _formatDateTime(rawDateTime);
-    List<String> parts = formatted.split('  •  ');
-    String datePart = parts.isNotEmpty ? parts[0] : formatted;
-    String timePart = parts.length > 1 ? parts[1] : '';
+    String dateText = '';
+    String timeText = '';
+
+    if (overrideValue != null) {
+      dateText = overrideValue;
+    } else if (rawDateTime.isNotEmpty) {
+      final formatted = _formatDateTime(rawDateTime);
+      final parts     = formatted.split('  •  ');
+      dateText = parts.isNotEmpty ? parts[0] : formatted;
+      timeText = parts.length > 1 ? parts[1] : '';
+    }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.16)),
       ),
       child: Row(
         children: [
+          // LEFT: icon
           Container(
             padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: color, size: 16),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: color, size: 14),
           ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(width: 10),
+
+          // LEFT: label
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: _DS.fsMd,
+              fontWeight: FontWeight.w600,
+              color: _DS.textSec,
+            ),
+          ),
+
+          const Spacer(),
+
+          // RIGHT: date + time — truly side by side in one Row
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(label, style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 3),
-              Text(datePart, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.darkNavy)),
+              Text(
+                dateText,
+                style: const TextStyle(
+                  fontSize: _DS.fsMd,
+                  fontWeight: FontWeight.w800,
+                  color: _DS.textPri,
+                ),
+              ),
+              if (timeText.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    timeText,
+                    style: TextStyle(
+                      fontSize: _DS.fsXs,
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
-          const Spacer(),
-          if (timePart.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
-              child: Text(timePart, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHead(IconData icon, String label, {bool isGreen = true}) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors:
-                  isGreen ? [AppColors.tealGreen, AppColors.darkNavy] : [AppColors.lightGold, AppColors.lightGoldS2],
-            ),
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Icon(icon, color: Colors.white, size: 15),
+  Widget _buildSectionHead(IconData icon, String label) {
+    return Row(children: [
+      Container(
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: _DS.navy.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
         ),
-        const SizedBox(width: 9),
-        AppRichText.setTextPoppinsStyle(context, label, 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0),
-      ],
-    );
+        child: Icon(icon, color: _DS.navy, size: 14),
+      ),
+      const SizedBox(width: 9),
+      Text(label,
+          style: const TextStyle(
+              fontSize: _DS.fsMd,
+              fontWeight: FontWeight.w700,
+              color: _DS.textPri)),
+    ]);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  //  DESCRIPTION CARD
+  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildDescriptionCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 14, offset: const Offset(0, 4))],
-      ),
+      decoration: _cardDecor(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(Icons.description_outlined, 'About This Quiz'),
-          const SizedBox(height: 10),
-          AppRichText.setTextPoppinsStyle(
-            context,
+          _buildSectionHead(Icons.description_outlined, 'About This Test'),
+          const SizedBox(height: 12),
+          Text(
             _currentQuiz!.description,
-            12,
-            AppColors.greyS700,
-            FontWeight.w400,
-            10,
-            TextAlign.left,
-            1.6,
+            // ✅ No maxLines — full description always visible
+            style: const TextStyle(
+              fontSize: _DS.fsMd,
+              color: _DS.textSec,
+              fontWeight: FontWeight.w400,
+              height: 1.65,
+            ),
           ),
         ],
       ),
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  //  INSTRUCTIONS CARD
+  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildInstructionsCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 14, offset: const Offset(0, 4))],
-      ),
+      decoration: _cardDecor(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(Icons.rule_rounded, 'Instructions', isGreen: false),
-          const SizedBox(height: 10),
+          _buildSectionHead(Icons.rule_rounded, 'Instructions'),
+          const SizedBox(height: 12),
           _buildInstructionItems(),
         ],
       ),
@@ -1351,58 +1899,52 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   }
 
   Widget _buildInstructionItems() {
-    final text = _currentQuiz!.instruction;
+    final text    = _currentQuiz!.instruction;
     final liRegex = RegExp(r'<li[^>]*>(.*?)</li>', dotAll: true);
     final matches = liRegex.allMatches(text);
 
     if (matches.isEmpty) {
-      return AppRichText.setTextPoppinsStyle(
-        context,
+      return Text(
         _removeHtmlTags(text),
-        12,
-        AppColors.greyS700,
-        FontWeight.w400,
-        10,
-        TextAlign.left,
-        1.5,
+        style: const TextStyle(
+            fontSize: _DS.fsMd,
+            color: _DS.textSec,
+            fontWeight: FontWeight.w400,
+            height: 1.6),
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          matches.map((match) {
-            final clean = _removeHtmlTags(match.group(1) ?? '');
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Container(
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(color: AppColors.tealGreen, shape: BoxShape.circle),
-                    ),
-                  ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: AppRichText.setTextPoppinsStyle(
-                      context,
-                      clean,
-                      11,
-                      AppColors.greyS700,
-                      FontWeight.w400,
-                      10,
-                      TextAlign.left,
-                      1.45,
-                    ),
-                  ),
-                ],
+      children: matches.map((match) {
+        final clean = _removeHtmlTags(match.group(1) ?? '');
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 9),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 7),
+                child: Container(
+                  width: 5, height: 5,
+                  decoration: BoxDecoration(
+                      color: _DS.teal,
+                      shape: BoxShape.circle),
+                ),
               ),
-            );
-          }).toList(),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(clean,
+                    style: const TextStyle(
+                        fontSize: _DS.fsMd,
+                        color: _DS.textSec,
+                        fontWeight: FontWeight.w400,
+                        height: 1.55)),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -1419,23 +1961,25 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         .trim();
   }
 
+  // ═══════════════════════════════════════════════════════════════════════
+  //  INFO CARD
+  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildInfoCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 14, offset: const Offset(0, 4))],
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecor(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(Icons.info_outline_rounded, 'Important Information', isGreen: false),
-          const SizedBox(height: 10),
-          _buildInfoRow(Icons.touch_app_rounded, 'Single attempt only — make it count'),
-          _buildInfoRow(Icons.wifi_rounded, 'Stable internet connection required'),
-          _buildInfoRow(Icons.leaderboard_rounded, 'Instant results & live leaderboard'),
+          _buildSectionHead(Icons.info_outline_rounded, 'Important Information'),
+          const SizedBox(height: 12),
+          _buildInfoRow(Icons.touch_app_rounded,
+              'Single attempt only — make every answer count'),
+          _buildInfoRow(Icons.wifi_rounded,
+              'Stable internet connection required throughout'),
+          _buildInfoRow(Icons.leaderboard_rounded,
+              'Instant results & live All India Ranking after test'),
         ],
       ),
     );
@@ -1443,159 +1987,141 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
   Widget _buildInfoRow(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: AppColors.tealGreen),
-          const SizedBox(width: 9),
-          Expanded(
-            child: AppRichText.setTextPoppinsStyle(
-              context,
-              text,
-              11,
-              AppColors.greyS700,
-              FontWeight.w500,
-              1,
-              TextAlign.left,
-              0,
-            ),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 14, color: _DS.teal),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text,
+              style: const TextStyle(
+                  fontSize: _DS.fsSm,
+                  color: _DS.textSec,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4)),
+        ),
+      ]),
     );
   }
 
-  Widget _buildBottomBar(bool canStartQuiz, bool isAvailable) {
-    if (!_attempted && canStartQuiz && !isAvailable && _remainingSeconds > 0) {
-      return _buildRemindMeBar();
+  // ═══════════════════════════════════════════════════════════════════════
+  //  BOTTOM BAR
+  // ═══════════════════════════════════════════════════════════════════════
+  Widget _buildBottomBar() {
+    final quiz = _currentQuiz;
+    if (quiz == null) return const SizedBox.shrink();
+
+    if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
+      return _buildActionBar(
+        label: 'Resume Attempt',
+        icon: Icons.play_circle_outline_rounded,
+        colors: [_DS.teal, _DS.tealDark],
+        shadowColor: _DS.teal.withOpacity(0.3),
+        onTap: _navigateToQuiz,
+      );
     }
 
-    String btnLabel;
-    IconData btnIcon;
-    List<Color> btnColors;
-    List<Color> shadowColors;
-
-    if (_attempted) {
-      btnLabel = 'Already Attempted';
-      btnIcon = Icons.check_circle_outline;
-      btnColors = [Colors.grey.shade500, Colors.grey.shade700];
-      shadowColors = [Colors.grey.withOpacity(0.2)];
-    } else if (_currentQuiz?.pendingAttemptId != null && _currentQuiz!.pendingAttemptId! > 0) {
-      btnLabel = 'Resume Attempt';
-      btnIcon = Icons.play_circle_outline;
-      btnColors = [AppColors.tealGreen, AppColors.darkNavy];
-      shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
-    } else if (_currentQuiz?.quizStatus == "live") {
-      if (_currentQuiz?.isAccessible == true) {
-        btnLabel = 'Start Quiz Now';
-        btnIcon = Icons.play_arrow_rounded;
-        btnColors = [Colors.red.shade600, Colors.red.shade900];
-        shadowColors = [Colors.red.withOpacity(0.35)];
-      } else {
-        btnLabel = 'Activate Now';
-        btnIcon = Icons.workspace_premium_rounded;
-        btnColors = [AppColors.tealGreen, AppColors.darkNavy];
-        shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
-      }
-    } else if (_currentQuiz?.quizStatus == "upcoming") {
-      if (_currentQuiz?.isAccessible == true) {
-        btnLabel = 'Remind Me';
-        btnIcon = Icons.notifications_active_outlined;
-        btnColors = [Colors.blue.shade600, Colors.blue.shade900];
-        shadowColors = [Colors.blue.withOpacity(0.3)];
-      } else {
-        btnLabel = 'Activate Now';
-        btnIcon = Icons.workspace_premium_rounded;
-        btnColors = [AppColors.tealGreen, AppColors.darkNavy];
-        shadowColors = [AppColors.tealGreen.withOpacity(0.3)];
-      }
-    } else {
-      btnLabel = 'Quiz Ended';
-      btnIcon = Icons.lock_clock;
-      btnColors = [Colors.grey.shade500, Colors.grey.shade700];
-      shadowColors = [Colors.grey.withOpacity(0.2)];
+    if (quiz.is_attempted) {
+      return _buildActionBar(
+        label: 'Already Attempted',
+        icon: Icons.check_circle_outline_rounded,
+        colors: [Colors.grey.shade500, Colors.grey.shade700],
+        shadowColor: Colors.grey.withOpacity(0.2),
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('You have already attempted this test'),
+            backgroundColor: _DS.textSec,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10)),
+          ));
+        },
+      );
     }
 
+    if (!_hasFullAccess) {
+      return _buildActionBar(
+        label: 'Activate Plan',
+        icon: Icons.workspace_premium_rounded,
+        colors: [_DS.teal, _DS.navy],
+        shadowColor: _DS.teal.withOpacity(0.3),
+        onTap: _handleSubscribe,
+      );
+    }
+
+    switch (quiz.quizStatus.toLowerCase()) {
+      case 'live':
+        return _buildActionBar(
+          label: 'Join Test Now',
+          icon: Icons.play_arrow_rounded,
+          colors: [_DS.red, const Color(0xFF870000)],
+          shadowColor: _DS.red.withOpacity(0.35),
+          onTap: _handleStartQuiz,
+        );
+      case 'upcoming':
+        return _buildRemindMeBar();
+      case 'ended':
+      default:
+        return _buildActionBar(
+          label: 'Test Ended',
+          icon: Icons.lock_clock_rounded,
+          colors: [Colors.grey.shade500, Colors.grey.shade700],
+          shadowColor: Colors.grey.withOpacity(0.2),
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('This test has ended'))),
+        );
+    }
+  }
+
+  Widget _buildActionBar({
+    required String label,
+    required IconData icon,
+    required List<Color> colors,
+    required Color shadowColor,
+    required VoidCallback onTap,
+  }) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 18, offset: const Offset(0, -4))],
+        color: _DS.card,
+        border: Border(top: BorderSide(color: _DS.border)),
+        boxShadow: [
+          BoxShadow(
+              color: _DS.navy.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -3)),
+        ],
       ),
       child: SafeArea(
         top: false,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: btnColors),
+            gradient: LinearGradient(colors: colors),
             borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: shadowColors.first, blurRadius: 14, offset: const Offset(0, 5))],
+            boxShadow: [
+              BoxShadow(
+                  color: shadowColor,
+                  blurRadius: 14,
+                  offset: const Offset(0, 5)),
+            ],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              onTap: () {
-                final quiz = _currentQuiz;
-                if (quiz == null) return;
-
-                if (quiz.is_attempted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('You have already attempted this quiz'),
-                      backgroundColor: AppColors.greyS600,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
-                  return;
-                }
-
-                if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
-                  _navigateToQuiz();
-                  return;
-                }
-
-                if (quiz.quizStatus == "live") {
-                  if (quiz.isAccessible == true) {
-                    _handleStartQuiz();
-                  } else {
-                    _handleSubscribe();
-                  }
-                  return;
-                }
-
-                if (quiz.quizStatus == "upcoming") {
-                  if (quiz.isAccessible == true) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text("Quiz starts in ${quiz.startsInText}")));
-                  } else {
-                    _handleSubscribe();
-                  }
-                  return;
-                }
-
-                if (quiz.quizStatus == "ended") {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("This quiz has ended")));
-                }
-              },
+              onTap: onTap,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(btnIcon, color: Colors.white, size: 21),
+                    Icon(icon, color: Colors.white, size: 20),
                     const SizedBox(width: 9),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      btnLabel,
-                      15,
-                      AppColors.white,
-                      FontWeight.w800,
-                      1,
-                      TextAlign.center,
-                      0,
-                    ),
+                    Text(label,
+                        style: const TextStyle(
+                            fontSize: _DS.fsLg,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.2)),
                   ],
                 ),
               ),
@@ -1608,46 +2134,47 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
   Widget _buildRemindMeBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 18, offset: const Offset(0, -4))],
+        color: _DS.card,
+        border: Border(top: BorderSide(color: _DS.border)),
+        boxShadow: [
+          BoxShadow(
+              color: _DS.navy.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -3)),
+        ],
       ),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ✅ UPDATED: Starts in / Starts on based on time
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFCD34D), width: 1.5),
+                color: const Color(0xFFFFFAEB),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: const Color(0xFFFBD038), width: 1.2),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.schedule_rounded, color: Color(0xFFB45309), size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    _getCountdownLabel(), // ✅ 'Starts in' or 'Starts on'
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: const Color(0xFFB45309).withOpacity(0.75),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    _getCountdownText(), // ✅ countdown or date
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFB45309),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+                  const Icon(Icons.schedule_rounded,
+                      color: Color(0xFFB45309), size: 14),
+                  const SizedBox(width: 7),
+                  Text(_getCountdownLabel(),
+                      style: const TextStyle(
+                          fontSize: _DS.fsMd,
+                          color: Color(0xFFB45309),
+                          fontWeight: FontWeight.w500)),
+                  Text(_getCountdownText(),
+                      style: const TextStyle(
+                          fontSize: _DS.fsLg,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFB45309),
+                          letterSpacing: 0.3)),
                 ],
               ),
             ),
@@ -1655,10 +2182,14 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF0B1340), Color(0xFF00C9A7)]),
+                gradient: const LinearGradient(
+                    colors: [_DS.navy, _DS.teal]),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
-                  BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                  BoxShadow(
+                      color: _DS.teal.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4)),
                 ],
               ),
               child: Material(
@@ -1666,32 +2197,29 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Reminder set! We\'ll notify you before the quiz starts.'),
-                        backgroundColor: AppColors.tealGreen,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: const Text(
+                          "Reminder set! We'll notify you before the test starts."),
+                      backgroundColor: _DS.teal,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ));
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 15),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 9),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Remind Me',
-                          15,
-                          AppColors.white,
-                          FontWeight.w800,
-                          1,
-                          TextAlign.center,
-                          0,
-                        ),
+                        Icon(Icons.notifications_active_rounded,
+                            color: Colors.white, size: 20),
+                        SizedBox(width: 9),
+                        Text('Remind Me',
+                            style: TextStyle(
+                                fontSize: _DS.fsLg,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.2)),
                       ],
                     ),
                   ),
@@ -1703,4 +2231,46 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       ),
     );
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Config class
+// ═══════════════════════════════════════════════════════════════════════════
+class _AccessBannerCfg {
+  final List<Color> gradient;
+  final IconData icon;
+  final String badge;
+  final String headline;
+  final String subLine;
+  final String statusLabel;
+  final Color statusColor;
+  final bool locked;
+
+  const _AccessBannerCfg({
+    required this.gradient,
+    required this.icon,
+    required this.badge,
+    required this.headline,
+    required this.subLine,
+    required this.statusLabel,
+    required this.statusColor,
+    required this.locked,
+  });
+}
+
+// ─── Benefit item model for grid cards ───────────────────────────────────────
+class _BenefitEntry {
+  final String   emoji;
+  final IconData icon;
+  final String   title;
+  final String   desc;
+  final Color    color;
+
+  const _BenefitEntry({
+    required this.emoji,
+    required this.icon,
+    required this.title,
+    required this.desc,
+    required this.color,
+  });
 }
