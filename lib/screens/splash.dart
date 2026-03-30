@@ -160,6 +160,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         child: Opacity(opacity: _fadeAnim.value, child: _buildSubtitle()),
                       ),
 
+                      const SizedBox(height: 10),
+                        Transform.translate(
+                        offset: Offset(0, _slideAnim.value * 1.3),
+                        child: Opacity(opacity: _fadeAnim.value, child: _buildFeatureLine()),
+                      ),
+
                       const SizedBox(height: 20),
 
                       // Tagline pills
@@ -343,33 +349,48 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   // ─── SUBTITLE ─────────────────────────────────────────────────────────────
 
-  Widget _buildSubtitle() {
-    return Text(
-      'India\'s #1 Quiz & Mock Test Platform',
+Widget _buildSubtitle() {
+  return Text(
+    'Live Tests, Mock Tests & Daily Quiz Practice',
+    style: TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: 13,
+      color: AppColors.darkNavy.withOpacity(0.55),
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.2,
+    ),
+  );
+}
+Widget _buildFeatureLine() {
+  return Padding(
+    padding: const EdgeInsets.only(top: 6),
+    child: Text(
+      'SSC • Railway • Banking • All Exams',
       style: TextStyle(
         fontFamily: 'Poppins',
-        fontSize: 13,
-        color: AppColors.darkNavy.withOpacity(0.55),
+        fontSize: 11,
+        color: AppColors.darkNavy.withOpacity(0.45),
         fontWeight: FontWeight.w500,
-        letterSpacing: 0.2,
+        letterSpacing: 0.3,
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ─── TAGLINE PILLS ────────────────────────────────────────────────────────
 
-  Widget _buildTaglinePills() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _pill('⚡', 'Live Quizzes', AppColors.tealGreen, AppColors.tealGreen.withOpacity(0.1)),
-        const SizedBox(width: 8),
-        _pill('📝', 'Mock Tests', AppColors.darkNavy, AppColors.darkNavy.withOpacity(0.08)),
-        const SizedBox(width: 8),
-        _pill('🏆', 'Rankings', const Color(0xFFB8860B), AppColors.lightGold.withOpacity(0.12)),
-      ],
-    );
-  }
+Widget _buildTaglinePills() {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _pill('🔴', 'Live Tests', AppColors.tealGreen, AppColors.tealGreen.withOpacity(0.1)),
+      const SizedBox(width: 8),
+      _pill('📝', 'Mock Tests', AppColors.darkNavy, AppColors.darkNavy.withOpacity(0.08)),
+      const SizedBox(width: 8),
+      _pill('⚡', 'Daily Quiz', const Color(0xFFB8860B), AppColors.lightGold.withOpacity(0.12)),
+    ],
+  );
+}
 
   Widget _pill(String emoji, String label, Color textColor, Color bgColor) {
     return Container(
@@ -432,7 +453,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         ),
         const SizedBox(height: 14),
         Text(
-          'Preparing your experience...',
+         'Loading Fresh Tests & Quizzes...',
           style: TextStyle(
             fontFamily: 'Poppins',
             fontSize: 11,

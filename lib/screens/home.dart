@@ -188,14 +188,6 @@ class _HomePageState extends State<HomePage> {
     return 'Good Night';
   }
 
-  String _getMotivation() {
-    final hour = DateTime.now().hour;
-    if (hour >= 5 && hour < 12) return 'Subah ka quiz diya kya? 🎯';
-    if (hour >= 12 && hour < 17) return 'Aaj kuch naya seekho! 💡';
-    if (hour >= 17 && hour < 21) return 'Kal ki taiyari aaj karo! 📚';
-    return 'Kal phir milenge!';
-  }
-
   IconData _getGreetingIcon() {
     final hour = DateTime.now().hour;
     if (hour >= 5 && hour < 12) return Icons.wb_sunny_rounded;
@@ -407,18 +399,7 @@ class _HomePageState extends State<HomePage> {
                 _getGreeting(),
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
               ),
-              const SizedBox(width: 6),
-
-              Text("•", style: TextStyle(color: Colors.grey, fontSize: 18, fontWeight: FontWeight.bold)),
-
-              const SizedBox(width: 6),
-
-              const SizedBox(width: 6),
-
-              Text(
-                _getMotivation(),
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-              ),
+             
             ],
           ),
         ],

@@ -25,12 +25,15 @@ class BuyCoursePage extends StatefulWidget {
   _BuyCoursePageState createState() => _BuyCoursePageState();
 }
 
-class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProviderStateMixin {
+class _BuyCoursePageState extends State<BuyCoursePage>
+    with SingleTickerProviderStateMixin {
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
   UserModel? _user;
   List<StudyMaterialDetailsItem> _studyMaterials_new = [];
   bool _isLoading = true;
+  bool _hasError  = false;      // ✅ error state
+  String _errorType = '';       // ✅ 'no_internet' | 'timeout' | 'server' | 'session' | 'unknown'
   bool _isPurchased = false;
   int _product_sub_id = 0;
   int _isPremium = 0;
@@ -46,20 +49,62 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _fadeController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnimation =
+        CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
     _getUserData();
   }
 
+  // ✅ FIX 1: null check + retry + error state
   Future<void> _getUserData() async {
-    _user = await SessionManager.getUser();
-    await fetchStudyCategory(_user!.id);
-    if (!mounted) return;
-    _fadeController.forward();
-    setState(() {});
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _hasError  = false;
+        _errorType = '';
+      });
+    }
+
+    try {
+      _user = await SessionManager.getUser();
+
+      // Session pehli call mein null de sakta hai — retry
+      if (_user == null) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        _user = await SessionManager.getUser();
+      }
+
+      if (_user == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _hasError  = true;
+            _errorType = 'session';
+          });
+        }
+        return;
+      }
+
+      await fetchStudyCategory(_user!.id);
+      if (!mounted) return;
+      _fadeController.forward();
+      setState(() {});
+    } catch (e) {
+      print('getUserData error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError  = true;
+          _errorType = 'unknown';
+        });
+      }
+    }
   }
 
-  Future<List<StudyMaterialDetailsItem>> fetchStudyCategory(String userid) async {
+  // ✅ FIX 2: timeout + proper error type
+  Future<List<StudyMaterialDetailsItem>> fetchStudyCategory(
+      String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {
@@ -68,32 +113,72 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         'page_API_call': widget.page_API_call,
       };
 
-      final responseFuture = await authRepository.get_study_wise_details(data);
+      final responseFuture = await authRepository
+          .get_study_wise_details(data)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw TimeoutException('Request timed out'),
+          );
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
         final List list = responseData['data'] ?? [];
 
-        _studyMaterials_new = list.map((e) => StudyMaterialDetailsItem.fromJson(e)).toList();
+        _studyMaterials_new =
+            list.map((e) => StudyMaterialDetailsItem.fromJson(e)).toList();
 
         if (_studyMaterials_new.isNotEmpty) {
           _currentMaterial = _studyMaterials_new.first;
-          _isPurchased = _currentMaterial!.isPurchased;
-          _isAccessible = _currentMaterial!.isAccessible;
-          _isFree = !_currentMaterial!.isPaid;
-          _isPremium = _currentMaterial!.is_premium ?? 0;
+          _isPurchased    = _currentMaterial!.isPurchased;
+          _isAccessible   = _currentMaterial!.isAccessible;
+          _isFree         = !_currentMaterial!.isPaid;
+          _isPremium      = _currentMaterial!.is_premium ?? 0;
           _product_sub_id = _currentMaterial!.subscription_id ?? 0;
+          setState(() {
+            _isLoading = false;
+            _hasError  = false;
+          });
+        } else {
+          // List empty — server ne data nahi diya
+          setState(() {
+            _isLoading = false;
+            _hasError  = true;
+            _errorType = 'server';
+          });
         }
-
-        setState(() => _isLoading = false);
         return _studyMaterials_new;
       } else {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _hasError  = true;
+          _errorType = 'server';
+        });
         return [];
       }
+    } on TimeoutException {
+      print('Course fetch timed out');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError  = true;
+          _errorType = 'timeout';
+        });
+      }
+      return [];
     } catch (e) {
       print('Error fetching study details: $e');
-      setState(() => _isLoading = false);
+      final msg = e.toString().toLowerCase();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError  = true;
+          _errorType = msg.contains('socket') ||
+                  msg.contains('network') ||
+                  msg.contains('connection')
+              ? 'no_internet'
+              : 'unknown';
+        });
+      }
       return [];
     }
   }
@@ -107,103 +192,82 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
 
   void _handleStartLearning() {
     if (_currentMaterial == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()));
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) =>
+                StudyMaterialPurchaseHistoryScreen()));
   }
 
   void _handleSubscribe() {
     if (_currentMaterial == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
+    Navigator.push(context,
+            MaterialPageRoute(builder: (context) => PricingPage()))
+        .then((value) {
       if (value == true) _getUserData();
     });
   }
 
+  // ─── Common AppBar ────────────────────────────────────────────────────
+  AppBar _buildAppBar({String title = 'Course Details'}) {
+    return AppBar(
+      backgroundColor: AppColors.darkNavy,
+      elevation: 0,
+      leading: IconButton(
+        icon: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+        ),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+            color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Loading
     if (_isLoading) {
       return Scaffold(
         backgroundColor: const Color(0xFFF0F2F8),
-        appBar: AppBar(
-          backgroundColor: AppColors.darkNavy,
-          elevation: 0,
-          leading: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
-              ),
-            ),
-          ),
+        appBar: _buildAppBar(),
+        body: Center(
+          child: CircularProgressIndicator(
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(AppColors.tealGreen)),
         ),
-        body: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen))),
       );
     }
 
-    if (_currentMaterial == null) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF0F2F8),
-        appBar: AppBar(
-          backgroundColor: AppColors.darkNavy,
-          elevation: 0,
-          leading: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-            ),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: const Text('Error', style: TextStyle(color: Colors.white)),
-        ),
-        body: const Center(child: Text('Course not found')),
-      );
+    // ✅ FIX 3: Error screen
+    if (_hasError || _currentMaterial == null) {
+      return _buildErrorScreen();
     }
 
     final bool canStart = _isPurchased || _isAccessible || _isFree;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F8),
-      appBar: AppBar(
-        backgroundColor: AppColors.darkNavy,
-        elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          _currentMaterial!.Material_name,
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
-            ),
-          ),
-        ),
-      ),
+      appBar: _buildAppBar(title: _currentMaterial!.Material_name),
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SingleChildScrollView(
@@ -218,7 +282,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                 if (canStart) const SizedBox(height: 12),
                 if (!canStart) _buildWhatYouGetSection(),
                 if (!canStart) const SizedBox(height: 12),
-                if (_currentMaterial!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 12)],
+                if (_currentMaterial!.description.isNotEmpty) ...[
+                  _buildDescriptionCard(),
+                  const SizedBox(height: 12),
+                ],
                 _buildInstructorCard(),
                 const SizedBox(height: 12),
               ],
@@ -227,6 +294,152 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         ),
       ),
       bottomNavigationBar: _buildBottomBar(canStart),
+    );
+  }
+
+  // ✅ FIX 3: Acha error screen — 5 types ke liye alag icon + message
+  Widget _buildErrorScreen() {
+    IconData errorIcon;
+    String headline;
+    String subtext;
+    Color iconColor;
+    Color iconBg;
+
+    switch (_errorType) {
+      case 'no_internet':
+        errorIcon = Icons.wifi_off_rounded;
+        headline  = 'Internet connection nahi hai';
+        subtext   = 'Please apna internet check karein\naur dobara try karein.';
+        iconColor = const Color(0xFF1565C0);
+        iconBg    = const Color(0xFFE3F2FD);
+        break;
+      case 'timeout':
+        errorIcon = Icons.timer_off_rounded;
+        headline  = 'Server se response nahi aaya';
+        subtext   = 'Connection slow hai ya server busy hai.\nThodi der baad try karein.';
+        iconColor = const Color(0xFFE65100);
+        iconBg    = const Color(0xFFFFF3E0);
+        break;
+      case 'server':
+        errorIcon = Icons.cloud_off_rounded;
+        headline  = 'Course abhi load nahi ho saka';
+        subtext   = 'Server se data aane mein dikkat hui.\nDobara try karein.';
+        iconColor = const Color(0xFF6A1B9A);
+        iconBg    = const Color(0xFFF3E5F5);
+        break;
+      case 'session':
+        errorIcon = Icons.person_off_rounded;
+        headline  = 'Session expire ho gaya';
+        subtext   = 'App dobara open karein ya logout karke\nlogin karein.';
+        iconColor = const Color(0xFFE53935);
+        iconBg    = const Color(0xFFFFEBEE);
+        break;
+      default:
+        errorIcon = Icons.error_outline_rounded;
+        headline  = 'Kuch galat ho gaya';
+        subtext   = 'Course load karne mein problem aayi.\nDobara try karein.';
+        iconColor = const Color(0xFF6B7A99);
+        iconBg    = const Color(0xFFF4F6FB);
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F2F8),
+      appBar: _buildAppBar(),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon circle
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(errorIcon, size: 40, color: iconColor),
+              ),
+              const SizedBox(height: 24),
+
+              // Headline
+              Text(
+                headline,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0D1B3E),
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Subtext
+              Text(
+                subtext,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF6B7A99),
+                  height: 1.6,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Retry button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.tealGreen,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _getUserData,
+                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  label: const Text(
+                    'Dobara Try Karein',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Back button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: const BorderSide(color: Color(0xFFE2E8F4)),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Wapas Jaayein',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6B7A99),
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -262,7 +475,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, AppColors.darkNavy.withOpacity(0.85)],
+                    colors: [
+                      Colors.transparent,
+                      AppColors.darkNavy.withOpacity(0.85)
+                    ],
                   ),
                 ),
               ),
@@ -275,17 +491,20 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: AppColors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColors.white.withOpacity(0.5)),
+                        border: Border.all(
+                            color: AppColors.white.withOpacity(0.5)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            _currentMaterial!.contentType.toUpperCase() == 'PDF'
+                            _currentMaterial!.contentType.toUpperCase() ==
+                                    'PDF'
                                 ? Icons.picture_as_pdf
                                 : Icons.video_library,
                             size: 11,
@@ -293,7 +512,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            _currentMaterial!.contentType.toUpperCase() == 'PDF' ? 'PDF MATERIAL' : 'VIDEO LECTURE',
+                            _currentMaterial!.contentType.toUpperCase() ==
+                                    'PDF'
+                                ? 'PDF MATERIAL'
+                                : 'VIDEO LECTURE',
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -307,16 +529,19 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                     const SizedBox(width: 8),
                     if (canStart)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.white.withOpacity(0.55)),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.55)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.verified_rounded, size: 11, color: Colors.white),
+                            const Icon(Icons.verified_rounded,
+                                size: 11, color: Colors.white),
                             const SizedBox(width: 5),
                             Text(
                               _isFree ? 'FREE COURSE' : 'ENROLLED',
@@ -376,7 +601,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   Widget _buildHeroStat(String emoji, String label, String value) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        padding:
+            const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.08),
           borderRadius: BorderRadius.circular(10),
@@ -386,12 +612,20 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
           children: [
             Text(emoji, style: const TextStyle(fontSize: 20)),
             const SizedBox(height: 5),
-            Text(value, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.tealGreen)),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.tealGreen)),
             const SizedBox(height: 2),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w500, height: 1.3),
+              style: const TextStyle(
+                  fontSize: 9,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3),
             ),
           ],
         ),
@@ -404,7 +638,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.darkNavy.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 6))
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
@@ -417,34 +656,42 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors:
-                      _isFree
-                          ? [AppColors.tealGreen, AppColors.darkNavy]
-                          : [const Color(0xFF0D7B5F), AppColors.darkNavy],
+                  colors: _isFree
+                      ? [AppColors.tealGreen, AppColors.darkNavy]
+                      : [const Color(0xFF0D7B5F), AppColors.darkNavy],
                 ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.white.withOpacity(0.4)),
+                      border: Border.all(
+                          color: Colors.white.withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          _isFree ? Icons.celebration_outlined : Icons.verified_rounded,
+                          _isFree
+                              ? Icons.celebration_outlined
+                              : Icons.verified_rounded,
                           color: Colors.white,
                           size: 13,
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          _isFree ? 'Free Content' : 'Course Purchased',
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                          _isFree
+                              ? 'Free Content'
+                              : 'Course Purchased',
+                          style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white),
                         ),
                       ],
                     ),
@@ -455,8 +702,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                     _isFree
                         ? 'This Course\nIs Completely FREE!'
                         : _isPurchased
-                        ? 'Course Already\nPurchased!'
-                        : 'Included In\nYour Plan!',
+                            ? 'Course Already\nPurchased!'
+                            : 'Included In\nYour Plan!',
                     17,
                     Colors.white,
                     FontWeight.w800,
@@ -470,8 +717,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                     _isFree
                         ? 'Start now — no charges at all!'
                         : _isPurchased
-                        ? 'Your access is fully unlocked'
-                        : 'This is included in your current plan',
+                            ? 'Your access is fully unlocked'
+                            : 'This is included in your current plan',
                     12,
                     Colors.white.withOpacity(0.85),
                     FontWeight.w400,
@@ -501,7 +748,9 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   const SizedBox(height: 14),
                   _buildCheckItem(
                     Icons.picture_as_pdf_outlined,
-                    _currentMaterial!.contentType.toUpperCase() == 'PDF' ? 'PDF Material' : 'Video Lecture',
+                    _currentMaterial!.contentType.toUpperCase() == 'PDF'
+                        ? 'PDF Material'
+                        : 'Video Lecture',
                     'You have full access to this content',
                     AppColors.tealGreen,
                   ),
@@ -525,15 +774,18 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   ),
                   const SizedBox(height: 14),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       color: AppColors.tealGreen.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
+                      border: Border.all(
+                          color: AppColors.tealGreen.withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.school_outlined, color: AppColors.tealGreen, size: 18),
+                        Icon(Icons.school_outlined,
+                            color: AppColors.tealGreen, size: 18),
                         const SizedBox(width: 10),
                         Expanded(
                           child: AppRichText.setTextPoppinsStyle(
@@ -564,7 +816,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.darkNavy.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 6))
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
@@ -584,20 +841,26 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.18),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.white.withOpacity(0.4)),
+                      border: Border.all(
+                          color: Colors.white.withOpacity(0.4)),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.workspace_premium, color: Colors.white, size: 13),
+                        Icon(Icons.workspace_premium,
+                            color: Colors.white, size: 13),
                         SizedBox(width: 5),
                         Text(
                           'Premium Course',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white),
                         ),
                       ],
                     ),
@@ -704,15 +967,18 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   ),
                   const SizedBox(height: 14),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       color: AppColors.tealGreen.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
+                      border: Border.all(
+                          color: AppColors.tealGreen.withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.verified_outlined, color: AppColors.tealGreen, size: 18),
+                        Icon(Icons.verified_outlined,
+                            color: AppColors.tealGreen, size: 18),
                         const SizedBox(width: 10),
                         Expanded(
                           child: AppRichText.setTextPoppinsStyle(
@@ -756,25 +1022,36 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         children: [
           Text(emoji, style: const TextStyle(fontSize: 24)),
           const SizedBox(height: 8),
-          Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: color)),
           const SizedBox(height: 3),
           Text(
             subtitle,
-            style: TextStyle(fontSize: 10, color: AppColors.greyS600, height: 1.4, fontWeight: FontWeight.w500),
+            style: TextStyle(
+                fontSize: 10,
+                color: AppColors.greyS600,
+                height: 1.4,
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCheckItem(IconData icon, String title, String subtitle, Color color) {
+  Widget _buildCheckItem(
+      IconData icon, String title, String subtitle, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8)),
             child: Icon(icon, color: color, size: 16),
           ),
           const SizedBox(width: 12),
@@ -784,10 +1061,17 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkNavy),
                 ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w400)),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.greyS600,
+                        fontWeight: FontWeight.w400)),
               ],
             ),
           ),
@@ -807,7 +1091,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -817,10 +1106,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
               Container(
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                  gradient: const LinearGradient(
+                      colors: [AppColors.tealGreen, AppColors.darkNavy]),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.description_outlined, color: AppColors.white, size: 15),
+                child: const Icon(Icons.description_outlined,
+                    color: AppColors.white, size: 15),
               ),
               const SizedBox(width: 8),
               AppRichText.setTextPoppinsStyle(
@@ -838,7 +1129,9 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
           const SizedBox(height: 10),
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 300),
-            crossFadeState: (!isLong || _descExpanded) ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: (!isLong || _descExpanded)
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             firstChild: Stack(
               children: [
                 AppRichText.setTextPoppinsStyle(
@@ -861,7 +1154,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Colors.white.withOpacity(0.0), Colors.white],
+                        colors: [
+                          Colors.white.withOpacity(0.0),
+                          Colors.white
+                        ],
                       ),
                     ),
                   ),
@@ -882,16 +1178,22 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
           if (isLong) ...[
             const SizedBox(height: 10),
             GestureDetector(
-              onTap: () => setState(() => _descExpanded = !_descExpanded),
+              onTap: () =>
+                  setState(() => _descExpanded = !_descExpanded),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     _descExpanded ? 'Read Less  ' : 'Read More  ',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.tealGreen),
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.tealGreen),
                   ),
                   Icon(
-                    _descExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    _descExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
                     color: AppColors.tealGreen,
                     size: 16,
                   ),
@@ -905,7 +1207,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   }
 
   Widget _buildInstructorCard() {
-    final name = _currentMaterial!.coaching_name;
+    final name    = _currentMaterial!.coaching_name;
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'I';
 
     return Container(
@@ -914,7 +1216,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -923,13 +1230,17 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+              gradient: const LinearGradient(
+                  colors: [AppColors.tealGreen, AppColors.darkNavy]),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Center(
               child: Text(
                 initial,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white),
               ),
             ),
           ),
@@ -940,12 +1251,18 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
               children: [
                 Text(
                   'Instructor',
-                  style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.greyS600,
+                      fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   name,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkNavy),
                 ),
                 if (_currentMaterial!.coaching_bio.isNotEmpty) ...[
                   const SizedBox(height: 4),
@@ -954,11 +1271,15 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.verified, size: 12, color: AppColors.tealGreen),
+                    Icon(Icons.verified,
+                        size: 12, color: AppColors.tealGreen),
                     const SizedBox(width: 4),
                     Text(
                       'Verified Instructor',
-                      style: TextStyle(fontSize: 10, color: AppColors.tealGreen, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: AppColors.tealGreen,
+                          fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -972,7 +1293,8 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
 
   Widget _buildBottomBar(bool canStart) {
     final String btnLabel = canStart ? 'Start Learning' : 'Activate Now';
-    final IconData btnIcon = canStart ? Icons.play_circle_filled : Icons.workspace_premium;
+    final IconData btnIcon =
+        canStart ? Icons.play_circle_filled : Icons.workspace_premium;
     const List<Color> btnColors = [AppColors.tealGreen, AppColors.darkNavy];
     const Color textColor = AppColors.white;
 
@@ -980,7 +1302,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.08), blurRadius: 18, offset: const Offset(0, -4))],
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.black.withOpacity(0.08),
+              blurRadius: 18,
+              offset: const Offset(0, -4))
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -988,13 +1315,19 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
           decoration: BoxDecoration(
             gradient: const LinearGradient(colors: btnColors),
             borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: btnColors.first.withOpacity(0.4), blurRadius: 14, offset: const Offset(0, 5))],
+            boxShadow: [
+              BoxShadow(
+                  color: btnColors.first.withOpacity(0.4),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5))
+            ],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              onTap: () => canStart ? _handleStartLearning() : _handleSubscribe(),
+              onTap: () =>
+                  canStart ? _handleStartLearning() : _handleSubscribe(),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Row(

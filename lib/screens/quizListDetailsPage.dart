@@ -244,7 +244,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isMockTest ? 'Mock Tests' : 'Live / Upcoming Quizzes',
+            isMockTest ? 'Mock Tests' : 'Live / Upcoming Test',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 14,

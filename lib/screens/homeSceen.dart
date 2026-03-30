@@ -132,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildNavItem('assets/icons/home.png', 'Home', 0),
               _buildNavItem('assets/icons/learning.png', 'Courses', 1),
               // _buildNavItem('assets/icons/graduation.png', 'My Courses', 1),
-              _buildNavItem('assets/icons/ideas.png', 'Quiz', 2),
+              _buildNavItem('assets/icons/ideas.png', 'Test', 2),
               _buildNavItem('assets/icons/user.png', 'Profile', 3),
             ],
           ),

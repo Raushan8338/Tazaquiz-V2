@@ -337,71 +337,74 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
 
           // ── Content ────────────────────────────────────────
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    material.title,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.darkNavy,
-                      height: 1.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-
-                  // ✅ Description — Expanded hata diya, maxLines fixed rakha
-                  Text(
-                    material.description,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: AppColors.greyS600,
-                      height: 1.4,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
-                  // ✅ Spacer gap ko absorb karta hai
-                  const Spacer(),
-
-                  // Explore Button
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.tealGreen, AppColors.darkNavy],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Explore',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_rounded,
-                            size: 12, color: Colors.white),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+  child: Padding(
+    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Title — fixed height: fontSize(12) * lineHeight(1.3) * maxLines(2) = 31.2
+        SizedBox(
+          height: 32, // 31.2 ko ceil karke 32 rakha — clean aur safe
+          child: Text(
+            material.title,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.darkNavy,
+              height: 1.3,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
+        ),
+        const SizedBox(height: 4),
+
+        // Description
+        Text(
+          material.description,
+          style:  TextStyle(
+            fontSize: 11,
+            color: AppColors.greyS600,
+            height: 1,
+          ),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+
+        // Spacer remaining space absorb karta hai
+        const Spacer(),
+
+        // Explore Button
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.tealGreen, AppColors.darkNavy],
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Explore',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(width: 4),
+              Icon(Icons.arrow_forward_rounded,
+                  size: 12, color: Colors.white),
+            ],
+          ),
+        ),
+      ],
+    ),
+  ),
+),
         ],
       ),
     ),

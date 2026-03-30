@@ -15,13 +15,11 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 class _DS {
-  // Radii
   static const double r8  = 8;
   static const double r12 = 12;
   static const double r16 = 16;
   static const double r20 = 20;
 
-  // Font sizes — tightly scoped
   static const double fsXxs = 9.5;
   static const double fsXs  = 10.5;
   static const double fsSm  = 11.5;
@@ -30,7 +28,6 @@ class _DS {
   static const double fsXl  = 17.0;
   static const double fsXxl = 20.0;
 
-  // Spacing
   static const double sp4  = 4;
   static const double sp6  = 6;
   static const double sp8  = 8;
@@ -41,7 +38,6 @@ class _DS {
   static const double sp20 = 20;
   static const double sp24 = 24;
 
-  // Palette
   static const Color navy     = Color(0xFF0D1B3E);
   static const Color navyMid  = Color(0xFF1A2F5A);
   static const Color teal     = Color(0xFF00BFA5);
@@ -73,6 +69,8 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   bool isBannerLoaded = false;
   UserModel? _user;
   bool _isLoading = true;
+  bool _hasError = false;        // ✅ error state track karne ke liye
+  String _errorType = '';        // ✅ 'no_internet' | 'timeout' | 'server' | 'unknown'
   bool _isPurchased = false;
   int _product_sub_id = 0;
   int _isPremium = 0;
@@ -93,7 +91,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       (_currentQuiz?.isAccessible ?? false) &&
       (_currentQuiz?.accessStatus ?? false);
 
-  // Show ads ONLY for free (non-subscribed) users
   bool get _shouldShowAds => !widget.is_subscribed && !_hasFullAccess;
 
   String get _planDisplayName {
@@ -119,9 +116,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     _fadeAnimation =
         CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
 
-    // Ads completely removed — no ads for any user on this page
-    rewardedAdService.loadAd(); // keep for quiz navigation flow only
-
+    rewardedAdService.loadAd();
     _getUserData();
     _startPulse();
   }
@@ -141,19 +136,60 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     super.dispose();
   }
 
+  // ✅ FIX 1: _getUserData — null check + retry + error state
   Future<void> _getUserData() async {
-    _user = await SessionManager.getUser();
-    await fetchQuizDetails(_user!.id);
-    if (!mounted) return;
-    _fadeController.forward();
-    setState(() {});
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _hasError  = false;
+        _errorType = '';
+      });
+    }
+
+    try {
+      _user = await SessionManager.getUser();
+
+      // Session load mein delay ho sakta hai — ek baar retry karo
+      if (_user == null) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        _user = await SessionManager.getUser();
+      }
+
+      if (_user == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _hasError  = true;
+            _errorType = 'session';
+          });
+        }
+        return;
+      }
+
+      await fetchQuizDetails(_user!.id);
+
+      if (!mounted) return;
+      _fadeController.forward();
+      setState(() {});
+    } catch (e) {
+      print('getUserData error: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError  = true;
+          _errorType = 'unknown';
+        });
+      }
+    }
   }
-    Color get _primary   => AppColors.darkNavy;
+
+  Color get _primary   => AppColors.darkNavy;
   Color get _secondary => AppColors.darkNavy.withOpacity(0.85);
   Color get _accent    => AppColors.tealGreen;
   Color get _gold      => AppColors.lightGold;
   static const Color _bg = Color(0xFFF0F2F8);
 
+  // ✅ FIX 2: fetchQuizDetails — timeout + proper error type detection
   Future<void> fetchQuizDetails(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
@@ -161,8 +197,13 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         'quiz_id': widget.quizId.toString(),
         'user_id': userid.toString()
       };
-      final responseFuture =
-          await authRepository.get_quizId_wise_details(data);
+
+      final responseFuture = await authRepository
+          .get_quizId_wise_details(data)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw TimeoutException('Request timed out'),
+          );
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
@@ -179,14 +220,46 @@ class _QuizDetailPageState extends State<QuizDetailPage>
             _remainingSeconds = _currentQuiz!.startsInSeconds;
           });
           if (_remainingSeconds > 0) _startCountdown();
+          setState(() {
+            _isLoading = false;
+            _hasError  = false;
+          });
+        } else {
+          // API ne success diya par data null — server issue
+          setState(() {
+            _isLoading = false;
+            _hasError  = true;
+            _errorType = 'server';
+          });
         }
-        setState(() => _isLoading = false);
       } else {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _hasError  = true;
+          _errorType = 'server';
+        });
+      }
+    } on TimeoutException {
+      print('Quiz fetch timed out');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError  = true;
+          _errorType = 'timeout';
+        });
       }
     } catch (e) {
       print('Error fetching quiz details: $e');
-      setState(() => _isLoading = false);
+      final msg = e.toString().toLowerCase();
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError  = true;
+          _errorType = msg.contains('socket') || msg.contains('network') || msg.contains('connection')
+              ? 'no_internet'
+              : 'unknown';
+        });
+      }
     }
   }
 
@@ -369,7 +442,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     } catch (_) { return raw; }
   }
 
-  // ─── Shared card decoration ──────────────────────────────────────────────
   BoxDecoration _cardDecor({double radius = _DS.r16}) => BoxDecoration(
     color: _DS.card,
     borderRadius: BorderRadius.circular(radius),
@@ -382,7 +454,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     ],
   );
 
-  // ─── Small label style ───────────────────────────────────────────────────
   TextStyle get _labelStyle => const TextStyle(
       fontSize: _DS.fsXs,
       fontWeight: FontWeight.w600,
@@ -399,9 +470,27 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   // ═══════════════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
+    // Loading state
     if (_isLoading) {
       return Scaffold(
         backgroundColor: _DS.surface,
+        appBar: AppBar(
+          backgroundColor: _DS.navy,
+          elevation: 0,
+          leading: IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(9)),
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white, size: 16),
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text('Test Details',
+              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+        ),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -413,7 +502,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                     strokeWidth: 2.5),
               ),
               const SizedBox(height: 14),
-              const Text('Loading test details…',
+              const Text('Test details load ho raha hai…',
                   style: TextStyle(
                       color: _DS.textSec,
                       fontSize: _DS.fsMd,
@@ -424,14 +513,9 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       );
     }
 
-    if (_currentQuiz == null) {
-      return Scaffold(
-        backgroundColor: _DS.surface,
-        appBar: AppBar(
-            backgroundColor: _DS.navy,
-            title: const Text('Error')),
-        body: const Center(child: Text('Test not found')),
-      );
+    // ✅ FIX 3: Error state — acha message + retry button
+    if (_hasError || _currentQuiz == null) {
+      return _buildErrorScreen();
     }
 
     final bool canStartQuiz = _hasFullAccess;
@@ -450,45 +534,36 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 child: Column(
                   children: [
                     const SizedBox(height: 16),
-
-                    // Access status banner
                     _buildAccessBanner(),
                     const SizedBox(height: 12),
 
-                    // Live banner — only for subscribed users with access
                     if (_isLive && canStartQuiz) ...[
                       _buildLiveBanner(),
                       const SizedBox(height: 12),
                     ],
 
-                    // Combined course + test header card
                     _buildCombinedHeader(),
                     const SizedBox(height: 12),
 
-                    // Stats row
                     _buildStatsRow(),
                     const SizedBox(height: 12),
 
-                    // Subscription or schedule section
                     if (!canStartQuiz)
                       _buildSubscriptionSection()
                     else
                       _buildScheduleSection(),
                     const SizedBox(height: 12),
 
-                    // Description
                     if (_currentQuiz!.description.isNotEmpty) ...[
                       _buildDescriptionCard(),
                       const SizedBox(height: 12),
                     ],
 
-                    // Instructions
                     if (_currentQuiz!.instruction.isNotEmpty) ...[
                       _buildInstructionsCard(),
                       const SizedBox(height: 12),
                     ],
 
-                    // Info card
                     _buildInfoCard(),
                   ],
                 ),
@@ -498,6 +573,171 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         ),
       ),
       bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  // ✅ FIX 3: Acha error screen — icon + message + retry button
+  Widget _buildErrorScreen() {
+    // Error type ke hisaab se message aur icon decide karo
+    IconData errorIcon;
+    String headline;
+    String subtext;
+    Color iconColor;
+    Color iconBg;
+
+    switch (_errorType) {
+      case 'no_internet':
+        errorIcon = Icons.wifi_off_rounded;
+        headline  = 'Internet connection nahi hai';
+        subtext   = 'Please apna internet check karein aur dobara try karein.';
+        iconColor = const Color(0xFF1565C0);
+        iconBg    = const Color(0xFFE3F2FD);
+        break;
+      case 'timeout':
+        errorIcon = Icons.timer_off_rounded;
+        headline  = 'Server se response nahi aaya';
+        subtext   = 'Connection slow hai ya server busy hai.\nThodi der baad try karein.';
+        iconColor = const Color(0xFFE65100);
+        iconBg    = const Color(0xFFFFF3E0);
+        break;
+      case 'server':
+        errorIcon = Icons.cloud_off_rounded;
+        headline  = 'Test abhi load nahi ho saka';
+        subtext   = 'Server se data aane mein dikkat hui.\nDobara try karein.';
+        iconColor = const Color(0xFF6A1B9A);
+        iconBg    = const Color(0xFFF3E5F5);
+        break;
+      case 'session':
+        errorIcon = Icons.person_off_rounded;
+        headline  = 'Session expire ho gaya';
+        subtext   = 'App dobara open karein ya logout karke\nlogin karein.';
+        iconColor = _DS.red;
+        iconBg    = const Color(0xFFFFEBEE);
+        break;
+      default:
+        errorIcon = Icons.error_outline_rounded;
+        headline  = 'Kuch galat ho gaya';
+        subtext   = 'Test load karne mein problem aayi.\nDobara try karein.';
+        iconColor = _DS.textSec;
+        iconBg    = const Color(0xFFF4F6FB);
+    }
+
+    return Scaffold(
+      backgroundColor: _DS.surface,
+      appBar: AppBar(
+        backgroundColor: _DS.navy,
+        elevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(9)),
+            child: const Icon(Icons.arrow_back_ios_new_rounded,
+                color: Colors.white, size: 16),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Test Details',
+            style: TextStyle(
+                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon circle
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(errorIcon, size: 40, color: iconColor),
+              ),
+              const SizedBox(height: 24),
+
+              // Headline
+              Text(
+                headline,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: _DS.fsXl,
+                  fontWeight: FontWeight.w800,
+                  color: _DS.textPri,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Subtext
+              Text(
+                subtext,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: _DS.fsMd,
+                  color: _DS.textSec,
+                  height: 1.6,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Retry button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _DS.teal,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    shadowColor: _DS.teal.withOpacity(0.3),
+                  ),
+                  onPressed: _getUserData,
+                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  label: const Text(
+                    'Dobara Try Karein',
+                    style: TextStyle(
+                        fontSize: _DS.fsLg,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Back button
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: _DS.border),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Wapas Jaayein',
+                    style: TextStyle(
+                        fontSize: _DS.fsMd,
+                        color: _DS.textSec,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -538,7 +778,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  ACCESS BANNER — clean, informative, not overly decorative
+  //  ACCESS BANNER
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildAccessBanner() {
     final quiz  = _currentQuiz!;
@@ -633,7 +873,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       }
     }
 
-    // ── Ultra-compact single-row banner strip ───────────────────────────────
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -784,8 +1023,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  COMBINED HEADER — course breadcrumb + tags + title + description
-  //  Everything in one cohesive card
+  //  COMBINED HEADER
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildCombinedHeader() {
     final materialName = _currentQuiz?.Material_name ?? '';
@@ -796,8 +1034,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // ── Course strip — dark navy gradient top accent ──────────────
           if (materialName.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -853,17 +1089,14 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 9, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
                       color: _DS.gold.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: _DS.gold.withOpacity(0.4)),
+                      border: Border.all(color: _DS.gold.withOpacity(0.4)),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.menu_book_rounded,
-                          size: 10, color: _DS.gold),
+                      const Icon(Icons.menu_book_rounded, size: 10, color: _DS.gold),
                       const SizedBox(width: 4),
                       const Text('Series',
                           style: TextStyle(
@@ -876,14 +1109,11 @@ class _QuizDetailPageState extends State<QuizDetailPage>
               ),
             ),
 
-          // ── Main content area ─────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // Status + difficulty + free/premium tags
                 Wrap(
                   spacing: 6, runSpacing: 6,
                   children: [
@@ -903,11 +1133,10 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 ),
                 const SizedBox(height: 12),
 
-                // ── Test title — firm size, clean weight ─────────────────
                 Text(
                   _currentQuiz!.Category_name,
                   style: const TextStyle(
-                    fontSize: 15,           // ✅ firm, not massive
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: _DS.textPri,
                     height: 1.35,
@@ -915,7 +1144,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                   ),
                 ),
 
-                // ── Series description — full text, clean style ──────────
                 if (_currentQuiz!.subscription_description.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Container(
@@ -928,7 +1156,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                     ),
                     child: Text(
                       _currentQuiz!.subscription_description,
-                      // ✅ Full description — no maxLines, no ellipsis
                       style: const TextStyle(
                         fontSize: _DS.fsSm,
                         fontWeight: FontWeight.w400,
@@ -939,40 +1166,34 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                   ),
                 ],
 
-                // ── Countdown timer ───────────────────────────────────────
                 if (_remainingSeconds > 0) ...[
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFFAEB),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: const Color(0xFFFBD038), width: 1.2),
+                      border: Border.all(color: const Color(0xFFFBD038), width: 1.2),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-
-                         Row(
-                           mainAxisAlignment: MainAxisAlignment.start,
-                           children: [
-                             Icon(Icons.schedule_rounded,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.schedule_rounded,
                                 color: Color(0xFFB45309), size: 14),
-                           
-                         
-                        const SizedBox(width: 7),
-                        Text(
-                          _getCountdownLabel(),
-                          style: const TextStyle(
-                              fontSize: _DS.fsMd,
-                              color: Color(0xFFB45309),
-                              fontWeight: FontWeight.w500),
+                            const SizedBox(width: 7),
+                            Text(
+                              _getCountdownLabel(),
+                              style: const TextStyle(
+                                  fontSize: _DS.fsMd,
+                                  color: Color(0xFFB45309),
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ],
                         ),
-                           ],
-                          ),
                         Text(
                           _getCountdownText(),
                           style: const TextStyle(
@@ -1021,130 +1242,130 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  STATS GRID — 2x2: Duration, Total Marks, Total Questions, Passing Score
+  //  STATS GRID
   // ═══════════════════════════════════════════════════════════════════════
- Widget _buildStatsRow() {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    child: Column(
-      children: [
-        Row(
-          children: [
-            _buildStatCard(
-              icon: Icons.timer_outlined,
-              iconBg: const Color(0xFFFFF8EC),
-              iconColor: const Color(0xFFBA7517),
-              value: _currentQuiz?.timeLimit.isEmpty == false
-                  ? '${_currentQuiz!.timeLimit} min'
-                  : '—',
-              label: 'Duration',
-            ),
-            const SizedBox(width: 10),
-            _buildStatCard(
-              icon: Icons.emoji_events_outlined,
-              iconBg: const Color(0xFFE1F5EE),
-              iconColor: const Color(0xFF0F6E56),
-              value: _currentQuiz?.totalMarks.toString() ?? '—',
-              label: 'Total Marks',
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            _buildStatCard(
-              icon: Icons.help_outline_rounded,
-              iconBg: const Color(0xFFEEF1F9),
-              iconColor: const Color(0xFF1A2F5A),
-              value: _currentQuiz?.totalQuestions != null
-                  ? '${_currentQuiz!.totalQuestions}'
-                  : '—',
-              label: 'Questions',
-            ),
-            const SizedBox(width: 10),
-            _buildStatCard(
-              icon: Icons.verified_outlined,
-              iconBg: const Color(0xFFEEEDFE),
-              iconColor: const Color(0xFF534AB7),
-              value: _currentQuiz?.passing_score != null
-                  ? '${_currentQuiz!.passing_score}'
-                  : '—',
-              label: 'Passing Marks',
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildStatCard({
-  required IconData icon,
-  required Color iconBg,
-  required Color iconColor,
-  required String value,
-  required String label,
-}) {
-  return Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _primary.withOpacity(0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: _primary.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
+  Widget _buildStatsRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(11),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
+          Row(
+            children: [
+              _buildStatCard(
+                icon: Icons.timer_outlined,
+                iconBg: const Color(0xFFFFF8EC),
+                iconColor: const Color(0xFFBA7517),
+                value: _currentQuiz?.timeLimit.isEmpty == false
+                    ? '${_currentQuiz!.timeLimit} min'
+                    : '—',
+                label: 'Duration',
+              ),
+              const SizedBox(width: 10),
+              _buildStatCard(
+                icon: Icons.emoji_events_outlined,
+                iconBg: const Color(0xFFE1F5EE),
+                iconColor: const Color(0xFF0F6E56),
+                value: _currentQuiz?.totalMarks.toString() ?? '—',
+                label: 'Total Marks',
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: _primary,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.greyS600,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _buildStatCard(
+                icon: Icons.help_outline_rounded,
+                iconBg: const Color(0xFFEEF1F9),
+                iconColor: const Color(0xFF1A2F5A),
+                value: _currentQuiz?.totalQuestions != null
+                    ? '${_currentQuiz!.totalQuestions}'
+                    : '—',
+                label: 'Questions',
+              ),
+              const SizedBox(width: 10),
+              _buildStatCard(
+                icon: Icons.verified_outlined,
+                iconBg: const Color(0xFFEEEDFE),
+                iconColor: const Color(0xFF534AB7),
+                value: _currentQuiz?.passing_score != null
+                    ? '${_currentQuiz!.passing_score}'
+                    : '—',
+                label: 'Passing Marks',
+              ),
+            ],
           ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String value,
+    required String label,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _primary.withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: _primary.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: _primary,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.greyS600,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  BANNER AD — only shown to non-subscribed users
+  //  BANNER AD
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildBannerAd() {
     return Padding(
@@ -1186,7 +1407,6 @@ Widget _buildStatCard({
         borderRadius: BorderRadius.circular(_DS.r20),
         child: Column(
           children: [
-            // ── Header ─────────────────────────────────────────────────
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -1200,7 +1420,6 @@ Widget _buildStatCard({
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Lock icon circle
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -1215,7 +1434,6 @@ Widget _buildStatCard({
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ✅ Single line title — full width, wraps naturally
                         const Text(
                           'Free Attempt Used — Upgrade to Continue',
                           style: TextStyle(
@@ -1239,7 +1457,6 @@ Widget _buildStatCard({
               ),
             ),
 
-            // ── "What You Get" benefits grid ────────────────────────────
             Container(
               color: _DS.card,
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
@@ -1249,7 +1466,6 @@ Widget _buildStatCard({
                   _buildSectionLabel('WHAT YOU GET AFTER SUBSCRIBING'),
                   const SizedBox(height: 14),
 
-                  // Benefits in rows of 2 — icon + emoji style (MockTest design)
                   _buildBenefitGrid([
                     _BenefitEntry(
                         emoji: '📝',
@@ -1291,7 +1507,6 @@ Widget _buildStatCard({
 
                   const SizedBox(height: 16),
 
-                  // CTA strip
                   Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
@@ -1340,7 +1555,6 @@ Widget _buildStatCard({
               ),
             ),
 
-            // ── Usage meter ────────────────────────────────────────────
             Container(
               color: _DS.card,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -1395,7 +1609,6 @@ Widget _buildStatCard({
     );
   }
 
-  // ── Benefit grid helper (2 per row, icon + emoji card style) ─────────────
   Widget _buildBenefitGrid(List<_BenefitEntry> items) {
     final rows = <Widget>[];
     for (int i = 0; i < items.length; i += 2) {
@@ -1565,16 +1778,14 @@ Widget _buildStatCard({
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: _DS.gold.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: _DS.gold.withOpacity(0.4)),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.workspace_premium_rounded,
-                        color: _DS.gold, size: 13),
+                    Icon(Icons.workspace_premium_rounded, color: _DS.gold, size: 13),
                     const SizedBox(width: 6),
                     Text('Upgrade Required',
                         style: TextStyle(
@@ -1624,8 +1835,7 @@ Widget _buildStatCard({
     );
   }
 
-  Widget _buildBenefit(
-      IconData icon, String title, String subtitle, Color color) {
+  Widget _buildBenefit(IconData icon, String title, String subtitle, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1666,7 +1876,7 @@ Widget _buildStatCard({
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  SCHEDULE SECTION — label left, date+time right in same row
+  //  SCHEDULE SECTION
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildScheduleSection() {
     return Container(
@@ -1679,7 +1889,6 @@ Widget _buildStatCard({
           _buildSectionHead(Icons.calendar_today_rounded, 'Test Schedule'),
           const SizedBox(height: 14),
 
-          // ── Starts At row ───────────────────────────────────────────
           _buildScheduleRow(
             icon: Icons.play_circle_outline_rounded,
             label: 'Start',
@@ -1687,7 +1896,6 @@ Widget _buildStatCard({
             color: _DS.teal,
           ),
 
-          // ── Ends At row ─────────────────────────────────────────────
           if (_currentQuiz!.endDateTime.isNotEmpty) ...[
             const SizedBox(height: 10),
             _buildScheduleRow(
@@ -1698,7 +1906,6 @@ Widget _buildStatCard({
             ),
           ],
 
-          // ── Duration row ─────────────────────────────────────────────
           if (_currentQuiz!.timeLimit.isNotEmpty) ...[
             const SizedBox(height: 10),
             _buildScheduleRow(
@@ -1710,7 +1917,6 @@ Widget _buildStatCard({
             ),
           ],
 
-          // ── Exam simulation note ────────────────────────────────────
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1742,7 +1948,6 @@ Widget _buildStatCard({
     );
   }
 
-  // ── Single schedule row: icon + label LEFT | date · time RIGHT (all inline) ──
   Widget _buildScheduleRow({
     required IconData icon,
     required String label,
@@ -1771,7 +1976,6 @@ Widget _buildStatCard({
       ),
       child: Row(
         children: [
-          // LEFT: icon
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
@@ -1780,49 +1984,37 @@ Widget _buildStatCard({
             child: Icon(icon, color: color, size: 14),
           ),
           const SizedBox(width: 10),
-
-          // LEFT: label
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: _DS.fsMd,
-              fontWeight: FontWeight.w600,
-              color: _DS.textSec,
-            ),
-          ),
-
+          Text(label,
+              style: const TextStyle(
+                fontSize: _DS.fsMd,
+                fontWeight: FontWeight.w600,
+                color: _DS.textSec,
+              )),
           const Spacer(),
-
-          // RIGHT: date + time — truly side by side in one Row
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                dateText,
-                style: const TextStyle(
-                  fontSize: _DS.fsMd,
-                  fontWeight: FontWeight.w800,
-                  color: _DS.textPri,
-                ),
-              ),
+              Text(dateText,
+                  style: const TextStyle(
+                    fontSize: _DS.fsMd,
+                    fontWeight: FontWeight.w800,
+                    color: _DS.textPri,
+                  )),
               if (timeText.isNotEmpty) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.14),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(
-                    timeText,
-                    style: TextStyle(
-                      fontSize: _DS.fsXs,
-                      fontWeight: FontWeight.w800,
-                      color: color,
-                    ),
-                  ),
+                  child: Text(timeText,
+                      style: TextStyle(
+                        fontSize: _DS.fsXs,
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                      )),
                 ),
               ],
             ],
@@ -1866,7 +2058,6 @@ Widget _buildStatCard({
           const SizedBox(height: 12),
           Text(
             _currentQuiz!.description,
-            // ✅ No maxLines — full description always visible
             style: const TextStyle(
               fontSize: _DS.fsMd,
               color: _DS.textSec,
@@ -1928,8 +2119,7 @@ Widget _buildStatCard({
                 child: Container(
                   width: 5, height: 5,
                   decoration: BoxDecoration(
-                      color: _DS.teal,
-                      shape: BoxShape.circle),
+                      color: _DS.teal, shape: BoxShape.circle),
                 ),
               ),
               const SizedBox(width: 10),
@@ -2155,8 +2345,7 @@ Widget _buildStatCard({
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFAEB),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: const Color(0xFFFBD038), width: 1.2),
+                border: Border.all(color: const Color(0xFFFBD038), width: 1.2),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -2182,8 +2371,7 @@ Widget _buildStatCard({
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [_DS.navy, _DS.teal]),
+                gradient: const LinearGradient(colors: [_DS.navy, _DS.teal]),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
@@ -2234,7 +2422,7 @@ Widget _buildStatCard({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  Config class
+//  Config classes
 // ═══════════════════════════════════════════════════════════════════════════
 class _AccessBannerCfg {
   final List<Color> gradient;
@@ -2258,7 +2446,6 @@ class _AccessBannerCfg {
   });
 }
 
-// ─── Benefit item model for grid cards ───────────────────────────────────────
 class _BenefitEntry {
   final String   emoji;
   final IconData icon;
