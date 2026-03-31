@@ -18,7 +18,6 @@ class QuizItem {
   final String subscription_description;
   final int subscription_id;
 
-
   final double price;
   final bool isPurchased;
   final bool isAccessible;
@@ -31,7 +30,6 @@ class QuizItem {
   int totalMarks;
   final int pageType;
 
-  // ── Naye 4 fields (package access) ──
   final bool accessStatus;
   final String? accessError;
   final String? accessMessage;
@@ -40,6 +38,9 @@ class QuizItem {
 
   final String? passing_score;
   final String? questionCount;
+
+  // ✅ NEW
+  final bool dailyLimitExceeded;
 
   QuizItem({
     required this.quizId,
@@ -68,7 +69,6 @@ class QuizItem {
     this.totalQuestions = 0,
     this.totalMarks = 0,
     this.pageType = 0,
-    // naye — default values hain to crash nahi hoga
     this.accessStatus = true,
     this.accessError,
     this.accessMessage,
@@ -76,7 +76,10 @@ class QuizItem {
     this.pendingAttemptId,
     this.passing_score,
     this.questionCount,
+    // ✅ NEW
+    this.dailyLimitExceeded = false,
   });
+
   factory QuizItem.fromJson(Map<String, dynamic> json) {
     int _toInt(dynamic v) => int.tryParse(v?.toString() ?? '') ?? 0;
     double _toDouble(dynamic v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
@@ -85,9 +88,7 @@ class QuizItem {
       if (v == null) return false;
       if (v is bool) return v;
       if (v is int) return v == 1;
-      if (v is String) {
-        return v.toLowerCase() == 'true' || v == '1';
-      }
+      if (v is String) return v.toLowerCase() == 'true' || v == '1';
       return false;
     }
 
@@ -99,56 +100,40 @@ class QuizItem {
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       banner: json['banner']?.toString(),
-
       startDateTime: json['startDateTime']?.toString() ?? '',
       endDateTime: json['endDateTime']?.toString() ?? '',
       timeLimit: json['timeLimit']?.toString() ?? json['time_limit']?.toString() ?? '',
-
       difficultyLevel: json['difficultyLevel']?.toString() ?? json['difficulty_level']?.toString() ?? '',
-
       instruction: json['instruction']?.toString() ?? '',
       quizStatus: status,
-
       is_attempted: _toBool(json['is_attempted']),
-
       subscription_id: _toInt(json['subscription_id']),
       price: _toDouble(json['price']),
-
       isPurchased: _toBool(json['isPurchased'] ?? json['is_purchased']),
       isAccessible: _toBool(json['isAccessible'] ?? json['is_accessible']),
-
-      // ⭐ LIVE FIX
       isLive: status == 'live' || _toBool(json['isLive']),
-
       startsInSeconds: _toInt(json['startsInSeconds']),
       startsInText: json['startsInText']?.toString() ?? '',
-
       is_premium: _toInt(json['is_premium']),
-
       Category_name: json['Category_name']?.toString() ?? '',
       Material_name: json['Material_name']?.toString() ?? '',
-
       subscription_price: _toDouble(json['subscription_price']),
       subscription_description: json['subscription_description']?.toString() ?? '',
-
       totalQuestions: _toInt(json['total_questions']),
       totalMarks: _toInt(json['total_marks']),
-
-       
-
       pageType: _toInt(json['pageType']),
-
-      // ⭐ ACCESS CONTROL
       accessStatus: _toBool(json['access_status']),
       accessError: json['access_error']?.toString(),
       accessMessage: json['access_message']?.toString(),
       effectivePlan: json['effective_plan']?.toString(),
-
       pendingAttemptId: _toInt(json['pending_attempt_id'] ?? json['pendingAttemptId']),
       passing_score: json['passwing_score']?.toString(),
       questionCount: json['question_count']?.toString(),
+      // ✅ NEW
+      dailyLimitExceeded: _toBool(json['daily_limit_exceeded']),
     );
   }
+
   Map<String, dynamic> toJson() {
     return {
       'quiz_id': quizId,
@@ -184,6 +169,8 @@ class QuizItem {
       'pending_attempt_id': pendingAttemptId,
       'passing_score': passing_score,
       'question_count': questionCount,
+      // ✅ NEW
+      'daily_limit_exceeded': dailyLimitExceeded,
     };
   }
 }

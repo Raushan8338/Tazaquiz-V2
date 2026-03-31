@@ -14,7 +14,7 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 
 class Paid_QuizListScreen extends StatefulWidget {
   final String pageId;
-  final String PageType; // ✅ '4' = mock test, '0' = quiz
+  final String PageType;
 
   Paid_QuizListScreen(this.pageId, this.PageType);
 
@@ -23,7 +23,10 @@ class Paid_QuizListScreen extends StatefulWidget {
 }
 
 class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
+  // For live quizzes, filter can be: all / live / upcoming / missed / ended
+  // For mock tests, filter can be: all / attempted / unattempted
   String _selectedFilter = 'all';
+
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
 
@@ -35,10 +38,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   List<QuizItem> _quizzes = [];
   UserModel? _user;
 
-  // ✅ Mock test check — same as QuizListScreen
   bool get isMockTest => widget.PageType == '4';
 
-  // ✅ Same gradients as QuizListScreen
   final List<List<Color>> _liveGradients = const [
     [Color(0xFF0D4B3B), Color(0xFF1A8070)],
     [Color(0xFF0B3D5E), Color(0xFF1A6D8A)],
@@ -77,7 +78,6 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     await _fetchLevels();
   }
 
-  // ✅ Same category fetch as QuizListScreen
   Future<void> _fetchLevels() async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
@@ -101,23 +101,20 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     }
   }
 
-  // ✅ Paid API with Pagetype + type filter
   Future<void> _fetchQuizzes(int categoryId, int educationLevelId) async {
     setState(() => _isFetchingQuizzes = true);
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
+
       final data = {
         'subscription_id': widget.pageId,
         'user_id': _user!.id.toString(),
         'category_id': categoryId.toString(),
-        'education_level_id':
-            educationLevelId == 0
-                ? categoryId.toString()
-                : 0, // ✅ education level filter ke liye, agar 0 hai toh empty bhejo
+        'education_level_id': educationLevelId == 0 ? categoryId.toString() : 0,
         'Pagetype': widget.PageType,
-
-        // ✅ ended client side filter hai — API ko sirf live/upcoming bhejo
-        if (_selectedFilter == 'live' || _selectedFilter == 'upcoming') 'type': _selectedFilter,
+        // For live quizzes, pass live/upcoming/missed to API
+        if (!isMockTest && (_selectedFilter == 'live' || _selectedFilter == 'upcoming' || _selectedFilter == 'missed'))
+          'type': _selectedFilter,
       };
       print('Fetching quizzes with data: $data');
 
@@ -125,7 +122,6 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
       print('Quiz API response: ${response.data}');
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
-
         setState(() {
           _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
           _isFetchingQuizzes = false;
@@ -136,41 +132,50 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     }
   }
 
-  // ✅ Paid users — sab dikhao (live + upcoming + ended)
   List<QuizItem> get _filtered {
-    if (isMockTest) return _quizzes;
+    // ── MOCK TEST filters ──────────────────────────────────────────────────
+    if (isMockTest) {
+      if (_selectedFilter == 'attempted') {
+        return _quizzes.where((q) => q.is_attempted).toList();
+      }
+      if (_selectedFilter == 'unattempted') {
+        return _quizzes.where((q) => !q.is_attempted).toList();
+      }
+      // 'all'
+      return _quizzes;
+    }
 
-    if (_selectedFilter == 'live') return _quizzes.where((q) => q.isLive).toList();
-    if (_selectedFilter == 'upcoming') return _quizzes.where((q) => q.quizStatus == 'upcoming' && !q.isLive).toList();
-    if (_selectedFilter == 'ended') return _quizzes.where((q) => q.quizStatus == 'ended').toList();
+    // ── LIVE QUIZ filters ──────────────────────────────────────────────────
+    if (_selectedFilter == 'live') {
+      return _quizzes.where((q) => q.isLive).toList();
+    }
+    if (_selectedFilter == 'upcoming') {
+      return _quizzes.where((q) => q.quizStatus == 'upcoming' && !q.isLive).toList();
+    }
+    if (_selectedFilter == 'ended') {
+      return _quizzes.where((q) => q.quizStatus == 'ended').toList();
+    }
+    if (_selectedFilter == 'missed') {
+      return _quizzes.where((q) => q.quizStatus == 'missed').toList();
+    }
 
-    // ✅ 'all' — Live + Upcoming only (ended hatao default mein)
+    // 'all' — Live + Upcoming + Missed
     final live = _quizzes.where((q) => q.isLive).toList();
     final upcoming = _quizzes.where((q) => q.quizStatus == 'upcoming' && !q.isLive).toList();
-    return [...live, ...upcoming];
+    final missed = _quizzes.where((q) => q.quizStatus == 'missed').toList();
+    return [...live, ...upcoming, ...missed];
   }
 
   void _goToDetail(QuizItem quiz) {
-
     if (isMockTest) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => MockTestDetailPage(quizId: quiz.quizId)));
+      return;
+    } else {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => MockTestDetailPage(quizId: quiz.quizId), // ✅ paid = subscribed
-        ),
+        MaterialPageRoute(builder: (_) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: true)),
       );
-      return;
     }
-    else {
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => QuizDetailPage(quizId: quiz.quizId, is_subscribed: true), // ✅ paid = subscribed
-      ),
-    );
-    }
-
   }
 
   // ─── BUILD ────────────────────────────────────────────────────────────────
@@ -199,6 +204,9 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   // ─── APP BAR ──────────────────────────────────────────────────────────────
 
   PreferredSizeWidget _buildAppBar(int pageType_data) {
+    // Title differs for mock vs live
+    final String title = isMockTest ? 'Mock Tests' : 'Live Quizzes';
+
     return AppBar(
       backgroundColor: AppColors.darkNavy,
       elevation: 0,
@@ -214,12 +222,17 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-           Text(
-            pageType_data == 0 ? 'Live Quizzes' : 'Mock Test',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Poppins',
+            ),
           ),
           Text(
-            '${_filtered.length} quizzes available',
+            isMockTest ? '${_filtered.length} tests available' : '${_filtered.length} quizzes available',
             style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
           ),
         ],
@@ -246,7 +259,10 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.darkNavy, const Color(0xFF0D4B3B)],
+            colors:
+                isMockTest
+                    ? [AppColors.darkNavy, const Color(0xFF1a237e)]
+                    : [AppColors.darkNavy, const Color(0xFF0D4B3B)],
           ),
         ),
       ),
@@ -257,6 +273,73 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
 
   Widget _buildFilterSheet() {
     String tempFilter = _selectedFilter;
+
+    // ── Mock test filter options ──────────────────────────────────────────
+    final mockFilters = [
+      {
+        'key': 'all',
+        'title': 'All Tests',
+        'subtitle': 'Show every mock test in this series',
+        'icon': Icons.view_list,
+        'color': AppColors.darkNavy,
+      },
+      {
+        'key': 'unattempted',
+        'title': 'Not Attempted',
+        'subtitle': 'Tests you haven\'t started yet',
+        'icon': Icons.radio_button_unchecked,
+        'color': const Color(0xFF3949AB),
+      },
+      {
+        'key': 'attempted',
+        'title': 'Attempted',
+        'subtitle': 'Tests you have already completed',
+        'icon': Icons.check_circle_outline_rounded,
+        'color': const Color(0xFF00897B),
+      },
+    ];
+
+    // ── Live quiz filter options ───────────────────────────────────────────
+    final liveFilters = [
+      {
+        'key': 'all',
+        'title': 'All Quizzes',
+        'subtitle': 'Show live, upcoming and assessments',
+        'icon': Icons.view_list,
+        'color': AppColors.darkNavy,
+      },
+      {
+        'key': 'live',
+        'title': 'Live Now',
+        'subtitle': 'Quizzes currently live',
+        'icon': Icons.radio_button_checked,
+        'color': Colors.red,
+      },
+      {
+        'key': 'upcoming',
+        'title': 'Upcoming',
+        'subtitle': 'Quizzes scheduled ahead',
+        'icon': Icons.schedule,
+        'color': const Color(0xFFF59E0B),
+      },
+      {
+        'key': 'missed',
+        'title': 'Assessment',
+        'subtitle': 'Quizzes you missed — attempt now',
+        'icon': Icons.assignment_late_outlined,
+        'color': const Color(0xFF6366F1),
+      },
+      {
+        'key': 'ended',
+        'title': 'Ended',
+        'subtitle': 'Quizzes that have concluded',
+        'icon': Icons.history,
+        'color': AppColors.greyS600,
+      },
+    ];
+
+    final filters = isMockTest ? mockFilters : liveFilters;
+
     return StatefulBuilder(
       builder: (context, setModalState) {
         return Container(
@@ -283,15 +366,15 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                            gradient: LinearGradient(colors: [_accent, AppColors.darkNavy]),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
-                          'Filter Quizzes',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                        Text(
+                          isMockTest ? 'Filter Tests' : 'Filter Quizzes',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                         ),
                         const Spacer(),
                         IconButton(
@@ -301,36 +384,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    ...[
-                      {
-                        'key': 'all',
-                        'title': 'All Quizzes',
-                        'subtitle': 'Live, upcoming aur ended sab dikhao',
-                        'icon': Icons.view_list,
-                        'color': AppColors.darkNavy,
-                      },
-                      {
-                        'key': 'live',
-                        'title': 'Live Now',
-                        'subtitle': 'Abhi live chal rahe quizzes',
-                        'icon': Icons.radio_button_checked,
-                        'color': Colors.red,
-                      },
-                      {
-                        'key': 'upcoming',
-                        'title': 'Upcoming',
-                        'subtitle': 'Aane wale quizzes',
-                        'icon': Icons.schedule,
-                        'color': Colors.orange,
-                      },
-                      {
-                        'key': 'ended',
-                        'title': 'Ended',
-                        'subtitle': 'Khatam ho chuke quizzes',
-                        'icon': Icons.history,
-                        'color': AppColors.greyS600,
-                      },
-                    ].map((f) {
+                    ...filters.map((f) {
                       final bool sel = tempFilter == f['key'];
                       final Color c = f['color'] as Color;
                       return GestureDetector(
@@ -385,14 +439,13 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                       onTap: () {
                         setState(() => _selectedFilter = tempFilter);
                         Navigator.pop(context);
-                        // ✅ API dobara call karo naye filter ke saath
                         _fetchQuizzes(_selectedCategoryId, 1);
                       },
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                          gradient: LinearGradient(colors: [_accent, AppColors.darkNavy]),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
@@ -431,17 +484,14 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
           return GestureDetector(
             onTap: () async {
               setState(() => _selectedCategoryId = cat.category_id);
-              await _fetchQuizzes(
-                cat.category_id,
-                0,
-              ); // ✅ educationLevelId = 0 for now, kyunki filter nahi hai (agar aage add kiya toh yahan se bhejna)
+              await _fetchQuizzes(cat.category_id, 0);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                gradient: sel ? const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
+                gradient: sel ? LinearGradient(colors: [_accent, AppColors.darkNavy]) : null,
                 color: sel ? null : const Color(0xFFF0F2F8),
                 borderRadius: BorderRadius.circular(20),
                 border: sel ? null : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
@@ -509,8 +559,14 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   // ─── CARD ─────────────────────────────────────────────────────────────────
 
   Widget _buildCard(QuizItem quiz, List<Color> colors) {
-    final bool isLive = quiz.quizStatus == 'live';
-    final bool isUpcoming = quiz.quizStatus == 'upcoming';
+    // For mock tests, status flags are irrelevant — use attempted flag
+    final bool isAttempted = quiz.is_attempted;
+
+    // For live quizzes only
+    final bool isLive = !isMockTest && quiz.quizStatus == 'live';
+    final bool isUpcoming = !isMockTest && quiz.quizStatus == 'upcoming';
+    final bool isMissed = !isMockTest && quiz.quizStatus == 'missed';
+
     final bool hasBanner = quiz.banner != null && quiz.banner!.isNotEmpty;
 
     return GestureDetector(
@@ -531,8 +587,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                 height: 120,
                 child:
                     hasBanner
-                        ? _buildBannerPanel(quiz, colors, isLive, isUpcoming)
-                        : _buildGradientPanel(quiz, colors, isLive, isUpcoming),
+                        ? _buildBannerPanel(quiz, colors, isLive, isUpcoming, isMissed, isAttempted)
+                        : _buildGradientPanel(quiz, colors, isLive, isUpcoming, isMissed, isAttempted),
               ),
             ),
             Expanded(
@@ -570,8 +626,23 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                           _chip(Icons.signal_cellular_alt, quiz.difficultyLevel, AppColors.tealGreen),
                         if (quiz.timeLimit.isNotEmpty && quiz.timeLimit != '0')
                           _chip(Icons.timer_outlined, '${quiz.timeLimit} min', AppColors.greyS600),
-                        if (quiz.startsInText.isNotEmpty && !isLive)
-                          _chip(Icons.schedule, quiz.startsInText, Colors.orange),
+
+                        // ── Mock test chips ──────────────────────────────
+                        if (isMockTest) ...[
+                          if (isAttempted)
+                            _chip(Icons.check_circle_outline_rounded, 'Attempted', const Color(0xFF00897B))
+                          else
+                            _chip(Icons.assignment_outlined, 'Not Attempted', const Color(0xFF3949AB)),
+                          if (quiz.totalQuestions > 0)
+                            _chip(Icons.help_outline_rounded, '${quiz.totalQuestions} Qs', AppColors.greyS600),
+                        ],
+
+                        // ── Live quiz chips ──────────────────────────────
+                        if (!isMockTest) ...[
+                          if (quiz.startsInText.isNotEmpty && !isLive)
+                            _chip(Icons.schedule, quiz.startsInText, Colors.orange),
+                          if (isMissed) _chip(Icons.assignment_late_outlined, 'Assessment', const Color(0xFF6366F1)),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -585,10 +656,10 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(_btnIcon(quiz, isLive), color: Colors.white, size: 14),
+                          Icon(_btnIcon(quiz, isLive, isAttempted), color: Colors.white, size: 14),
                           const SizedBox(width: 5),
                           Text(
-                            _btnText(quiz, isLive),
+                            _btnText(quiz, isLive, isMissed, isAttempted),
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
                         ],
@@ -604,14 +675,23 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     );
   }
 
-  Widget _buildBannerPanel(QuizItem quiz, List<Color> colors, bool isLive, bool isUpcoming) {
+  // ─── BANNER PANEL ─────────────────────────────────────────────────────────
+
+  Widget _buildBannerPanel(
+    QuizItem quiz,
+    List<Color> colors,
+    bool isLive,
+    bool isUpcoming,
+    bool isMissed,
+    bool isAttempted,
+  ) {
     return Stack(
       fit: StackFit.expand,
       children: [
         Image.network(
           quiz.banner!,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildGradientPanel(quiz, colors, isLive, isUpcoming),
+          errorBuilder: (_, __, ___) => _buildGradientPanel(quiz, colors, isLive, isUpcoming, isMissed, isAttempted),
         ),
         Container(
           decoration: BoxDecoration(
@@ -622,12 +702,26 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
             ),
           ),
         ),
-        Positioned(bottom: 8, left: 0, right: 0, child: Center(child: _statusBadge(isLive, isUpcoming))),
+        Positioned(
+          bottom: 8,
+          left: 0,
+          right: 0,
+          child: Center(child: _statusBadge(isLive, isUpcoming, isMissed, isAttempted)),
+        ),
       ],
     );
   }
 
-  Widget _buildGradientPanel(QuizItem quiz, List<Color> colors, bool isLive, bool isUpcoming) {
+  // ─── GRADIENT PANEL ───────────────────────────────────────────────────────
+
+  Widget _buildGradientPanel(
+    QuizItem quiz,
+    List<Color> colors,
+    bool isLive,
+    bool isUpcoming,
+    bool isMissed,
+    bool isAttempted,
+  ) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
@@ -656,10 +750,10 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
                   ),
-                  child: const Center(child: Text('⚡', style: TextStyle(fontSize: 22))),
+                  child: Center(child: Text(isMockTest ? '📝' : '⚡', style: const TextStyle(fontSize: 22))),
                 ),
                 const SizedBox(height: 8),
-                _statusBadge(isLive, isUpcoming),
+                _statusBadge(isLive, isUpcoming, isMissed, isAttempted),
               ],
             ),
           ),
@@ -668,19 +762,54 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     );
   }
 
-  Widget _statusBadge(bool isLive, bool isUpcoming) {
+  // ─── STATUS BADGE ─────────────────────────────────────────────────────────
+
+  Widget _statusBadge(bool isLive, bool isUpcoming, bool isMissed, bool isAttempted) {
+    // ── Mock test badge — no live/upcoming concept ─────────────────────────
+    if (isMockTest) {
+      final Color color =
+          isAttempted
+              ? const Color(0xFF00897B) // teal — completed
+              : const Color(0xFF3949AB); // indigo — available
+
+      final String label = isAttempted ? 'DONE' : 'ATTEMPT';
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isAttempted ? Icons.check_circle_outline : Icons.play_arrow_rounded, size: 7, color: Colors.white),
+            const SizedBox(width: 3),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Live quiz badge ────────────────────────────────────────────────────
     final Color color =
         isLive
             ? Colors.red
             : isUpcoming
-            ? Colors.orange
+            ? const Color(0xFFF59E0B)
+            : isMissed
+            ? const Color(0xFF6366F1)
             : AppColors.greyS600;
+
     final String label =
         isLive
             ? 'LIVE'
             : isUpcoming
             ? 'UPCOMING'
+            : isMissed
+            ? 'ASSESSMENT'
             : 'ENDED';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
@@ -694,6 +823,11 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
               margin: const EdgeInsets.only(right: 3),
               decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             ),
+          if (isMissed)
+            const Padding(
+              padding: EdgeInsets.only(right: 3),
+              child: Icon(Icons.assignment_late_outlined, size: 7, color: Colors.white),
+            ),
           Text(
             label,
             style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
@@ -703,15 +837,30 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     );
   }
 
-  IconData _btnIcon(QuizItem quiz, bool isLive) {
+  // ─── HELPERS ──────────────────────────────────────────────────────────────
+
+  IconData _btnIcon(QuizItem quiz, bool isLive, bool isAttempted) {
     if (!quiz.isAccessible) return Icons.lock_outline;
+    // Mock test
+    if (isMockTest) {
+      return isAttempted ? Icons.bar_chart_rounded : Icons.play_arrow_rounded;
+    }
+    // Live quiz
     if (isLive) return Icons.play_arrow_rounded;
     return Icons.arrow_forward_rounded;
   }
 
-  String _btnText(QuizItem quiz, bool isLive) {
+  String _btnText(QuizItem quiz, bool isLive, bool isMissed, bool isAttempted) {
     if (!quiz.isAccessible) return 'Subscribe to Unlock';
+
+    // Mock test
+    if (isMockTest) {
+      return isAttempted ? 'View Result' : 'Start Test';
+    }
+
+    // Live quiz
     if (isLive) return 'Join Now';
+    if (isMissed) return 'Attempt Now';
     return 'View Details';
   }
 
@@ -735,10 +884,14 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.quiz_outlined, size: 64, color: AppColors.greyS600.withOpacity(0.3)),
+          Icon(
+            isMockTest ? Icons.assignment_outlined : Icons.quiz_outlined,
+            size: 64,
+            color: AppColors.greyS600.withOpacity(0.3),
+          ),
           const SizedBox(height: 16),
           Text(
-            'No quizzes found',
+            isMockTest ? 'No tests found' : 'No quizzes found',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.greyS600),
           ),
           const SizedBox(height: 6),

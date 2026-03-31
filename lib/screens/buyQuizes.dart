@@ -15,22 +15,22 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 class _DS {
-  static const double r8  = 8;
+  static const double r8 = 8;
   static const double r12 = 12;
   static const double r16 = 16;
   static const double r20 = 20;
 
   static const double fsXxs = 9.5;
-  static const double fsXs  = 10.5;
-  static const double fsSm  = 11.5;
-  static const double fsMd  = 13.0;
-  static const double fsLg  = 15.0;
-  static const double fsXl  = 17.0;
+  static const double fsXs = 10.5;
+  static const double fsSm = 11.5;
+  static const double fsMd = 13.0;
+  static const double fsLg = 15.0;
+  static const double fsXl = 17.0;
   static const double fsXxl = 20.0;
 
-  static const double sp4  = 4;
-  static const double sp6  = 6;
-  static const double sp8  = 8;
+  static const double sp4 = 4;
+  static const double sp6 = 6;
+  static const double sp8 = 8;
   static const double sp10 = 10;
   static const double sp12 = 12;
   static const double sp14 = 14;
@@ -38,17 +38,18 @@ class _DS {
   static const double sp20 = 20;
   static const double sp24 = 24;
 
-  static const Color navy     = Color(0xFF0D1B3E);
-  static const Color navyMid  = Color(0xFF1A2F5A);
-  static const Color teal     = Color(0xFF00BFA5);
+  static const Color navy = Color(0xFF0D1B3E);
+  static const Color navyMid = Color(0xFF1A2F5A);
+  static const Color teal = Color(0xFF00BFA5);
   static const Color tealDark = Color(0xFF00897B);
-  static const Color gold     = Color(0xFFF5A623);
-  static const Color red      = Color(0xFFE53935);
-  static const Color surface  = Color(0xFFF4F6FB);
-  static const Color card     = Colors.white;
-  static const Color border   = Color(0xFFE2E8F4);
-  static const Color textPri  = Color(0xFF0D1B3E);
-  static const Color textSec  = Color(0xFF6B7A99);
+  static const Color gold = Color(0xFFF5A623);
+  static const Color red = Color(0xFFE53935);
+  static const Color indigo = Color(0xFF6366F1); // ✅ missed color
+  static const Color surface = Color(0xFFF4F6FB);
+  static const Color card = Colors.white;
+  static const Color border = Color(0xFFE2E8F4);
+  static const Color textPri = Color(0xFF0D1B3E);
+  static const Color textSec = Color(0xFF6B7A99);
   static const Color textHint = Color(0xFFADB5CC);
 }
 
@@ -62,15 +63,14 @@ class QuizDetailPage extends StatefulWidget {
   _QuizDetailPageState createState() => _QuizDetailPageState();
 }
 
-class _QuizDetailPageState extends State<QuizDetailPage>
-    with SingleTickerProviderStateMixin {
+class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProviderStateMixin {
   final RewardedAdService rewardedAdService = RewardedAdService();
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
   UserModel? _user;
   bool _isLoading = true;
-  bool _hasError = false;        // ✅ error state track karne ke liye
-  String _errorType = '';        // ✅ 'no_internet' | 'timeout' | 'server' | 'unknown'
+  bool _hasError = false;
+  String _errorType = '';
   bool _isPurchased = false;
   int _product_sub_id = 0;
   int _isPremium = 0;
@@ -93,13 +93,21 @@ class _QuizDetailPageState extends State<QuizDetailPage>
 
   bool get _shouldShowAds => !widget.is_subscribed && !_hasFullAccess;
 
+  // ✅ Helper — quizStatus shortcuts
+  bool get _isMissed => (_currentQuiz?.quizStatus.toLowerCase() ?? '') == 'missed';
+  bool get _isEnded => (_currentQuiz?.quizStatus.toLowerCase() ?? '') == 'ended';
+
   String get _planDisplayName {
     final plan = (_currentQuiz?.effectivePlan ?? '').toLowerCase();
     switch (plan) {
-      case 'free':        return 'Free Plan';
-      case 'basic':       return 'Basic Plan';
-      case 'premium':     return 'Premium Plan';
-      case 'full_access': return 'Full Access';
+      case 'free':
+        return 'Free Plan';
+      case 'basic':
+        return 'Basic Plan';
+      case 'premium':
+        return 'Premium Plan';
+      case 'full_access':
+        return 'Full Access';
       default:
         if (plan.isNotEmpty) {
           return '${plan[0].toUpperCase()}${plan.substring(1)} Plan';
@@ -111,10 +119,8 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
-    _fadeAnimation =
-        CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
 
     rewardedAdService.loadAd();
     _getUserData();
@@ -136,12 +142,11 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     super.dispose();
   }
 
-  // ✅ FIX 1: _getUserData — null check + retry + error state
   Future<void> _getUserData() async {
     if (mounted) {
       setState(() {
         _isLoading = true;
-        _hasError  = false;
+        _hasError = false;
         _errorType = '';
       });
     }
@@ -149,7 +154,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     try {
       _user = await SessionManager.getUser();
 
-      // Session load mein delay ho sakta hai — ek baar retry karo
       if (_user == null) {
         await Future.delayed(const Duration(milliseconds: 500));
         _user = await SessionManager.getUser();
@@ -159,7 +163,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         if (mounted) {
           setState(() {
             _isLoading = false;
-            _hasError  = true;
+            _hasError = true;
             _errorType = 'session';
           });
         }
@@ -176,66 +180,58 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _hasError  = true;
+          _hasError = true;
           _errorType = 'unknown';
         });
       }
     }
   }
 
-  Color get _primary   => AppColors.darkNavy;
+  Color get _primary => AppColors.darkNavy;
   Color get _secondary => AppColors.darkNavy.withOpacity(0.85);
-  Color get _accent    => AppColors.tealGreen;
-  Color get _gold      => AppColors.lightGold;
+  Color get _accent => AppColors.tealGreen;
+  Color get _gold => AppColors.lightGold;
   static const Color _bg = Color(0xFFF0F2F8);
 
-  // ✅ FIX 2: fetchQuizDetails — timeout + proper error type detection
   Future<void> fetchQuizDetails(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {
-        'quiz_id': widget.quizId.toString(),
-        'user_id': userid.toString()
-      };
+      final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
 
       final responseFuture = await authRepository
           .get_quizId_wise_details(data)
-          .timeout(
-            const Duration(seconds: 15),
-            onTimeout: () => throw TimeoutException('Request timed out'),
-          );
+          .timeout(const Duration(seconds: 15), onTimeout: () => throw TimeoutException('Request timed out'));
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
         if (responseData['status'] == true && responseData['data'] != null) {
           _currentQuiz = QuizItem.fromJson(responseData['data']);
           setState(() {
-            _isPurchased      = _currentQuiz!.isPurchased;
-            _isAccessible     = _currentQuiz!.accessStatus;
-            _attempted        = _currentQuiz!.is_attempted;
-            _isFree           = !_currentQuiz!.isAccessible;
-            _isLive           = _currentQuiz!.isLive;
-            _isPremium        = _currentQuiz!.is_premium;
-            _product_sub_id   = _currentQuiz!.subscription_id;
+            _isPurchased = _currentQuiz!.isPurchased;
+            _isAccessible = _currentQuiz!.accessStatus;
+            _attempted = _currentQuiz!.is_attempted;
+            _isFree = !_currentQuiz!.isAccessible;
+            _isLive = _currentQuiz!.isLive;
+            _isPremium = _currentQuiz!.is_premium;
+            _product_sub_id = _currentQuiz!.subscription_id;
             _remainingSeconds = _currentQuiz!.startsInSeconds;
           });
           if (_remainingSeconds > 0) _startCountdown();
           setState(() {
             _isLoading = false;
-            _hasError  = false;
+            _hasError = false;
           });
         } else {
-          // API ne success diya par data null — server issue
           setState(() {
             _isLoading = false;
-            _hasError  = true;
+            _hasError = true;
             _errorType = 'server';
           });
         }
       } else {
         setState(() {
           _isLoading = false;
-          _hasError  = true;
+          _hasError = true;
           _errorType = 'server';
         });
       }
@@ -244,7 +240,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _hasError  = true;
+          _hasError = true;
           _errorType = 'timeout';
         });
       }
@@ -254,10 +250,11 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _hasError  = true;
-          _errorType = msg.contains('socket') || msg.contains('network') || msg.contains('connection')
-              ? 'no_internet'
-              : 'unknown';
+          _hasError = true;
+          _errorType =
+              msg.contains('socket') || msg.contains('network') || msg.contains('connection')
+                  ? 'no_internet'
+                  : 'unknown';
         });
       }
     }
@@ -287,11 +284,10 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       return "${s}s";
     } else {
       try {
-        final startDt = DateTime.parse(
-            _currentQuiz!.startDateTime.trim().replaceAll(' ', 'T'));
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        final h    = startDt.hour % 12 == 0 ? 12 : startDt.hour % 12;
-        final m    = startDt.minute.toString().padLeft(2, '0');
+        final startDt = DateTime.parse(_currentQuiz!.startDateTime.trim().replaceAll(' ', 'T'));
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final h = startDt.hour % 12 == 0 ? 12 : startDt.hour % 12;
+        final m = startDt.minute.toString().padLeft(2, '0');
         final ampm = startDt.hour >= 12 ? 'PM' : 'AM';
         return '${startDt.day} ${months[startDt.month - 1]}, $h:$m $ampm';
       } catch (_) {
@@ -300,12 +296,19 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     }
   }
 
-  String _getCountdownLabel() =>
-      _remainingSeconds < 86400 ? 'Starts in  ' : 'Starts on  ';
+  String _getCountdownLabel() => _remainingSeconds < 86400 ? 'Starts in  ' : 'Starts on  ';
 
   void _handleStartQuiz() {
     if (_currentQuiz == null) return;
-    if (!_hasFullAccess) { _showAccessDialog(); return; }
+    if (!_hasFullAccess) {
+      _showAccessDialog();
+      return;
+    }
+    // ✅ Daily limit check
+    if (_currentQuiz!.dailyLimitExceeded) {
+      _showDailyLimitModal();
+      return;
+    }
     if (_isFree && _shouldShowAds) {
       rewardedAdService.showAd(() => _navigateToQuiz());
     } else {
@@ -313,15 +316,97 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     }
   }
 
+  void _showDailyLimitModal() {
+    final hoursLeft = 23 - DateTime.now().hour;
+    final minsLeft = 59 - DateTime.now().minute;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (_) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: const BoxDecoration(color: Color(0xFFFFF3E0), shape: BoxShape.circle),
+                    child: const Icon(Icons.lock_clock_rounded, color: Color(0xFFE65100), size: 38),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Daily Limit Reached!',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0D1B3E)),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "You've already attempted 2 Quizzes today.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99), height: 1.5),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Come back tomorrow\nto attempt more! 🌅',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0D1B3E), height: 1.4),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: const Color(0xFFFFCC80)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.timer_outlined, size: 15, color: Color(0xFFE65100)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Resets in ${hoursLeft}h ${minsLeft}m',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFE65100)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D1B3E),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Okay, Got it!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
   void _navigateToQuiz() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LiveTestScreen(
-          testTitle: _currentQuiz!.title.toString(),
-          subject:   _currentQuiz!.difficultyLevel.toString(),
-          Quiz_id:   widget.quizId.toString(),
-        ),
+        builder:
+            (context) => LiveTestScreen(
+              testTitle: _currentQuiz!.title.toString(),
+              subject: _currentQuiz!.difficultyLevel.toString(),
+              Quiz_id: widget.quizId.toString(),
+            ),
       ),
     );
   }
@@ -333,144 +418,141 @@ class _QuizDetailPageState extends State<QuizDetailPage>
 
     switch (_currentQuiz!.accessError) {
       case 'attempt_pending':
-        message    = 'You have a pending attempt. Please complete it first.';
+        message = 'You have a pending attempt. Please complete it first.';
         buttonText = 'Resume Attempt';
         showResume = true;
         break;
       case 'course_mismatch':
-        message    = 'This test belongs to a different course. Upgrade your plan!';
+        message = 'This test belongs to a different course. Upgrade your plan!';
         buttonText = 'Upgrade Plan';
         break;
       case 'upgrade_required':
-        message    = 'You have used all your attempts for this month. Upgrade to continue!';
+        message = 'You have used all your attempts for this month. Upgrade to continue!';
         buttonText = 'Activate Now';
         break;
       case 'plan_expired':
-        message    = 'Your plan has expired. Please renew to regain access!';
+        message = 'Your plan has expired. Please renew to regain access!';
         buttonText = 'Renew Plan';
         break;
       default:
-        message    = _currentQuiz!.accessMessage ?? 'You do not have access.';
+        message = _currentQuiz!.accessMessage ?? 'You do not have access.';
         buttonText = 'Upgrade Plan';
     }
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_DS.r16)),
-        backgroundColor: _DS.card,
-        title: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: _DS.red.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_DS.r16)),
+            backgroundColor: _DS.card,
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(color: _DS.red.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  child: Icon(Icons.lock_outline_rounded, color: _DS.red, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Access Required',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: _DS.textPri),
+                ),
+              ],
             ),
-            child: Icon(Icons.lock_outline_rounded, color: _DS.red, size: 18),
+            content: Text(message, style: const TextStyle(fontSize: 13.5, color: _DS.textSec, height: 1.5)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel', style: TextStyle(color: _DS.textSec, fontSize: 13)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _DS.teal,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  showResume ? _navigateToQuiz() : _handleSubscribe();
+                },
+                child: Text(buttonText, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          const Text('Access Required',
-              style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  color: _DS.textPri)),
-        ]),
-        content: Text(message,
-            style: const TextStyle(
-                fontSize: 13.5,
-                color: _DS.textSec,
-                height: 1.5)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel',
-                  style: TextStyle(color: _DS.textSec, fontSize: 13))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _DS.teal,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              showResume ? _navigateToQuiz() : _handleSubscribe();
-            },
-            child: Text(buttonText,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-          ),
-        ],
-      ),
     );
   }
 
   void _handleSubscribe() {
     if (_currentQuiz == null) return;
-    Navigator.push(context,
-            MaterialPageRoute(builder: (context) => PricingPage()))
-        .then((value) { if (value == true) _getUserData(); });
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
+      if (value == true) _getUserData();
+    });
   }
 
+  // ✅ FIXED: Added missed + ended cases
   Color _getStatusColor() {
     switch (_currentQuiz?.quizStatus.toLowerCase()) {
-      case 'live':      return _DS.red;
-      case 'upcoming':  return _DS.gold;
-      case 'completed': return _DS.textSec;
-      default:          return _DS.teal;
+      case 'live':
+        return _DS.red;
+      case 'upcoming':
+        return _DS.gold;
+      case 'missed':
+        return _DS.indigo; // ✅ indigo for missed/assessment
+      case 'ended':
+        return _DS.textSec; // ✅ grey for ended
+      default:
+        return _DS.teal;
     }
   }
 
+  // ✅ FIXED: Added missed + ended icons
   IconData _getStatusIcon() {
     switch (_currentQuiz?.quizStatus.toLowerCase()) {
-      case 'live':      return Icons.radio_button_checked;
-      case 'upcoming':  return Icons.schedule_rounded;
-      case 'completed': return Icons.check_circle_rounded;
-      default:          return Icons.circle;
+      case 'live':
+        return Icons.radio_button_checked;
+      case 'upcoming':
+        return Icons.schedule_rounded;
+      case 'missed':
+        return Icons.assignment_late_outlined; // ✅ assessment icon
+      case 'ended':
+        return Icons.check_circle_rounded;
+      default:
+        return Icons.circle;
     }
   }
 
   String _formatDateTime(String raw) {
     try {
       final dt = DateTime.parse(raw.trim().replaceAll(' ', 'T'));
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      final h    = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-      final m    = dt.minute.toString().padLeft(2, '0');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final m = dt.minute.toString().padLeft(2, '0');
       final ampm = dt.hour >= 12 ? 'PM' : 'AM';
       return '${dt.day} ${months[dt.month - 1]} ${dt.year}  •  $h:$m $ampm';
-    } catch (_) { return raw; }
+    } catch (_) {
+      return raw;
+    }
   }
 
   BoxDecoration _cardDecor({double radius = _DS.r16}) => BoxDecoration(
     color: _DS.card,
     borderRadius: BorderRadius.circular(radius),
     border: Border.all(color: _DS.border),
-    boxShadow: [
-      BoxShadow(
-          color: _DS.navy.withOpacity(0.04),
-          blurRadius: 12,
-          offset: const Offset(0, 3))
-    ],
+    boxShadow: [BoxShadow(color: _DS.navy.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 3))],
   );
 
-  TextStyle get _labelStyle => const TextStyle(
-      fontSize: _DS.fsXs,
-      fontWeight: FontWeight.w600,
-      color: _DS.textSec,
-      letterSpacing: 0.4);
+  TextStyle get _labelStyle =>
+      const TextStyle(fontSize: _DS.fsXs, fontWeight: FontWeight.w600, color: _DS.textSec, letterSpacing: 0.4);
 
-  TextStyle get _valueStyle => const TextStyle(
-      fontSize: _DS.fsMd,
-      fontWeight: FontWeight.w700,
-      color: _DS.textPri);
+  TextStyle get _valueStyle => const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w700, color: _DS.textPri);
 
   // ═══════════════════════════════════════════════════════════════════════
   //  BUILD
   // ═══════════════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
-    // Loading state
     if (_isLoading) {
       return Scaffold(
         backgroundColor: _DS.surface,
@@ -480,40 +562,36 @@ class _QuizDetailPageState extends State<QuizDetailPage>
           leading: IconButton(
             icon: Container(
               padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(9)),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  color: Colors.white, size: 16),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(9)),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
             ),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text('Test Details',
-              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+          title: const Text(
+            'Test Details',
+            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+          ),
         ),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: 36, height: 36,
-                child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(_DS.teal),
-                    strokeWidth: 2.5),
+                width: 36,
+                height: 36,
+                child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_DS.teal), strokeWidth: 2.5),
               ),
               const SizedBox(height: 14),
-              const Text('Test details load ho raha hai…',
-                  style: TextStyle(
-                      color: _DS.textSec,
-                      fontSize: _DS.fsMd,
-                      fontWeight: FontWeight.w500)),
+              const Text(
+                'Loading test details...',
+                style: TextStyle(color: _DS.textSec, fontSize: _DS.fsMd, fontWeight: FontWeight.w500),
+              ),
             ],
           ),
         ),
       );
     }
 
-    // ✅ FIX 3: Error state — acha message + retry button
     if (_hasError || _currentQuiz == null) {
       return _buildErrorScreen();
     }
@@ -537,10 +615,11 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                     _buildAccessBanner(),
                     const SizedBox(height: 12),
 
-                    if (_isLive && canStartQuiz) ...[
-                      _buildLiveBanner(),
-                      const SizedBox(height: 12),
-                    ],
+                    // ✅ Live banner only for live status
+                    if (_isLive && canStartQuiz) ...[_buildLiveBanner(), const SizedBox(height: 12)],
+
+                    // ✅ Assessment banner for missed status
+                    if (_isMissed && _hasFullAccess) ...[_buildAssessmentBanner(), const SizedBox(height: 12)],
 
                     _buildCombinedHeader(),
                     const SizedBox(height: 12),
@@ -548,21 +627,12 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                     _buildStatsRow(),
                     const SizedBox(height: 12),
 
-                    if (!canStartQuiz)
-                      _buildSubscriptionSection()
-                    else
-                      _buildScheduleSection(),
+                    if (!canStartQuiz) _buildSubscriptionSection() else _buildScheduleSection(),
                     const SizedBox(height: 12),
 
-                    if (_currentQuiz!.description.isNotEmpty) ...[
-                      _buildDescriptionCard(),
-                      const SizedBox(height: 12),
-                    ],
+                    if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 12)],
 
-                    if (_currentQuiz!.instruction.isNotEmpty) ...[
-                      _buildInstructionsCard(),
-                      const SizedBox(height: 12),
-                    ],
+                    if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), const SizedBox(height: 12)],
 
                     _buildInfoCard(),
                   ],
@@ -576,9 +646,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     );
   }
 
-  // ✅ FIX 3: Acha error screen — icon + message + retry button
   Widget _buildErrorScreen() {
-    // Error type ke hisaab se message aur icon decide karo
     IconData errorIcon;
     String headline;
     String subtext;
@@ -588,38 +656,38 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     switch (_errorType) {
       case 'no_internet':
         errorIcon = Icons.wifi_off_rounded;
-        headline  = 'Internet connection nahi hai';
-        subtext   = 'Please apna internet check karein aur dobara try karein.';
+        headline = 'No Internet Connection';
+        subtext = 'Please check your internet and try again.';
         iconColor = const Color(0xFF1565C0);
-        iconBg    = const Color(0xFFE3F2FD);
+        iconBg = const Color(0xFFE3F2FD);
         break;
       case 'timeout':
         errorIcon = Icons.timer_off_rounded;
-        headline  = 'Server se response nahi aaya';
-        subtext   = 'Connection slow hai ya server busy hai.\nThodi der baad try karein.';
+        headline = 'Server Not Responding';
+        subtext = 'Connection is slow or server is busy.\nPlease try again in a moment.';
         iconColor = const Color(0xFFE65100);
-        iconBg    = const Color(0xFFFFF3E0);
+        iconBg = const Color(0xFFFFF3E0);
         break;
       case 'server':
         errorIcon = Icons.cloud_off_rounded;
-        headline  = 'Test abhi load nahi ho saka';
-        subtext   = 'Server se data aane mein dikkat hui.\nDobara try karein.';
+        headline = 'Could Not Load Test';
+        subtext = 'Something went wrong on the server.\nPlease try again.';
         iconColor = const Color(0xFF6A1B9A);
-        iconBg    = const Color(0xFFF3E5F5);
+        iconBg = const Color(0xFFF3E5F5);
         break;
       case 'session':
         errorIcon = Icons.person_off_rounded;
-        headline  = 'Session expire ho gaya';
-        subtext   = 'App dobara open karein ya logout karke\nlogin karein.';
+        headline = 'Session Expired';
+        subtext = 'Please reopen the app or logout\nand login again.';
         iconColor = _DS.red;
-        iconBg    = const Color(0xFFFFEBEE);
+        iconBg = const Color(0xFFFFEBEE);
         break;
       default:
         errorIcon = Icons.error_outline_rounded;
-        headline  = 'Kuch galat ho gaya';
-        subtext   = 'Test load karne mein problem aayi.\nDobara try karein.';
+        headline = 'Something Went Wrong';
+        subtext = 'Could not load the test.\nPlease try again.';
         iconColor = _DS.textSec;
-        iconBg    = const Color(0xFFF4F6FB);
+        iconBg = const Color(0xFFF4F6FB);
     }
 
     return Scaffold(
@@ -630,17 +698,15 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         leading: IconButton(
           icon: Container(
             padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(9)),
-            child: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: Colors.white, size: 16),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(9)),
+            child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Test Details',
-            style: TextStyle(
-                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Test Details',
+          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+        ),
       ),
       body: Center(
         child: Padding(
@@ -648,19 +714,13 @@ class _QuizDetailPageState extends State<QuizDetailPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon circle
               Container(
                 width: 88,
                 height: 88,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
                 child: Icon(errorIcon, size: 40, color: iconColor),
               ),
               const SizedBox(height: 24),
-
-              // Headline
               Text(
                 headline,
                 textAlign: TextAlign.center,
@@ -672,8 +732,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 ),
               ),
               const SizedBox(height: 10),
-
-              // Subtext
               Text(
                 subtext,
                 textAlign: TextAlign.center,
@@ -685,8 +743,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 ),
               ),
               const SizedBox(height: 32),
-
-              // Retry button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -695,25 +751,18 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     shadowColor: _DS.teal.withOpacity(0.3),
                   ),
                   onPressed: _getUserData,
                   icon: const Icon(Icons.refresh_rounded, size: 20),
                   label: const Text(
-                    'Dobara Try Karein',
-                    style: TextStyle(
-                        fontSize: _DS.fsLg,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2),
+                    'Try Again',
+                    style: TextStyle(fontSize: _DS.fsLg, fontWeight: FontWeight.w800, letterSpacing: 0.2),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Back button
               SizedBox(
                 width: double.infinity,
                 child: TextButton(
@@ -721,16 +770,13 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: _DS.border),
+                      side: const BorderSide(color: _DS.border),
                     ),
                   ),
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
-                    'Wapas Jaayein',
-                    style: TextStyle(
-                        fontSize: _DS.fsMd,
-                        color: _DS.textSec,
-                        fontWeight: FontWeight.w600),
+                    'Go Back',
+                    style: TextStyle(fontSize: _DS.fsMd, color: _DS.textSec, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -753,11 +799,8 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       leading: IconButton(
         icon: Container(
           padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(9)),
-          child: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white, size: 16),
+          decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(9)),
+          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -765,50 +808,75 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         _currentQuiz?.title ?? '',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.1,
-        ),
+        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.1),
       ),
-      flexibleSpace: FlexibleSpaceBar(
-          background: Container(color: _DS.navy)),
+      flexibleSpace: FlexibleSpaceBar(background: Container(color: _DS.navy)),
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  ACCESS BANNER
+  //  ACCESS BANNER — ✅ FIXED: added missed + ended cases
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildAccessBanner() {
-    final quiz  = _currentQuiz!;
+    final quiz = _currentQuiz!;
     final error = quiz.accessError ?? '';
-    final msg   = quiz.accessMessage ?? '';
+    final msg = quiz.accessMessage ?? '';
 
     _AccessBannerCfg cfg;
 
     if (_hasFullAccess) {
-      cfg = quiz.isPurchased
-          ? _AccessBannerCfg(
-              gradient: [const Color(0xFF00897B), const Color(0xFF004D40)],
-              icon: Icons.verified_rounded,
-              badge: _planDisplayName,
-              headline: 'Full Access Unlocked',
-              subLine: msg.isNotEmpty ? msg : 'You can attempt this test anytime.',
-              statusLabel: 'GRANTED',
-              statusColor: const Color(0xFF69F0AE),
-              locked: false,
-            )
-          : _AccessBannerCfg(
-              gradient: [const Color(0xFF1976D2), const Color(0xFF0D47A1)],
-              icon: Icons.lock_open_rounded,
-              badge: _planDisplayName,
-              headline: 'Free Test — Open to All',
-              subLine: msg.isNotEmpty ? msg : 'This test is free to attempt.',
-              statusLabel: 'FREE',
-              statusColor: const Color(0xFF82B1FF),
-              locked: false,
-            );
+      // ✅ Missed — attempted but expired
+      if (_isMissed) {
+        cfg = _AccessBannerCfg(
+          gradient: [const Color(0xFF4527A0), const Color(0xFF311B92)],
+          icon: Icons.assignment_late_outlined,
+          badge: _planDisplayName,
+          headline: 'Assessment Available',
+          subLine: 'This quiz expired — attempt it now as an assessment.',
+          statusLabel: 'ASSESSMENT',
+          statusColor: const Color(0xFFB39DDB),
+          locked: false,
+        );
+      }
+      // ✅ Ended — user already attempted
+      else if (_isEnded) {
+        cfg = _AccessBannerCfg(
+          gradient: [const Color(0xFF37474F), const Color(0xFF263238)],
+          icon: Icons.check_circle_rounded,
+          badge: _planDisplayName,
+          headline: 'Test Completed',
+          subLine: 'You have already attempted this test.',
+          statusLabel: 'DONE',
+          statusColor: const Color(0xFF80CBC4),
+          locked: false,
+        );
+      }
+      // Full access — purchased
+      else if (quiz.isPurchased) {
+        cfg = _AccessBannerCfg(
+          gradient: [const Color(0xFF00897B), const Color(0xFF004D40)],
+          icon: Icons.verified_rounded,
+          badge: _planDisplayName,
+          headline: 'Full Access Unlocked',
+          subLine: msg.isNotEmpty ? msg : 'You can attempt this test anytime.',
+          statusLabel: 'GRANTED',
+          statusColor: const Color(0xFF69F0AE),
+          locked: false,
+        );
+      }
+      // Free test
+      else {
+        cfg = _AccessBannerCfg(
+          gradient: [const Color(0xFF1976D2), const Color(0xFF0D47A1)],
+          icon: Icons.lock_open_rounded,
+          badge: _planDisplayName,
+          headline: 'Free Test — Open to All',
+          subLine: msg.isNotEmpty ? msg : 'This test is free to attempt.',
+          statusLabel: 'FREE',
+          statusColor: const Color(0xFF82B1FF),
+          locked: false,
+        );
+      }
     } else {
       switch (error) {
         case 'upgrade_required':
@@ -877,18 +945,8 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_DS.r8),
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: cfg.gradient,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: cfg.gradient.first.withOpacity(0.22),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        gradient: LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: cfg.gradient),
+        boxShadow: [BoxShadow(color: cfg.gradient.first.withOpacity(0.22), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -915,11 +973,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                     cfg.locked ? _getLockedActionHint() : cfg.subLine,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.white.withOpacity(0.78),
-                      fontWeight: FontWeight.w400,
-                    ),
+                    style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.78), fontWeight: FontWeight.w400),
                   ),
                 ],
               ),
@@ -927,27 +981,25 @@ class _QuizDetailPageState extends State<QuizDetailPage>
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.22),
-                borderRadius: BorderRadius.circular(20),
-              ),
+              decoration: BoxDecoration(color: Colors.black.withOpacity(0.22), borderRadius: BorderRadius.circular(20)),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 5, height: 5,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: cfg.statusColor,
-                    ),
+                    width: 5,
+                    height: 5,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: cfg.statusColor),
                   ),
                   const SizedBox(width: 4),
-                  Text(cfg.statusLabel,
-                      style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: cfg.statusColor,
-                          letterSpacing: 0.7)),
+                  Text(
+                    cfg.statusLabel,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: cfg.statusColor,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -959,11 +1011,16 @@ class _QuizDetailPageState extends State<QuizDetailPage>
 
   String _getLockedActionHint() {
     switch (_currentQuiz?.accessError ?? '') {
-      case 'upgrade_required': return 'Tap "Activate Now" below to upgrade your plan';
-      case 'plan_expired':     return 'Tap "Activate Now" below to renew your plan';
-      case 'purchase_required':return 'Tap "Activate Now" below to purchase this course';
-      case 'attempt_pending':  return 'Tap "Resume Attempt" below to continue';
-      default:                 return 'Tap the button below to get access';
+      case 'upgrade_required':
+        return 'Tap "Activate Now" below to upgrade your plan';
+      case 'plan_expired':
+        return 'Tap "Activate Now" below to renew your plan';
+      case 'purchase_required':
+        return 'Tap "Activate Now" below to purchase this course';
+      case 'attempt_pending':
+        return 'Tap "Resume Attempt" below to continue';
+      default:
+        return 'Tap the button below to get access';
     }
   }
 
@@ -977,12 +1034,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       decoration: BoxDecoration(
         color: _DS.red,
         borderRadius: BorderRadius.circular(_DS.r12),
-        boxShadow: [
-          BoxShadow(
-              color: _DS.red.withOpacity(0.35),
-              blurRadius: 14,
-              offset: const Offset(0, 5))
-        ],
+        boxShadow: [BoxShadow(color: _DS.red.withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 5))],
       ),
       child: Row(
         children: [
@@ -990,32 +1042,72 @@ class _QuizDetailPageState extends State<QuizDetailPage>
             opacity: _livePulse ? 1.0 : 0.3,
             duration: const Duration(milliseconds: 450),
             child: Container(
-              width: 10, height: 10,
-              decoration: const BoxDecoration(
-                  color: Colors.white, shape: BoxShape.circle),
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             ),
           ),
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
               'LIVE NOW — Join immediately, test has started!',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: _DS.fsMd,
-                  fontWeight: FontWeight.w700),
+              style: TextStyle(color: Colors.white, fontSize: _DS.fsMd, fontWeight: FontWeight.w700),
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.22),
-                borderRadius: BorderRadius.circular(8)),
-            child: const Text('JOIN',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: _DS.fsXs,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5)),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.22), borderRadius: BorderRadius.circular(8)),
+            child: const Text(
+              'JOIN',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: _DS.fsXs,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ NEW: Assessment banner for missed quizzes
+  Widget _buildAssessmentBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4527A0), Color(0xFF6366F1)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(_DS.r12),
+        boxShadow: [BoxShadow(color: _DS.indigo.withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 5))],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.assignment_late_outlined, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Quiz expired — attempt it now as an Assessment!',
+              style: TextStyle(color: Colors.white, fontSize: _DS.fsMd, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.22), borderRadius: BorderRadius.circular(8)),
+            child: const Text(
+              'ATTEMPT',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: _DS.fsXs,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
         ],
       ),
@@ -1043,10 +1135,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(_DS.r16),
-                  topRight: Radius.circular(_DS.r16),
-                ),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(_DS.r16), topRight: Radius.circular(_DS.r16)),
               ),
               child: Row(
                 children: [
@@ -1056,8 +1145,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                       color: Colors.white.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.library_books_rounded,
-                        color: Colors.white, size: 15),
+                    child: const Icon(Icons.library_books_rounded, color: Colors.white, size: 15),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1095,15 +1183,17 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: _DS.gold.withOpacity(0.4)),
                     ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.menu_book_rounded, size: 10, color: _DS.gold),
-                      const SizedBox(width: 4),
-                      const Text('Series',
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: _DS.gold)),
-                    ]),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.menu_book_rounded, size: 10, color: _DS.gold),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Series',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _DS.gold),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1115,17 +1205,23 @@ class _QuizDetailPageState extends State<QuizDetailPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Wrap(
-                  spacing: 6, runSpacing: 6,
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
                     _buildTag(
-                        icon: _getStatusIcon(),
-                        label: _currentQuiz!.quizStatus.toUpperCase(),
-                        color: _getStatusColor()),
+                      icon: _getStatusIcon(),
+                      label:
+                          _isMissed
+                              ? 'ASSESSMENT' // ✅ show ASSESSMENT not MISSED
+                              : _currentQuiz!.quizStatus.toUpperCase(),
+                      color: _getStatusColor(),
+                    ),
                     if (_currentQuiz!.difficultyLevel.isNotEmpty)
                       _buildTag(
-                          icon: Icons.signal_cellular_alt_rounded,
-                          label: _currentQuiz!.difficultyLevel,
-                          color: _DS.navy),
+                        icon: Icons.signal_cellular_alt_rounded,
+                        label: _currentQuiz!.difficultyLevel,
+                        color: _DS.navy,
+                      ),
                     _isFree
                         ? _buildTag(icon: Icons.lock_open_rounded, label: 'FREE', color: _DS.teal)
                         : _buildTag(icon: Icons.workspace_premium_rounded, label: 'PREMIUM', color: _DS.gold),
@@ -1180,27 +1276,27 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            const Icon(Icons.schedule_rounded,
-                                color: Color(0xFFB45309), size: 14),
+                            const Icon(Icons.schedule_rounded, color: Color(0xFFB45309), size: 14),
                             const SizedBox(width: 7),
                             Text(
                               _getCountdownLabel(),
                               style: const TextStyle(
-                                  fontSize: _DS.fsMd,
-                                  color: Color(0xFFB45309),
-                                  fontWeight: FontWeight.w500),
+                                fontSize: _DS.fsMd,
+                                color: Color(0xFFB45309),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
                         Text(
                           _getCountdownText(),
                           style: const TextStyle(
-                              fontSize: _DS.fsLg,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFFB45309),
-                              letterSpacing: 0.2),
+                            fontSize: _DS.fsLg,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFB45309),
+                            letterSpacing: 0.2,
+                          ),
                         ),
                       ],
                     ),
@@ -1214,28 +1310,20 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     );
   }
 
-  Widget _buildTag({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
+  Widget _buildTag({required IconData icon, required String label, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withOpacity(0.2))),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                  letterSpacing: 0.3)),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.3)),
         ],
       ),
     );
@@ -1255,9 +1343,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 icon: Icons.timer_outlined,
                 iconBg: const Color(0xFFFFF8EC),
                 iconColor: const Color(0xFFBA7517),
-                value: _currentQuiz?.timeLimit.isEmpty == false
-                    ? '${_currentQuiz!.timeLimit} min'
-                    : '—',
+                value: _currentQuiz?.timeLimit.isEmpty == false ? '${_currentQuiz!.timeLimit} min' : '—',
                 label: 'Duration',
               ),
               const SizedBox(width: 10),
@@ -1277,9 +1363,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 icon: Icons.help_outline_rounded,
                 iconBg: const Color(0xFFEEF1F9),
                 iconColor: const Color(0xFF1A2F5A),
-                value: _currentQuiz?.totalQuestions != null
-                    ? '${_currentQuiz!.totalQuestions}'
-                    : '—',
+                value: _currentQuiz?.totalQuestions != null ? '${_currentQuiz!.totalQuestions}' : '—',
                 label: 'Questions',
               ),
               const SizedBox(width: 10),
@@ -1287,9 +1371,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 icon: Icons.verified_outlined,
                 iconBg: const Color(0xFFEEEDFE),
                 iconColor: const Color(0xFF534AB7),
-                value: _currentQuiz?.passing_score != null
-                    ? '${_currentQuiz!.passing_score}'
-                    : '—',
+                value: _currentQuiz?.passing_score != null ? '${_currentQuiz!.passing_score}' : '—',
                 label: 'Passing Marks',
               ),
             ],
@@ -1313,23 +1395,14 @@ class _QuizDetailPageState extends State<QuizDetailPage>
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _primary.withOpacity(0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: _primary.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: _primary.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3))],
         ),
         child: Row(
           children: [
             Container(
               width: 42,
               height: 42,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(11),
-              ),
+              decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(11)),
               child: Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: 12),
@@ -1339,22 +1412,10 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 children: [
                   Text(
                     value,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: _primary,
-                      height: 1.1,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _primary, height: 1.1),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.greyS600,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+                  Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w400)),
                 ],
               ),
             ),
@@ -1364,9 +1425,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  //  BANNER AD
-  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildBannerAd() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1374,21 +1432,16 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         borderRadius: BorderRadius.circular(_DS.r12),
         child: SizedBox(
           height: bannerService.bannerAd!.size.height.toDouble(),
-          width:  bannerService.bannerAd!.size.width.toDouble(),
-          child:  AdWidget(ad: bannerService.bannerAd!),
+          width: bannerService.bannerAd!.size.width.toDouble(),
+          child: AdWidget(ad: bannerService.bannerAd!),
         ),
       ),
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  //  SUBSCRIPTION SECTION
-  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildSubscriptionSection() {
     final error = _currentQuiz?.accessError ?? '';
-    return error == 'upgrade_required'
-        ? _buildFreeUserSection()
-        : _buildPremiumSection();
+    return error == 'upgrade_required' ? _buildFreeUserSection() : _buildPremiumSection();
   }
 
   Widget _buildFreeUserSection() {
@@ -1396,12 +1449,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_DS.r20),
-        boxShadow: [
-          BoxShadow(
-              color: _DS.navy.withOpacity(0.14),
-              blurRadius: 20,
-              offset: const Offset(0, 6))
-        ],
+        boxShadow: [BoxShadow(color: _DS.navy.withOpacity(0.14), blurRadius: 20, offset: const Offset(0, 6))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_DS.r20),
@@ -1422,12 +1470,8 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _DS.teal.withOpacity(0.18),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.lock_clock_rounded,
-                        color: _DS.teal, size: 20),
+                    decoration: BoxDecoration(color: _DS.teal.withOpacity(0.18), shape: BoxShape.circle),
+                    child: const Icon(Icons.lock_clock_rounded, color: _DS.teal, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1437,18 +1481,20 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                         const Text(
                           'Free Attempt Used — Upgrade to Continue',
                           style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1.35),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1.35,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "Subscribe for unlimited monthly attempts.",
+                          'Subscribe for unlimited monthly attempts.',
                           style: TextStyle(
-                              fontSize: _DS.fsXs,
-                              color: Colors.white.withOpacity(0.68),
-                              fontWeight: FontWeight.w400),
+                            fontSize: _DS.fsXs,
+                            color: Colors.white.withOpacity(0.68),
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ],
                     ),
@@ -1465,91 +1511,92 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 children: [
                   _buildSectionLabel('WHAT YOU GET AFTER SUBSCRIBING'),
                   const SizedBox(height: 14),
-
                   _buildBenefitGrid([
                     _BenefitEntry(
-                        emoji: '📝',
-                        icon: Icons.quiz_outlined,
-                        title: 'Unlimited Mock Tests',
-                        desc: 'Full-length exam-pattern tests every day',
-                        color: _DS.navy),
+                      emoji: '📝',
+                      icon: Icons.quiz_outlined,
+                      title: 'Unlimited Mock Tests',
+                      desc: 'Full-length exam-pattern tests every day',
+                      color: _DS.navy,
+                    ),
                     _BenefitEntry(
-                        emoji: '📰',
-                        icon: Icons.newspaper_rounded,
-                        title: 'Daily Current Affairs',
-                        desc: 'Fresh GK & news updates daily',
-                        color: const Color(0xFF1565C0)),
+                      emoji: '📰',
+                      icon: Icons.newspaper_rounded,
+                      title: 'Daily Current Affairs',
+                      desc: 'Fresh GK & news updates daily',
+                      color: const Color(0xFF1565C0),
+                    ),
                     _BenefitEntry(
-                        emoji: '🧩',
-                        icon: Icons.psychology_outlined,
-                        title: 'Practice Quizzes',
-                        desc: 'Topic-wise quizzes for concept clarity',
-                        color: _DS.teal),
+                      emoji: '🧩',
+                      icon: Icons.psychology_outlined,
+                      title: 'Practice Quizzes',
+                      desc: 'Topic-wise quizzes for concept clarity',
+                      color: _DS.teal,
+                    ),
                     _BenefitEntry(
-                        emoji: '📚',
-                        icon: Icons.menu_book_rounded,
-                        title: 'Study Material',
-                        desc: 'PDFs, notes & video lessons',
-                        color: const Color(0xFFE65100)),
+                      emoji: '📚',
+                      icon: Icons.menu_book_rounded,
+                      title: 'Study Material',
+                      desc: 'PDFs, notes & video lessons',
+                      color: const Color(0xFFE65100),
+                    ),
                     _BenefitEntry(
-                        emoji: '📊',
-                        icon: Icons.analytics_outlined,
-                        title: 'Analytics',
-                        desc: 'Track weak areas & progress',
-                        color: const Color(0xFF6A1B9A)),
+                      emoji: '📊',
+                      icon: Icons.analytics_outlined,
+                      title: 'Analytics',
+                      desc: 'Track weak areas & progress',
+                      color: const Color(0xFF6A1B9A),
+                    ),
                     _BenefitEntry(
-                        emoji: '🏆',
-                        icon: Icons.leaderboard_rounded,
-                        title: 'All India Rank',
-                        desc: 'Compare score nationwide',
-                        color: _DS.gold),
+                      emoji: '🏆',
+                      icon: Icons.leaderboard_rounded,
+                      title: 'All India Rank',
+                      desc: 'Compare score nationwide',
+                      color: _DS.gold,
+                    ),
                   ]),
-
                   const SizedBox(height: 16),
-
                   Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [
-                        _DS.teal.withOpacity(0.09),
-                        _DS.navy.withOpacity(0.04)
-                      ]),
+                      gradient: LinearGradient(colors: [_DS.teal.withOpacity(0.09), _DS.navy.withOpacity(0.04)]),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: _DS.teal.withOpacity(0.28), width: 1.2),
+                      border: Border.all(color: _DS.teal.withOpacity(0.28), width: 1.2),
                     ),
-                    child: Row(children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
                             color: _DS.teal.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.bolt_rounded,
-                            color: _DS.teal, size: 18),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('One plan. Everything included.',
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.bolt_rounded, color: _DS.teal, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'One plan. Everything included.',
+                                style: TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w800, color: _DS.textPri),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Subscribe once and unlock your full exam preparation toolkit.',
                                 style: TextStyle(
-                                    fontSize: _DS.fsMd,
-                                    fontWeight: FontWeight.w800,
-                                    color: _DS.textPri)),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Subscribe once and unlock your full exam preparation toolkit.',
-                              style: TextStyle(
                                   fontSize: _DS.fsXs,
                                   color: _DS.textSec,
                                   fontWeight: FontWeight.w400,
-                                  height: 1.4),
-                            ),
-                          ],
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ]),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1566,16 +1613,20 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                   _buildSectionLabel("THIS MONTH'S USAGE"),
                   const SizedBox(height: 12),
                   _buildUsageRow(
-                      icon: Icons.assignment_outlined,
-                      label: 'Mock Test',
-                      used: 1, total: 1,
-                      color: _DS.red),
+                    icon: Icons.assignment_outlined,
+                    label: 'Mock Test',
+                    used: 1,
+                    total: 1,
+                    color: _DS.red,
+                  ),
                   const SizedBox(height: 10),
                   _buildUsageRow(
-                      icon: Icons.quiz_outlined,
-                      label: 'Live / Upcoming Test',
-                      used: 1, total: 1,
-                      color: _DS.red),
+                    icon: Icons.quiz_outlined,
+                    label: 'Live / Upcoming Test',
+                    used: 1,
+                    total: 1,
+                    color: _DS.red,
+                  ),
                   const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -1584,21 +1635,23 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: _DS.teal.withOpacity(0.25)),
                     ),
-                    child: Row(children: [
-                      const Icon(Icons.workspace_premium_rounded,
-                          color: _DS.teal, size: 16),
-                      const SizedBox(width: 10),
-                      const Expanded(
-                        child: Text(
-                          'Upgrade to Basic — get unlimited attempts for your course!',
-                          style: TextStyle(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.workspace_premium_rounded, color: _DS.teal, size: 16),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Upgrade to Basic — get unlimited attempts for your course!',
+                            style: TextStyle(
                               fontSize: _DS.fsSm,
                               color: _DS.textPri,
                               fontWeight: FontWeight.w500,
-                              height: 1.4),
+                              height: 1.4,
+                            ),
+                          ),
                         ),
-                      ),
-                    ]),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1612,16 +1665,15 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   Widget _buildBenefitGrid(List<_BenefitEntry> items) {
     final rows = <Widget>[];
     for (int i = 0; i < items.length; i += 2) {
-      rows.add(Row(
-        children: [
-          Expanded(child: _buildBenefitEntryCard(items[i])),
-          const SizedBox(width: 10),
-          Expanded(
-              child: i + 1 < items.length
-                  ? _buildBenefitEntryCard(items[i + 1])
-                  : const SizedBox()),
-        ],
-      ));
+      rows.add(
+        Row(
+          children: [
+            Expanded(child: _buildBenefitEntryCard(items[i])),
+            const SizedBox(width: 10),
+            Expanded(child: i + 1 < items.length ? _buildBenefitEntryCard(items[i + 1]) : const SizedBox()),
+          ],
+        ),
+      );
       if (i + 2 < items.length) rows.add(const SizedBox(height: 10));
     }
     return Column(children: rows);
@@ -1638,55 +1690,48 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                  color: item.color.withOpacity(0.13),
-                  borderRadius: BorderRadius.circular(8)),
-              child: Icon(item.icon, color: item.color, size: 15),
-            ),
-            const SizedBox(width: 6),
-            Text(item.emoji, style: const TextStyle(fontSize: 16)),
-          ]),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: item.color.withOpacity(0.13), borderRadius: BorderRadius.circular(8)),
+                child: Icon(item.icon, color: item.color, size: 15),
+              ),
+              const SizedBox(width: 6),
+              Text(item.emoji, style: const TextStyle(fontSize: 16)),
+            ],
+          ),
           const SizedBox(height: 8),
-          Text(item.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: _DS.textPri,
-                  height: 1.2)),
+          Text(
+            item.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _DS.textPri, height: 1.2),
+          ),
           const SizedBox(height: 4),
-          Text(item.desc,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: 9.5,
-                  color: _DS.textSec,
-                  fontWeight: FontWeight.w400,
-                  height: 1.4)),
+          Text(
+            item.desc,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 9.5, color: _DS.textSec, fontWeight: FontWeight.w400, height: 1.4),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildSectionLabel(String label) {
-    return Row(children: [
-      Container(
-        width: 3, height: 14,
-        decoration: BoxDecoration(
-            color: _DS.teal,
-            borderRadius: BorderRadius.circular(2)),
-      ),
-      const SizedBox(width: 8),
-      Text(label,
-          style: _labelStyle.copyWith(
-              fontSize: 10,
-              color: _DS.textSec,
-              letterSpacing: 0.6)),
-    ]);
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 14,
+          decoration: BoxDecoration(color: _DS.teal, borderRadius: BorderRadius.circular(2)),
+        ),
+        const SizedBox(width: 8),
+        Text(label, style: _labelStyle.copyWith(fontSize: 10, color: _DS.textSec, letterSpacing: 0.6)),
+      ],
+    );
   }
 
   Widget _buildUsageRow({
@@ -1696,141 +1741,149 @@ class _QuizDetailPageState extends State<QuizDetailPage>
     required int total,
     required Color color,
   }) {
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-            color: color.withOpacity(0.09),
-            borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, color: color, size: 15),
-      ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: _DS.fsMd,
-                        color: _DS.textPri,
-                        fontWeight: FontWeight.w600)),
-                Text('$used / $total',
-                    style: TextStyle(
-                        fontSize: _DS.fsMd,
-                        color: color,
-                        fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 5),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: used / total,
-                backgroundColor: color.withOpacity(0.12),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-                minHeight: 5,
-              ),
-            ),
-          ],
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(color: color.withOpacity(0.09), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: color, size: 15),
         ),
-      ),
-    ]);
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(fontSize: _DS.fsMd, color: _DS.textPri, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '$used / $total',
+                    style: TextStyle(fontSize: _DS.fsMd, color: color, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 5),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: used / total,
+                  backgroundColor: color.withOpacity(0.12),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                  minHeight: 5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildPremiumSection() {
-    final error    = _currentQuiz?.accessError ?? '';
-    final message  = error == 'plan_expired'
-        ? 'Your plan has expired.\nRenew to regain access.'
-        : 'This test is not in\nyour current course.';
-    final subtitle = error == 'plan_expired'
-        ? 'Renew your plan — access will be restored immediately.'
-        : 'Go Premium — unlimited access to all courses.';
+    final error = _currentQuiz?.accessError ?? '';
+    final message =
+        error == 'plan_expired'
+            ? 'Your plan has expired.\nRenew to regain access.'
+            : 'This test is not in\nyour current course.';
+    final subtitle =
+        error == 'plan_expired'
+            ? 'Renew your plan — access will be restored immediately.'
+            : 'Go Premium — unlimited access to all courses.';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_DS.r20),
         border: Border.all(color: _DS.border),
-        boxShadow: [
-          BoxShadow(
-              color: _DS.navy.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4))
-        ],
+        boxShadow: [BoxShadow(color: _DS.navy.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_DS.r20),
-        child: Column(children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [_DS.navy, Color(0xFF1A3A5C)],
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [_DS.navy, Color(0xFF1A3A5C)],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _DS.gold.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: _DS.gold.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.workspace_premium_rounded, color: _DS.gold, size: 13),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Upgrade Required',
+                          style: TextStyle(fontSize: _DS.fsXs, fontWeight: FontWeight.w700, color: _DS.gold),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      fontSize: _DS.fsXl,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(subtitle, style: TextStyle(fontSize: _DS.fsSm, color: Colors.white.withOpacity(0.7))),
+                ],
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: _DS.gold.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _DS.gold.withOpacity(0.4)),
+            Container(
+              color: _DS.card,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildBenefit(
+                    Icons.all_inclusive_rounded,
+                    'Unlimited Test Access',
+                    'Attempt all tests without limits',
+                    _DS.gold,
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.workspace_premium_rounded, color: _DS.gold, size: 13),
-                    const SizedBox(width: 6),
-                    Text('Upgrade Required',
-                        style: TextStyle(
-                            fontSize: _DS.fsXs,
-                            fontWeight: FontWeight.w700,
-                            color: _DS.gold)),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-                Text(message,
-                    style: const TextStyle(
-                        fontSize: _DS.fsXl,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1.3)),
-                const SizedBox(height: 5),
-                Text(subtitle,
-                    style: TextStyle(
-                        fontSize: _DS.fsSm,
-                        color: Colors.white.withOpacity(0.7))),
-              ],
+                  const SizedBox(height: 8),
+                  _buildBenefit(
+                    Icons.menu_book_rounded,
+                    'Complete Study Material',
+                    'PDFs, videos, notes & practice sets',
+                    _DS.teal,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildBenefit(Icons.school_rounded, 'Expert Guidance', 'Learn from experienced teachers', _DS.gold),
+                  const SizedBox(height: 8),
+                  _buildBenefit(
+                    Icons.bar_chart_rounded,
+                    'Performance Analytics',
+                    'Track your progress with detailed reports',
+                    _DS.teal,
+                  ),
+                ],
+              ),
             ),
-          ),
-          Container(
-            color: _DS.card,
-            padding: const EdgeInsets.all(16),
-            child: Column(children: [
-              _buildBenefit(Icons.all_inclusive_rounded,
-                  'Unlimited Test Access',
-                  'Attempt all tests without limits', _DS.gold),
-              const SizedBox(height: 8),
-              _buildBenefit(Icons.menu_book_rounded,
-                  'Complete Study Material',
-                  'PDFs, videos, notes & practice sets', _DS.teal),
-              const SizedBox(height: 8),
-              _buildBenefit(Icons.school_rounded,
-                  'Expert Guidance',
-                  'Learn from experienced teachers', _DS.gold),
-              const SizedBox(height: 8),
-              _buildBenefit(Icons.bar_chart_rounded,
-                  'Performance Analytics',
-                  'Track your progress with detailed reports', _DS.teal),
-            ]),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }
@@ -1843,41 +1896,33 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _DS.border),
       ),
-      child: Row(children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(9)),
-          child: Icon(icon, color: color, size: 16),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: _DS.fsMd,
-                      fontWeight: FontWeight.w700,
-                      color: _DS.textPri)),
-              const SizedBox(height: 2),
-              Text(subtitle,
-                  style: const TextStyle(
-                      fontSize: _DS.fsXs,
-                      color: _DS.textSec,
-                      height: 1.35)),
-            ],
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(9)),
+            child: Icon(icon, color: color, size: 16),
           ),
-        ),
-        Icon(Icons.check_circle_rounded, color: _DS.teal, size: 15),
-      ]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w700, color: _DS.textPri),
+                ),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: _DS.fsXs, color: _DS.textSec, height: 1.35)),
+              ],
+            ),
+          ),
+          Icon(Icons.check_circle_rounded, color: _DS.teal, size: 15),
+        ],
+      ),
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  //  SCHEDULE SECTION
-  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildScheduleSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1888,14 +1933,12 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         children: [
           _buildSectionHead(Icons.calendar_today_rounded, 'Test Schedule'),
           const SizedBox(height: 14),
-
           _buildScheduleRow(
             icon: Icons.play_circle_outline_rounded,
             label: 'Start',
             rawDateTime: _currentQuiz!.startDateTime,
             color: _DS.teal,
           ),
-
           if (_currentQuiz!.endDateTime.isNotEmpty) ...[
             const SizedBox(height: 10),
             _buildScheduleRow(
@@ -1905,7 +1948,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
               color: _DS.red,
             ),
           ],
-
           if (_currentQuiz!.timeLimit.isNotEmpty) ...[
             const SizedBox(height: 10),
             _buildScheduleRow(
@@ -1916,7 +1958,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
               overrideValue: '${_currentQuiz!.timeLimit} min',
             ),
           ],
-
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1933,11 +1974,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                 Expanded(
                   child: Text(
                     'Designed to simulate actual exam conditions — same pattern, same time pressure.',
-                    style: TextStyle(
-                        fontSize: _DS.fsSm,
-                        color: _DS.textPri,
-                        fontWeight: FontWeight.w500,
-                        height: 1.4),
+                    style: TextStyle(fontSize: _DS.fsSm, color: _DS.textPri, fontWeight: FontWeight.w500, height: 1.4),
                   ),
                 ),
               ],
@@ -1962,7 +1999,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       dateText = overrideValue;
     } else if (rawDateTime.isNotEmpty) {
       final formatted = _formatDateTime(rawDateTime);
-      final parts     = formatted.split('  •  ');
+      final parts = formatted.split('  •  ');
       dateText = parts.isNotEmpty ? parts[0] : formatted;
       timeText = parts.length > 1 ? parts[1] : '';
     }
@@ -1978,43 +2015,29 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         children: [
           Container(
             padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
             child: Icon(icon, color: color, size: 14),
           ),
           const SizedBox(width: 10),
-          Text(label,
-              style: const TextStyle(
-                fontSize: _DS.fsMd,
-                fontWeight: FontWeight.w600,
-                color: _DS.textSec,
-              )),
+          Text(label, style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w600, color: _DS.textSec)),
           const Spacer(),
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(dateText,
-                  style: const TextStyle(
-                    fontSize: _DS.fsMd,
-                    fontWeight: FontWeight.w800,
-                    color: _DS.textPri,
-                  )),
+              Text(
+                dateText,
+                style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w800, color: _DS.textPri),
+              ),
               if (timeText.isNotEmpty) ...[
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(6),
+                  decoration: BoxDecoration(color: color.withOpacity(0.14), borderRadius: BorderRadius.circular(6)),
+                  child: Text(
+                    timeText,
+                    style: TextStyle(fontSize: _DS.fsXs, fontWeight: FontWeight.w800, color: color),
                   ),
-                  child: Text(timeText,
-                      style: TextStyle(
-                        fontSize: _DS.fsXs,
-                        fontWeight: FontWeight.w800,
-                        color: color,
-                      )),
                 ),
               ],
             ],
@@ -2025,27 +2048,19 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   }
 
   Widget _buildSectionHead(IconData icon, String label) {
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-          color: _DS.navy.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(8),
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(color: _DS.navy.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: _DS.navy, size: 14),
         ),
-        child: Icon(icon, color: _DS.navy, size: 14),
-      ),
-      const SizedBox(width: 9),
-      Text(label,
-          style: const TextStyle(
-              fontSize: _DS.fsMd,
-              fontWeight: FontWeight.w700,
-              color: _DS.textPri)),
-    ]);
+        const SizedBox(width: 9),
+        Text(label, style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w700, color: _DS.textPri)),
+      ],
+    );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  //  DESCRIPTION CARD
-  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildDescriptionCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -2058,21 +2073,13 @@ class _QuizDetailPageState extends State<QuizDetailPage>
           const SizedBox(height: 12),
           Text(
             _currentQuiz!.description,
-            style: const TextStyle(
-              fontSize: _DS.fsMd,
-              color: _DS.textSec,
-              fontWeight: FontWeight.w400,
-              height: 1.65,
-            ),
+            style: const TextStyle(fontSize: _DS.fsMd, color: _DS.textSec, fontWeight: FontWeight.w400, height: 1.65),
           ),
         ],
       ),
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  //  INSTRUCTIONS CARD
-  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildInstructionsCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -2090,51 +2097,51 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   }
 
   Widget _buildInstructionItems() {
-    final text    = _currentQuiz!.instruction;
+    final text = _currentQuiz!.instruction;
     final liRegex = RegExp(r'<li[^>]*>(.*?)</li>', dotAll: true);
     final matches = liRegex.allMatches(text);
 
     if (matches.isEmpty) {
       return Text(
         _removeHtmlTags(text),
-        style: const TextStyle(
-            fontSize: _DS.fsMd,
-            color: _DS.textSec,
-            fontWeight: FontWeight.w400,
-            height: 1.6),
+        style: const TextStyle(fontSize: _DS.fsMd, color: _DS.textSec, fontWeight: FontWeight.w400, height: 1.6),
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: matches.map((match) {
-        final clean = _removeHtmlTags(match.group(1) ?? '');
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 9),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 7),
-                child: Container(
-                  width: 5, height: 5,
-                  decoration: BoxDecoration(
-                      color: _DS.teal, shape: BoxShape.circle),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(clean,
-                    style: const TextStyle(
+      children:
+          matches.map((match) {
+            final clean = _removeHtmlTags(match.group(1) ?? '');
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 9),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 7),
+                    child: Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(color: _DS.teal, shape: BoxShape.circle),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      clean,
+                      style: const TextStyle(
                         fontSize: _DS.fsMd,
                         color: _DS.textSec,
                         fontWeight: FontWeight.w400,
-                        height: 1.55)),
+                        height: 1.55,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
     );
   }
 
@@ -2151,9 +2158,6 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         .trim();
   }
 
-  // ═══════════════════════════════════════════════════════════════════════
-  //  INFO CARD
-  // ═══════════════════════════════════════════════════════════════════════
   Widget _buildInfoCard() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -2164,12 +2168,9 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         children: [
           _buildSectionHead(Icons.info_outline_rounded, 'Important Information'),
           const SizedBox(height: 12),
-          _buildInfoRow(Icons.touch_app_rounded,
-              'Single attempt only — make every answer count'),
-          _buildInfoRow(Icons.wifi_rounded,
-              'Stable internet connection required throughout'),
-          _buildInfoRow(Icons.leaderboard_rounded,
-              'Instant results & live All India Ranking after test'),
+          _buildInfoRow(Icons.touch_app_rounded, 'Single attempt only — make every answer count'),
+          _buildInfoRow(Icons.wifi_rounded, 'Stable internet connection required throughout'),
+          _buildInfoRow(Icons.leaderboard_rounded, 'Instant results & live All India Ranking after test'),
         ],
       ),
     );
@@ -2178,28 +2179,30 @@ class _QuizDetailPageState extends State<QuizDetailPage>
   Widget _buildInfoRow(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 14, color: _DS.teal),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(text,
-              style: const TextStyle(
-                  fontSize: _DS.fsSm,
-                  color: _DS.textSec,
-                  fontWeight: FontWeight.w500,
-                  height: 1.4)),
-        ),
-      ]),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 14, color: _DS.teal),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: _DS.fsSm, color: _DS.textSec, fontWeight: FontWeight.w500, height: 1.4),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  BOTTOM BAR
+  //  BOTTOM BAR — ✅ FIXED: missed + ended cases added
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildBottomBar() {
     final quiz = _currentQuiz;
     if (quiz == null) return const SizedBox.shrink();
 
+    // 1. Resume pending attempt
     if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
       return _buildActionBar(
         label: 'Resume Attempt',
@@ -2210,6 +2213,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       );
     }
 
+    // 2. Already attempted (ended status — user completed it)
     if (quiz.is_attempted) {
       return _buildActionBar(
         label: 'Already Attempted',
@@ -2217,17 +2221,19 @@ class _QuizDetailPageState extends State<QuizDetailPage>
         colors: [Colors.grey.shade500, Colors.grey.shade700],
         shadowColor: Colors.grey.withOpacity(0.2),
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: const Text('You have already attempted this test'),
-            backgroundColor: _DS.textSec,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('You have already attempted this test'),
+              backgroundColor: _DS.textSec,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
         },
       );
     }
 
+    // 3. No access — show activate plan
     if (!_hasFullAccess) {
       return _buildActionBar(
         label: 'Activate Plan',
@@ -2238,6 +2244,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       );
     }
 
+    // 4. Has access — check quiz status
     switch (quiz.quizStatus.toLowerCase()) {
       case 'live':
         return _buildActionBar(
@@ -2247,8 +2254,21 @@ class _QuizDetailPageState extends State<QuizDetailPage>
           shadowColor: _DS.red.withOpacity(0.35),
           onTap: _handleStartQuiz,
         );
+
       case 'upcoming':
         return _buildRemindMeBar();
+
+      // ✅ FIXED: missed — allow attempt as assessment
+      case 'missed':
+        return _buildActionBar(
+          label: 'Attempt Now',
+          icon: Icons.assignment_late_outlined,
+          colors: [_DS.indigo, const Color(0xFF4527A0)],
+          shadowColor: _DS.indigo.withOpacity(0.35),
+          onTap: _handleStartQuiz,
+        );
+
+      // ✅ FIXED: ended — quiz over, cannot attempt
       case 'ended':
       default:
         return _buildActionBar(
@@ -2256,8 +2276,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
           icon: Icons.lock_clock_rounded,
           colors: [Colors.grey.shade500, Colors.grey.shade700],
           shadowColor: Colors.grey.withOpacity(0.2),
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('This test has ended'))),
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This test has ended'))),
         );
     }
   }
@@ -2274,12 +2293,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       decoration: BoxDecoration(
         color: _DS.card,
         border: Border(top: BorderSide(color: _DS.border)),
-        boxShadow: [
-          BoxShadow(
-              color: _DS.navy.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, -3)),
-        ],
+        boxShadow: [BoxShadow(color: _DS.navy.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, -3))],
       ),
       child: SafeArea(
         top: false,
@@ -2287,12 +2301,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
           decoration: BoxDecoration(
             gradient: LinearGradient(colors: colors),
             borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                  color: shadowColor,
-                  blurRadius: 14,
-                  offset: const Offset(0, 5)),
-            ],
+            boxShadow: [BoxShadow(color: shadowColor, blurRadius: 14, offset: const Offset(0, 5))],
           ),
           child: Material(
             color: Colors.transparent,
@@ -2306,12 +2315,15 @@ class _QuizDetailPageState extends State<QuizDetailPage>
                   children: [
                     Icon(icon, color: Colors.white, size: 20),
                     const SizedBox(width: 9),
-                    Text(label,
-                        style: const TextStyle(
-                            fontSize: _DS.fsLg,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.2)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: _DS.fsLg,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -2328,12 +2340,7 @@ class _QuizDetailPageState extends State<QuizDetailPage>
       decoration: BoxDecoration(
         color: _DS.card,
         border: Border(top: BorderSide(color: _DS.border)),
-        boxShadow: [
-          BoxShadow(
-              color: _DS.navy.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, -3)),
-        ],
+        boxShadow: [BoxShadow(color: _DS.navy.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, -3))],
       ),
       child: SafeArea(
         top: false,
@@ -2350,20 +2357,21 @@ class _QuizDetailPageState extends State<QuizDetailPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.schedule_rounded,
-                      color: Color(0xFFB45309), size: 14),
+                  const Icon(Icons.schedule_rounded, color: Color(0xFFB45309), size: 14),
                   const SizedBox(width: 7),
-                  Text(_getCountdownLabel(),
-                      style: const TextStyle(
-                          fontSize: _DS.fsMd,
-                          color: Color(0xFFB45309),
-                          fontWeight: FontWeight.w500)),
-                  Text(_getCountdownText(),
-                      style: const TextStyle(
-                          fontSize: _DS.fsLg,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFFB45309),
-                          letterSpacing: 0.3)),
+                  Text(
+                    _getCountdownLabel(),
+                    style: const TextStyle(fontSize: _DS.fsMd, color: Color(0xFFB45309), fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    _getCountdownText(),
+                    style: const TextStyle(
+                      fontSize: _DS.fsLg,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFB45309),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -2373,41 +2381,38 @@ class _QuizDetailPageState extends State<QuizDetailPage>
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [_DS.navy, _DS.teal]),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                      color: _DS.teal.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4)),
-                ],
+                boxShadow: [BoxShadow(color: _DS.teal.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
               ),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: const Text(
-                          "Reminder set! We'll notify you before the test starts."),
-                      backgroundColor: _DS.teal,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text("Reminder set! We'll notify you before the test starts."),
+                        backgroundColor: _DS.teal,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
                   },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 15),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.notifications_active_rounded,
-                            color: Colors.white, size: 20),
+                        Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
                         SizedBox(width: 9),
-                        Text('Remind Me',
-                            style: TextStyle(
-                                fontSize: _DS.fsLg,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: 0.2)),
+                        Text(
+                          'Remind Me',
+                          style: TextStyle(
+                            fontSize: _DS.fsLg,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -2447,11 +2452,11 @@ class _AccessBannerCfg {
 }
 
 class _BenefitEntry {
-  final String   emoji;
+  final String emoji;
   final IconData icon;
-  final String   title;
-  final String   desc;
-  final Color    color;
+  final String title;
+  final String desc;
+  final Color color;
 
   const _BenefitEntry({
     required this.emoji,

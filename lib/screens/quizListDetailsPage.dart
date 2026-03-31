@@ -23,7 +23,9 @@ class QuizListScreen extends StatefulWidget {
 }
 
 class _QuizListScreenState extends State<QuizListScreen> {
+  // all | live | upcoming | missed
   String _selectedFilter = 'all';
+
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
 
@@ -35,7 +37,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
   List<QuizItem> _quizzes = [];
   UserModel? _user;
 
-  // ── Pagination ─────────────────────────────────────────────────────
+  // ── Pagination ───────────────────────────────────────────────────────────
   int _currentPage = 1;
   bool _hasMore = true;
   bool _isLoadingMore = false;
@@ -52,11 +54,11 @@ class _QuizListScreenState extends State<QuizListScreen> {
   ];
 
   final List<List<Color>> _mockGradients = const [
-    [Color(0xFF0D4B3B), Color(0xFF1A8070)],
-    [Color(0xFF0B3D5E), Color(0xFF1A6D8A)],
-    [Color(0xFF1A4D6D), Color(0xFF0D7A6B)],
-    [Color(0xFF0C3756), Color(0xFF28A194)],
-    [Color(0xFF093D4A), Color(0xFF1A7A6D)],
+    [Color(0xFF1a237e), Color(0xFF283593)],
+    [Color(0xFF0D1B6D), Color(0xFF1a237e)],
+    [Color(0xFF283593), Color(0xFF3949AB)],
+    [Color(0xFF1a237e), Color(0xFF0D1B6D)],
+    [Color(0xFF3949AB), Color(0xFF283593)],
   ];
 
   List<List<Color>> get _gradients => isMockTest ? _mockGradients : _liveGradients;
@@ -100,19 +102,26 @@ class _QuizListScreenState extends State<QuizListScreen> {
     }
   }
 
-  // ── Fetch quizzes with pagination ──────────────────────────────────
+  // ── Fetch with pagination ────────────────────────────────────────────────
   Future<void> _fetchQuizzes(int categoryId, {int page = 1}) async {
     if (page == 1) setState(() => _isFetchingQuizzes = true);
 
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
-      final response = await auth.fetch_Quiz_List({
+
+      // Pass type filter to API only for live/upcoming/missed
+      final Map<String, dynamic> payload = {
         'Pagetype': widget.PageType,
         'category_id': categoryId.toString(),
         'user_id': _user!.id.toString(),
         'page': page.toString(),
         'limit': '5',
-      });
+      };
+      if (_selectedFilter == 'live' || _selectedFilter == 'upcoming' || _selectedFilter == 'missed') {
+        payload['type'] = _selectedFilter;
+      }
+
+      final response = await auth.fetch_Quiz_List(payload);
 
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
@@ -125,10 +134,8 @@ class _QuizListScreenState extends State<QuizListScreen> {
             _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
           } else {
             final existingIds = _quizzes.map((e) => e.quizId).toSet();
-            final newItems = list
-                .map((e) => QuizItem.fromJson(e))
-                .where((e) => !existingIds.contains(e.quizId))
-                .toList();
+            final newItems =
+                list.map((e) => QuizItem.fromJson(e)).where((e) => !existingIds.contains(e.quizId)).toList();
             _quizzes.addAll(newItems);
           }
           _currentPage = page;
@@ -141,54 +148,44 @@ class _QuizListScreenState extends State<QuizListScreen> {
     }
   }
 
-  // ── Load more ──────────────────────────────────────────────────────
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
-    debugPrint("🔄 Loading more quizzes... page ${_currentPage + 1}");
     setState(() => _isLoadingMore = true);
     await _fetchQuizzes(_selectedCategoryId, page: _currentPage + 1);
     if (mounted) setState(() => _isLoadingMore = false);
   }
 
+  // ── Filter — API already filters by type, so this is just local display ──
+  // API returns: upcoming | join_now | resume | submitted | missed
   List<QuizItem> get _filtered {
     if (isMockTest) return _quizzes;
-    final active = _quizzes.where((q) => q.isLive || q.quizStatus == 'upcoming').toList();
-    if (_selectedFilter == 'live') return active.where((q) => q.isLive).toList();
-    if (_selectedFilter == 'upcoming') return active.where((q) => q.quizStatus == 'upcoming' && !q.isLive).toList();
-    return active;
+
+    // When a specific filter is active, API already returned filtered data
+    if (_selectedFilter != 'all') return _quizzes;
+
+    // 'all' — show everything the API sent: live (all sub-states) + upcoming + missed
+    return _quizzes;
   }
 
-  // ✅ Lock logic: sirf tab lock karo jab paid ho, purchase na hua ho, aur attempt bhi na hua ho
-  bool _isLocked(QuizItem quiz) {
-    return quiz.isAccessible && !quiz.isPurchased && !quiz.is_attempted;
-  }
+  bool _isLiveStatus(String s) => s == 'join_now' || s == 'resume' || s == 'submitted';
+
+  bool _isLocked(QuizItem quiz) => quiz.isAccessible && !quiz.isPurchased && !quiz.is_attempted;
 
   void _goToDetail(QuizItem quiz) {
-    // if (_isLocked(quiz)) {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(builder: (_) => BuyQuizesScreen()),
-    //   );
-    //   return;
-    // }
-
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => isMockTest
-            ? MockTestDetailPage(
-                quizId: quiz.quizId
-               
-              )
-            : QuizDetailPage(
-                quizId: quiz.quizId,
-                is_subscribed: quiz.isPurchased || !quiz.isAccessible,
-              ),
+        builder:
+            (_) =>
+                isMockTest
+                    ? MockTestDetailPage(quizId: quiz.quizId)
+                    : QuizDetailPage(quizId: quiz.quizId, is_subscribed: quiz.isPurchased || !quiz.isAccessible),
       ),
     );
   }
 
-  // ─── BUILD ────────────────────────────────────────────────────────
+  // ─── BUILD ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,13 +195,10 @@ class _QuizListScreenState extends State<QuizListScreen> {
         children: [
           _buildCategoryTabs(),
           Expanded(
-            child: _isFetchingQuizzes
-                ? Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(_accent),
-                    ),
-                  )
-                : _filtered.isEmpty
+            child:
+                _isFetchingQuizzes
+                    ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_accent)))
+                    : _filtered.isEmpty
                     ? _buildEmptyState()
                     : _buildContent(),
           ),
@@ -213,7 +207,8 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── APP BAR ──────────────────────────────────────────────────────
+  // ─── APP BAR ──────────────────────────────────────────────────────────────
+
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: AppColors.darkNavy,
@@ -221,25 +216,23 @@ class _QuizListScreenState extends State<QuizListScreen> {
       automaticallyImplyLeading: false,
       leadingWidth: 40,
       titleSpacing: 0,
-      leading: widget.pageId == '1'
-          ? IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
+      leading:
+          widget.pageId == '1'
+              ? IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
                 ),
-                child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                onPressed: () => Navigator.pop(context),
+              )
+              : Padding(
+                padding: const EdgeInsets.all(10),
+                child: Text(isMockTest ? '📝' : '⚡', style: const TextStyle(fontSize: 20)),
               ),
-              onPressed: () => Navigator.pop(context),
-            )
-          : Padding(
-              padding: const EdgeInsets.all(10),
-              child: Text(
-                isMockTest ? '📝' : '⚡',
-                style: const TextStyle(fontSize: 20),
-              ),
-            ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -261,10 +254,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
       actions: [
         if (!isMockTest)
           GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => QuizListScreen('1', '4')),
-            ),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => QuizListScreen('1', '4'))),
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -305,18 +295,16 @@ class _QuizListScreenState extends State<QuizListScreen> {
         IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
+            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
             child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
           ),
-          onPressed: () => showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => _buildFilterSheet(),
-          ),
+          onPressed:
+              () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => _buildFilterSheet(),
+              ),
         ),
         const SizedBox(width: 4),
       ],
@@ -332,9 +320,43 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── FILTER SHEET ─────────────────────────────────────────────────
+  // ─── FILTER SHEET ─────────────────────────────────────────────────────────
+
   Widget _buildFilterSheet() {
     String tempFilter = _selectedFilter;
+
+    // Live quiz filters — now includes "Assessment" (missed)
+    final liveFilters = [
+      {
+        'key': 'all',
+        'title': 'All',
+        'subtitle': 'Live, upcoming aur assessment sab dikhao',
+        'icon': Icons.view_list,
+        'color': AppColors.darkNavy,
+      },
+      {
+        'key': 'live',
+        'title': 'Live Now',
+        'subtitle': 'Abhi live chal rahe quizzes',
+        'icon': Icons.radio_button_checked,
+        'color': Colors.red,
+      },
+      {
+        'key': 'upcoming',
+        'title': 'Upcoming',
+        'subtitle': 'Aane wale quizzes',
+        'icon': Icons.schedule,
+        'color': const Color(0xFFF59E0B),
+      },
+      {
+        'key': 'missed',
+        'title': 'Assessment',
+        'subtitle': 'Jo miss ho gaye — ab bhi attempt kar sakte ho',
+        'icon': Icons.assignment_late_outlined,
+        'color': const Color(0xFF6366F1),
+      },
+    ];
+
     return StatefulBuilder(
       builder: (context, setModalState) {
         return Container(
@@ -349,10 +371,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 margin: const EdgeInsets.only(top: 12),
                 width: 40,
                 height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(10)),
               ),
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -364,9 +383,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.tealGreen, AppColors.darkNavy],
-                            ),
+                            gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
@@ -374,11 +391,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         const SizedBox(width: 12),
                         const Text(
                           'Filter Quizzes',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.darkNavy,
-                          ),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                         ),
                         const Spacer(),
                         IconButton(
@@ -388,29 +401,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    ...[
-                      {
-                        'key': 'all',
-                        'title': 'All Quizzes',
-                        'subtitle': 'Live aur upcoming dono dikhao',
-                        'icon': Icons.view_list,
-                        'color': AppColors.darkNavy,
-                      },
-                      {
-                        'key': 'live',
-                        'title': 'Live Now',
-                        'subtitle': 'Abhi live chal rahe quizzes',
-                        'icon': Icons.radio_button_checked,
-                        'color': Colors.red,
-                      },
-                      {
-                        'key': 'upcoming',
-                        'title': 'Upcoming',
-                        'subtitle': 'Aane wale quizzes',
-                        'icon': Icons.schedule,
-                        'color': Colors.orange,
-                      },
-                    ].map((f) {
+                    ...liveFilters.map((f) {
                       final bool sel = tempFilter == f['key'];
                       final Color c = f['color'] as Color;
                       return GestureDetector(
@@ -421,26 +412,17 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           decoration: BoxDecoration(
                             color: sel ? c.withOpacity(0.08) : const Color(0xFFF5F5F5),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: sel ? c : Colors.transparent,
-                              width: 1.5,
-                            ),
+                            border: Border.all(color: sel ? c : Colors.transparent, width: 1.5),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: sel
-                                      ? c.withOpacity(0.15)
-                                      : Colors.grey.withOpacity(0.1),
+                                  color: sel ? c.withOpacity(0.15) : Colors.grey.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(
-                                  f['icon'] as IconData,
-                                  color: sel ? c : AppColors.greyS600,
-                                  size: 18,
-                                ),
+                                child: Icon(f['icon'] as IconData, color: sel ? c : AppColors.greyS600, size: 18),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -474,24 +456,20 @@ class _QuizListScreenState extends State<QuizListScreen> {
                       onTap: () {
                         setState(() => _selectedFilter = tempFilter);
                         Navigator.pop(context);
+                        // Re-fetch with new type filter
+                        _fetchQuizzes(_selectedCategoryId, page: 1);
                       },
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.tealGreen, AppColors.darkNavy],
-                          ),
+                          gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
                           child: Text(
                             'Apply Filter',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
                         ),
                       ),
@@ -507,7 +485,8 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── CATEGORY TABS ────────────────────────────────────────────────
+  // ─── CATEGORY TABS ────────────────────────────────────────────────────────
+
   Widget _buildCategoryTabs() {
     if (_isLoading) return const SizedBox(height: 52);
     return Container(
@@ -536,13 +515,15 @@ class _QuizListScreenState extends State<QuizListScreen> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                gradient: sel
-                    ? LinearGradient(
-                        colors: isMockTest
-                            ? [const Color(0xFF1a237e), AppColors.darkNavy]
-                            : [AppColors.tealGreen, AppColors.darkNavy],
-                      )
-                    : null,
+                gradient:
+                    sel
+                        ? LinearGradient(
+                          colors:
+                              isMockTest
+                                  ? [const Color(0xFF1a237e), AppColors.darkNavy]
+                                  : [AppColors.tealGreen, AppColors.darkNavy],
+                        )
+                        : null,
                 color: sel ? null : const Color(0xFFF0F2F8),
                 borderRadius: BorderRadius.circular(20),
                 border: sel ? null : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
@@ -564,13 +545,12 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── CONTENT ──────────────────────────────────────────────────────
+  // ─── CONTENT ──────────────────────────────────────────────────────────────
+
   Widget _buildContent() {
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification scrollInfo) {
-        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 300 &&
-            !_isLoadingMore &&
-            _hasMore) {
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 300 && !_isLoadingMore && _hasMore) {
           _loadMore();
         }
         return false;
@@ -581,18 +561,13 @@ class _QuizListScreenState extends State<QuizListScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final quiz = _filtered[index];
-                  final colors = _gradients[index % _gradients.length];
-                  return _buildCard(quiz, colors);
-                },
-                childCount: _filtered.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final quiz = _filtered[index];
+                final colors = _gradients[index % _gradients.length];
+                return _buildCard(quiz, colors);
+              }, childCount: _filtered.length),
             ),
           ),
-
-          // ── Banner Ad ───────────────────────────────────────────
           if (isBannerLoaded && bannerService.bannerAd != null)
             SliverToBoxAdapter(
               child: Padding(
@@ -607,24 +582,20 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 ),
               ),
             ),
-
-          // ── Bottom loader ────────────────────────────────────────
           SliverToBoxAdapter(
-            child: _isLoadingMore
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : !_hasMore
+            child:
+                _isLoadingMore
                     ? const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Center(
-                          child: Text(
-                            '✅ All quizzes loaded',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ),
-                      )
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                    : !_hasMore
+                    ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: Text('✅ All quizzes loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ),
+                    )
                     : const SizedBox(height: 80),
           ),
         ],
@@ -632,19 +603,19 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── CARD ─────────────────────────────────────────────────────────
+  // ─── CARD ─────────────────────────────────────────────────────────────────
+
   Widget _buildCard(QuizItem quiz, List<Color> colors) {
-    final bool isLive = quiz.quizStatus == 'live';
-    final bool isUpcoming = quiz.quizStatus == 'upcoming';
+    // ── Derive display flags from quiz_status ─────────────────────────────
+    final String status = quiz.quizStatus; // from API
+    final bool isLiveAny = _isLiveStatus(status); // join_now | resume | submitted
+    final bool isJoinNow = status == 'join_now';
+    final bool isResume = status == 'resume';
+    final bool isUpcoming = status == 'upcoming';
+    final bool isMissed = status == 'missed';
+
     final bool hasBanner = quiz.banner != null && quiz.banner!.isNotEmpty;
     final bool locked = _isLocked(quiz);
-
-    // ✅ Progress: 0.0 to 1.0 — quiz.progressPercent field se aayega
-    // Agar QuizItem mein progressPercent nahi hai to 1.0 default (fully attempted)
-    final double progress =0.0;
-    //  isMockTest && quiz.is_attempted
-    //     ? (quiz.progressPercent ?? 1.0).clamp(0.0, 1.0)
-    //     : 0.0;
 
     return GestureDetector(
       onTap: () => _goToDetail(quiz),
@@ -653,35 +624,26 @@ class _QuizListScreenState extends State<QuizListScreen> {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.black.withOpacity(0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
         ),
         child: Column(
           children: [
-            // ── Main card row ──────────────────────────────────────
             Row(
               children: [
+                // ── Left panel ─────────────────────────────────────────
                 ClipRRect(
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    // ✅ agar progress bar show hogi to bottom-left corner flat rakho
-                    bottomLeft: Radius.circular(
-                      (isMockTest && quiz.is_attempted) ? 0 : 16,
-                    ),
-                  ),
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
                   child: SizedBox(
                     width: 95,
                     height: 120,
-                    child: hasBanner
-                        ? _buildBannerPanel(quiz, colors, isLive, isUpcoming)
-                        : _buildGradientPanel(quiz, colors, isLive, isUpcoming),
+                    child:
+                        hasBanner
+                            ? _buildBannerPanel(quiz, colors, isLiveAny, isJoinNow, isResume, isUpcoming, isMissed)
+                            : _buildGradientPanel(quiz, colors, isLiveAny, isJoinNow, isResume, isUpcoming, isMissed),
                   ),
                 ),
+
+                // ── Right content ──────────────────────────────────────
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -703,11 +665,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           const SizedBox(height: 3),
                           Text(
                             quiz.description,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.greyS600,
-                              height: 1.4,
-                            ),
+                            style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1.4),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -721,32 +679,42 @@ class _QuizListScreenState extends State<QuizListScreen> {
                               _chip(Icons.signal_cellular_alt, quiz.difficultyLevel, AppColors.tealGreen),
                             if (quiz.timeLimit.isNotEmpty && quiz.timeLimit != '0')
                               _chip(Icons.timer_outlined, '${quiz.timeLimit} min', AppColors.greyS600),
-                            if (!isMockTest && quiz.startsInText.isNotEmpty && !isLive)
+
+                            // Countdown — only upcoming
+                            if (isUpcoming && quiz.startsInText.isNotEmpty)
                               _chip(Icons.schedule, quiz.startsInText, Colors.orange),
+
+                            // Resume chip — live, in-progress
+                            if (isResume) _chip(Icons.pending_actions_rounded, 'In Progress', const Color(0xFF00897B)),
+
+                            // Assessment chip — missed
+                            if (isMissed) _chip(Icons.assignment_late_outlined, 'Assessment', const Color(0xFF6366F1)),
                           ],
                         ),
                         const SizedBox(height: 10),
 
-                        // ✅ Button — ALWAYS original gradient color (no grey)
+                        // ── Action button ───────────────────────────────
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 9),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: colors),
+                            gradient: LinearGradient(
+                              colors: isMissed ? [const Color(0xFF6366F1), const Color(0xFF4338CA)] : colors,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(_btnIcon(quiz, isLive, locked), color: Colors.white, size: 14),
+                              Icon(
+                                _btnIcon(quiz, isLiveAny, isJoinNow, isResume, isMissed, locked),
+                                color: Colors.white,
+                                size: 14,
+                              ),
                               const SizedBox(width: 5),
                               Text(
-                                _btnText(quiz, isLive, locked),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
+                                _btnText(quiz, isLiveAny, isJoinNow, isResume, isMissed, locked),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
                               ),
                             ],
                           ),
@@ -758,7 +726,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               ],
             ),
 
-            // ✅ Progress Bar — sirf mock test mein jab is_attempted = true
+            // ── Mock test progress bar ────────────────────────────────
             if (isMockTest && quiz.is_attempted)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
@@ -774,21 +742,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
                             const SizedBox(width: 4),
                             Text(
                               'Attempted',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.greyS600,
-                              ),
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.greyS600),
                             ),
                           ],
-                        ),
-                        Text(
-                          '${(progress * 100).toInt()}% Complete',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: colors[1],
-                          ),
                         ),
                       ],
                     ),
@@ -796,7 +752,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
-                        value: progress,
+                        value: 1.0,
                         minHeight: 5,
                         backgroundColor: Colors.grey.withOpacity(0.15),
                         valueColor: AlwaysStoppedAnimation<Color>(colors[1]),
@@ -811,205 +767,214 @@ class _QuizListScreenState extends State<QuizListScreen> {
     );
   }
 
-  // ─── BANNER PANEL ─────────────────────────────────────────────────
-  Widget _buildBannerPanel(QuizItem quiz, List<Color> colors, bool isLive, bool isUpcoming) {
-    return SizedBox(
-      width: 95,
-      height: 120,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.network(
-            quiz.banner!,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                _buildGradientPanel(quiz, colors, isLive, isUpcoming),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withOpacity(0.45)],
-              ),
+  // ─── BANNER PANEL ─────────────────────────────────────────────────────────
+
+  Widget _buildBannerPanel(
+    QuizItem quiz,
+    List<Color> colors,
+    bool isLiveAny,
+    bool isJoinNow,
+    bool isResume,
+    bool isUpcoming,
+    bool isMissed,
+  ) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.network(
+          quiz.banner!,
+          fit: BoxFit.cover,
+          errorBuilder:
+              (_, __, ___) => _buildGradientPanel(quiz, colors, isLiveAny, isJoinNow, isResume, isUpcoming, isMissed),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Colors.black.withOpacity(0.45)],
             ),
           ),
+        ),
+        Positioned(
+          bottom: 8,
+          left: 0,
+          right: 0,
+          child: Center(child: _statusBadge(isLiveAny, isJoinNow, isResume, isUpcoming, isMissed)),
+        ),
+        if (quiz.isAccessible && !quiz.isPurchased)
           Positioned(
-            bottom: 8,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: _statusBadge(isLive, isUpcoming, quiz.is_attempted),
+            top: 6,
+            right: 6,
+            child: Icon(Icons.workspace_premium, color: Colors.white.withOpacity(0.9), size: 14),
+          ),
+      ],
+    );
+  }
+
+  // ─── GRADIENT PANEL ───────────────────────────────────────────────────────
+
+  Widget _buildGradientPanel(
+    QuizItem quiz,
+    List<Color> colors,
+    bool isLiveAny,
+    bool isJoinNow,
+    bool isResume,
+    bool isUpcoming,
+    bool isMissed,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isMissed ? [const Color(0xFF4338CA), const Color(0xFF6366F1)] : colors,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: _DotPatternPainter())),
+          Positioned(
+            right: -15,
+            bottom: -15,
+            child: Container(
+              width: 55,
+              height: 55,
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.07), shape: BoxShape.circle),
+            ),
+          ),
+          Positioned.fill(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
+                  ),
+                  child: Center(
+                    child: Text(
+                      isMockTest
+                          ? '📝'
+                          : isMissed
+                          ? '📋'
+                          : '⚡',
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _statusBadge(isLiveAny, isJoinNow, isResume, isUpcoming, isMissed),
+              ],
             ),
           ),
           if (quiz.isAccessible && !quiz.isPurchased)
             Positioned(
               top: 6,
               right: 6,
-              child: Icon(
-                Icons.workspace_premium,
-                color: Colors.white.withOpacity(0.9),
-                size: 14,
-              ),
+              child: Icon(Icons.workspace_premium, color: Colors.white.withOpacity(0.8), size: 13),
             ),
         ],
       ),
     );
   }
 
-  // ─── GRADIENT PANEL ───────────────────────────────────────────────
-  Widget _buildGradientPanel(QuizItem quiz, List<Color> colors, bool isLive, bool isUpcoming) {
-    return SizedBox(
-      width: 95,
-      height: 120,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: colors,
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(child: CustomPaint(painter: _DotPatternPainter())),
-            Positioned(
-              right: -15,
-              bottom: -15,
-              child: Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.07),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.35),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        isMockTest ? '📝' : '⚡',
-                        style: const TextStyle(fontSize: 22),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _statusBadge(isLive, isUpcoming, quiz.is_attempted),
-                ],
-              ),
-            ),
-            if (quiz.isAccessible && !quiz.isPurchased)
-              Positioned(
-                top: 6,
-                right: 6,
-                child: Icon(
-                  Icons.workspace_premium,
-                  color: Colors.white.withOpacity(0.8),
-                  size: 13,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ─── STATUS BADGE ─────────────────────────────────────────────────────────
 
-  // ─── STATUS BADGE ─────────────────────────────────────────────────
-  Widget _statusBadge(bool isLive, bool isUpcoming, bool isAttempted) {
+  Widget _statusBadge(bool isLiveAny, bool isJoinNow, bool isResume, bool isUpcoming, bool isMissed) {
     Color color;
     String label;
+    IconData? icon;
 
     if (isMockTest) {
-      color = isAttempted ? AppColors.tealGreen : Colors.white.withOpacity(0.25);
-      label = isAttempted ? 'DONE' : 'MOCK';
-    } else if (isLive) {
+      color = const Color(0xFF3949AB);
+      label = 'MOCK';
+      icon = Icons.assignment_outlined;
+    } else if (isResume) {
+      color = const Color(0xFF00897B);
+      label = 'RESUME';
+      icon = Icons.pending_actions_rounded;
+    } else if (isJoinNow || isLiveAny) {
       color = Colors.red;
       label = 'LIVE';
-    } else {
-      color = Colors.orange;
+      icon = null; // dot instead
+    } else if (isUpcoming) {
+      color = const Color(0xFFF59E0B);
       label = 'UPCOMING';
+      icon = null;
+    } else if (isMissed) {
+      color = const Color(0xFF6366F1);
+      label = 'ASSESSMENT';
+      icon = Icons.assignment_late_outlined;
+    } else {
+      color = AppColors.greyS600;
+      label = 'ENDED';
+      icon = null;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!isMockTest && isLive)
+          // Pulsing dot for live
+          if (!isMockTest && (isJoinNow || isLiveAny) && !isResume)
             Container(
               width: 5,
               height: 5,
               margin: const EdgeInsets.only(right: 3),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             ),
+          // Icon for resume / missed / mock
+          if (icon != null)
+            Padding(padding: const EdgeInsets.only(right: 3), child: Icon(icon, size: 7, color: Colors.white)),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 7,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: 0.3,
-            ),
+            style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
           ),
         ],
       ),
     );
   }
 
-  // ─── HELPERS ──────────────────────────────────────────────────────
+  // ─── HELPERS ──────────────────────────────────────────────────────────────
 
-  IconData _btnIcon(QuizItem quiz, bool isLive, bool locked) {
+  IconData _btnIcon(QuizItem quiz, bool isLiveAny, bool isJoinNow, bool isResume, bool isMissed, bool locked) {
     if (locked) return Icons.lock_outline;
-    if (isMockTest) return quiz.is_attempted ? Icons.bar_chart_rounded : Icons.edit_outlined;
-    if (isLive) return Icons.play_arrow_rounded;
+    if (isMockTest) {
+      return quiz.is_attempted ? Icons.bar_chart_rounded : Icons.edit_outlined;
+    }
+    if (isResume) return Icons.play_circle_outline;
+    if (isJoinNow || isLiveAny) return Icons.play_arrow_rounded;
+    if (isMissed) return Icons.assignment_late_outlined;
     return Icons.arrow_forward_rounded;
   }
 
-  String _btnText(QuizItem quiz, bool isLive, bool locked) {
+  String _btnText(QuizItem quiz, bool isLiveAny, bool isJoinNow, bool isResume, bool isMissed, bool locked) {
     if (locked) return 'Subscribe to Unlock';
-    if (isMockTest) return quiz.is_attempted ? 'View Result' : 'Start Test';
-    if (isLive) return 'Join Now';
+    if (isMockTest) {
+      return quiz.is_attempted ? 'View Result' : 'Start Test';
+    }
+    if (isResume) return 'Resume Quiz';
+    if (isJoinNow || isLiveAny) return 'Join Now';
+    if (isMissed) return 'Attempt Now';
     return 'View Details';
   }
 
   Widget _chip(IconData icon, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 3),
-          Text(
-            label,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
         ],
       ),
     );
@@ -1028,30 +993,25 @@ class _QuizListScreenState extends State<QuizListScreen> {
           const SizedBox(height: 16),
           Text(
             isMockTest ? 'Koi Mock Test nahi mila' : 'No quizzes found',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppColors.greyS600,
-            ),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.greyS600),
           ),
           const SizedBox(height: 6),
-          Text(
-            'Try a different category',
-            style: TextStyle(fontSize: 12, color: AppColors.greyS600),
-          ),
+          Text('Try a different category', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
         ],
       ),
     );
   }
 }
 
-// ─── DOT PATTERN ──────────────────────────────────────────────────────
+// ─── DOT PATTERN ──────────────────────────────────────────────────────────────
+
 class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.06)
-      ..strokeWidth = 1;
+    final paint =
+        Paint()
+          ..color = Colors.white.withOpacity(0.06)
+          ..strokeWidth = 1;
     const spacing = 14.0;
     for (double x = 0; x < size.width; x += spacing) {
       for (double y = 0; y < size.height; y += spacing) {

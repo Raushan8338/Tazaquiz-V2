@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           dialogTitle: "New Update Found!",
           dismissButtonText: "Skip",
           allowDismissal: false,
-          dialogText: "Please update the app from " + "${status.storeVersion}" + " to " + "${status.localVersion}",
+          dialogText: "Please update the app from " + "${status.localVersion}" + " to " + "${status.storeVersion}",
           dismissAction: () {
             SystemNavigator.pop();
           },
