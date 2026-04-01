@@ -356,7 +356,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             children: [
               Expanded(
                 child: _buildActionButton(
-                  'Quiz History ',
+                  'Test History ',
                   Icons.history_rounded,
                   const Color(0xFF00695C),
                   () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 0))),

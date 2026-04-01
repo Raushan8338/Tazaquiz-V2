@@ -210,8 +210,8 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                     children: [
                       Text(
                         passed
-                            ? '✅ ${widget.pageType == 0 ? 'Quiz Passed' : 'Mock Test Passed'} '
-                            : '❌ ${widget.pageType == 0 ? 'Quiz Failed' : 'Mock Test Failed'},',
+                            ? '✅ ${widget.pageType == 0 ? 'Test Passed' : 'Mock Test Passed'} '
+                            : '❌ ${widget.pageType == 0 ? 'Test Failed' : 'Mock Test Failed'},',
                         style: const TextStyle(
                           fontSize: 18,
                           color: Colors.white,

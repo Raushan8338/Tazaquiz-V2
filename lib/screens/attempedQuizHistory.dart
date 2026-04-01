@@ -39,13 +39,13 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     setState(() => _isLoading = true);
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
-      print('Fetching quiz history for user_id: ${_user!.id}');
+     
       final response = await auth.fetch_Quiz_performanceApi({
         'user_id': _user!.id.toString(),
         'pageType': widget.pageType.toString(),
       });
-      print(widget.pageType);
-      print('Quiz History Response: ${response.data}');
+     
+     
       if (response.statusCode == 200) {
         final parsed = QuizHistoryResponse.fromJson(response.data);
         setState(() {
@@ -806,12 +806,12 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'No quizzes found',
+            'No tests found',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
           ),
           const SizedBox(height: 6),
           Text(
-            'Start giving quizzes to see your history here',
+            'Start giving tests to see your history here',
             style: TextStyle(fontSize: 12, color: AppColors.greyS600),
             textAlign: TextAlign.center,
           ),
@@ -842,10 +842,10 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
             : Colors.redAccent;
     final String headline =
         ongoing
-            ? 'Quiz In Progress ⏳'
+            ? 'Test In Progress ⏳'
             : passed
-            ? 'Quiz Passed! 🎉'
-            : 'Quiz Failed 😔';
+            ? 'Test Passed! 🎉'
+            : 'Test Failed 😔';
 
     return Container(
       decoration: const BoxDecoration(

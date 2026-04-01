@@ -147,7 +147,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                   ),
                 ),
         title: const Text(
-          'Study Materials',
+          'Exam Courses',
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
         ),
         flexibleSpace: Container(
@@ -290,126 +290,107 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
   }
 
   // ── Grid card ──────────────────────────────────────────────────────
- Widget _buildGridCard(StudyMaterialItem material) {
-  final bool hasIcon = material.boardIcon != null && material.boardIcon!.isNotEmpty;
+  Widget _buildGridCard(StudyMaterialItem material) {
+    final bool hasIcon = material.boardIcon != null && material.boardIcon!.isNotEmpty;
 
-  return GestureDetector(
-    onTap: () => Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BuyCoursePage(
-          contentId: material.id,
-          page_API_call: 'SUBSCRIPTION',
-        ),
-      ),
-    ),
-    child: Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.07),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Image ──────────────────────────────────────────
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: SizedBox(
-              height: 115,
-              width: double.infinity,
-              child: hasIcon
-                  ? Image.network(
-                      material.boardIcon!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          _buildGradientFallback(material.title),
-                    )
-                  : _buildGradientFallback(material.title),
+    return GestureDetector(
+      onTap:
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BuyCoursePage(contentId: material.id, page_API_call: 'SUBSCRIPTION'),
             ),
           ),
-
-          // ── Content ────────────────────────────────────────
-          Expanded(
-  child: Padding(
-    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Title — fixed height: fontSize(12) * lineHeight(1.3) * maxLines(2) = 31.2
-        SizedBox(
-          height: 32, // 31.2 ko ceil karke 32 rakha — clean aur safe
-          child: Text(
-            material.title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: AppColors.darkNavy,
-              height: 1.3,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.07), blurRadius: 12, offset: const Offset(0, 4))],
         ),
-        const SizedBox(height: 4),
-
-        // Description
-        Text(
-          material.description,
-          style:  TextStyle(
-            fontSize: 11,
-            color: AppColors.greyS600,
-            height: 1,
-          ),
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-        ),
-
-        // Spacer remaining space absorb karta hai
-        const Spacer(),
-
-        // Explore Button
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.tealGreen, AppColors.darkNavy],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Image ──────────────────────────────────────────
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: SizedBox(
+                height: 115,
+                width: double.infinity,
+                child:
+                    hasIcon
+                        ? Image.network(
+                          material.boardIcon!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildGradientFallback(material.title),
+                        )
+                        : _buildGradientFallback(material.title),
+              ),
             ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Explore',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+
+            // ── Content ────────────────────────────────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title — fixed height: fontSize(12) * lineHeight(1.3) * maxLines(2) = 31.2
+                    SizedBox(
+                      height: 32, // 31.2 ko ceil karke 32 rakha — clean aur safe
+                      child: Text(
+                        material.title,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.darkNavy,
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Description
+                    Text(
+                      material.description,
+                      style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    // Spacer remaining space absorb karta hai
+                    const Spacer(),
+
+                    // Explore Button
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Explore',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(Icons.arrow_forward_rounded, size: 12, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(width: 4),
-              Icon(Icons.arrow_forward_rounded,
-                  size: 12, color: Colors.white),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
-    ),
-  ),
-),
-        ],
       ),
-    ),
-  );
-}
+    );
+  }
 
   // ── Gradient fallback ──────────────────────────────────────────────
   Widget _buildGradientFallback(String title) {
