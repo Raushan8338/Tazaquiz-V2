@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
-import 'package:tazaquiznew/screens/referal_list.dart';
+import 'package:tazaquiznew/screens/referal_list.dart' show ReferralListPage;
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
 import 'package:share_plus/share_plus.dart';
@@ -15,14 +15,29 @@ class ReferEarnPage extends StatefulWidget {
   State<ReferEarnPage> createState() => _ReferEarnPageState();
 }
 
-class _ReferEarnPageState extends State<ReferEarnPage> {
+class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProviderStateMixin {
   String userId = "";
   bool isLoading = true;
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     getData();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   getData() async {
@@ -31,6 +46,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
       userId = user?.id.toString() ?? "";
       isLoading = false;
     });
+    _animController.forward();
   }
 
   void _copyToClipboard() {
@@ -38,17 +54,20 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(16),
+        margin: const EdgeInsets.all(16),
         content: Row(
           children: [
-            Icon(Icons.check_circle, color: AppColors.white, size: 20),
-            SizedBox(width: 10),
-            Text('Code copied!', style: TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w600)),
+            const Icon(Icons.check_circle_rounded, color: AppColors.white, size: 20),
+            const SizedBox(width: 10),
+            const Text(
+              'Code copied!',
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
         backgroundColor: AppColors.tealGreen,
-        duration: Duration(seconds: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -60,8 +79,30 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
     try {
       if (platform == 'whatsapp') {
         final whatsappUrl = "whatsapp://send?text=${Uri.encodeComponent(message)}";
-        if (await canLaunch(whatsappUrl)) {
-          await launch(whatsappUrl);
+        if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
+          await launchUrl(Uri.parse(whatsappUrl));
+        } else {
+          await Share.share(message);
+        }
+      } else if (platform == 'telegram') {
+        final telegramUrl = "tg://msg?text=${Uri.encodeComponent(message)}";
+        if (await canLaunchUrl(Uri.parse(telegramUrl))) {
+          await launchUrl(Uri.parse(telegramUrl));
+        } else {
+          await Share.share(message);
+        }
+      } else if (platform == 'instagram') {
+        // Instagram doesn't support direct text share, open app
+        const instagramUrl = "instagram://app";
+        if (await canLaunchUrl(Uri.parse(instagramUrl))) {
+          await launchUrl(Uri.parse(instagramUrl));
+        } else {
+          await Share.share(message);
+        }
+      } else if (platform == 'facebook') {
+        final fbUrl = "https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(url)}";
+        if (await canLaunchUrl(Uri.parse(fbUrl))) {
+          await launchUrl(Uri.parse(fbUrl), mode: LaunchMode.externalApplication);
         } else {
           await Share.share(message);
         }
@@ -74,28 +115,37 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
   }
 
   void _navigateToReferralList() {
-    // TODO: Navigate to referral list page
-    //  Navigator.push(context, MaterialPageRoute(builder: (context) => ReferralListPage()));
-    // ScaffoldMessenger.of(
-    //   context,
-    // ).showSnackBar(SnackBar(content: Text('Referral List - Coming Soon!'), duration: Duration(seconds: 2)));
+    Navigator.push(context, MaterialPageRoute(builder: (context) => ReferralListPage()));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: const Color(0xFFF4F7FA),
       body: Column(
         children: [
           _buildHeader(),
           Expanded(
             child:
                 isLoading
-                    ? Center(child: CircularProgressIndicator(color: AppColors.tealGreen, strokeWidth: 3))
-                    : SingleChildScrollView(
-                      physics: BouncingScrollPhysics(),
-                      child: Column(
-                        children: [_buildCodeSection(), _buildShareSection(), _buildHowItWorks(), SizedBox(height: 30)],
+                    ? const Center(child: CircularProgressIndicator(color: AppColors.tealGreen, strokeWidth: 3))
+                    : FadeTransition(
+                      opacity: _fadeAnim,
+                      child: SlideTransition(
+                        position: _slideAnim,
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            children: [
+                              _buildCodeSection(),
+                              const SizedBox(height: 4),
+                              _buildShareSection(),
+                              const SizedBox(height: 20),
+                              _buildHowItWorks(),
+                              const SizedBox(height: 30),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
           ),
@@ -107,7 +157,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -117,15 +167,15 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
       child: SafeArea(
         child: Column(
           children: [
-            // AppBar (Fixed - Not Scrollable)
+            // AppBar
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 children: [
                   AppButton.setBackIcon(context, () {
                     Navigator.pop(context);
                   }, AppColors.white),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: AppRichText.setTextPoppinsStyle(
                       context,
@@ -141,11 +191,11 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
                   TextButton(
                     onPressed: _navigateToReferralList,
                     style: TextButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       backgroundColor: AppColors.white.withOpacity(0.2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Check Referral List',
                       style: TextStyle(
                         fontFamily: 'Poppins',
@@ -155,45 +205,49 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
                       ),
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                 ],
               ),
             ),
-            SizedBox(height: 20),
-            // Gift Icon
+            const SizedBox(height: 16),
+
+            // Gift icon — smaller, elegant
             Container(
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
-              child: Icon(Icons.card_giftcard, size: 60, color: AppColors.tealGreen),
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.white.withOpacity(0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.white.withOpacity(0.3), width: 2),
+              ),
+              child: const Icon(Icons.card_giftcard_rounded, size: 44, color: AppColors.white),
             ),
-            SizedBox(height: 20),
-            // Title
+            const SizedBox(height: 14),
+
             AppRichText.setTextPoppinsStyle(
               context,
               'Refer & Earn Up to ₹50',
-              22,
+              20,
               AppColors.white,
               FontWeight.w900,
               1,
               TextAlign.center,
               0.0,
             ),
-            SizedBox(height: 8),
-            // Subtitle
+            const SizedBox(height: 6),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40),
+              padding: const EdgeInsets.symmetric(horizontal: 40),
               child: AppRichText.setTextPoppinsStyle(
                 context,
-                'Share your code with friends and earn\nwhen they buy courses or join quizzes!',
-                13,
-                AppColors.white.withOpacity(0.95),
+                'Share your code & earn when friends\nbuy courses or join quizzes!',
+                12,
+                AppColors.white.withOpacity(0.9),
                 FontWeight.w500,
                 3,
                 TextAlign.center,
-                1.5,
+                1.4,
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -202,72 +256,96 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
 
   Widget _buildCodeSection() {
     return Transform.translate(
-      offset: Offset(0, -20),
+      offset: const Offset(0, -18),
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 16),
-        padding: EdgeInsets.all(24),
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: Offset(0, 5))],
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 6))],
         ),
         child: Column(
           children: [
-            AppRichText.setTextPoppinsStyle(
-              context,
-              'Your Referral Code',
-              13,
-              AppColors.greyS700,
-              FontWeight.w600,
-              1,
-              TextAlign.center,
-              0.0,
-            ),
-            SizedBox(height: 16),
-            // Code Display - Larger Size
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                color: AppColors.tealGreen.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1.5),
-              ),
-              child: Center(
-                child: AppRichText.setTextPoppinsStyle(
-                  context,
-                  userId,
-                  36,
-                  AppColors.tealGreen,
-                  FontWeight.w900,
-                  1,
-                  TextAlign.center,
-                  2.5,
+            // Label
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.tag_rounded, size: 14, color: AppColors.greyS700),
+                const SizedBox(width: 4),
+                Text(
+                  'Your Referral Code',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.greyS700,
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // ✅ Stylish Code Pill — not a big box
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.tealGreen.withOpacity(0.12), AppColors.darkNavy.withOpacity(0.06)],
+                ),
+                borderRadius: BorderRadius.circular(50),
+                border: Border.all(color: AppColors.tealGreen.withOpacity(0.4), width: 1.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Decorative dots
+                  _dotSep(),
+                  const SizedBox(width: 12),
+                  Text(
+                    userId,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.tealGreen,
+                      letterSpacing: 6,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _dotSep(),
+                ],
               ),
             ),
-            SizedBox(height: 16),
+
+            const SizedBox(height: 6),
+            Text(
+              'Tap to copy and share with friends',
+              style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.greyS700.withOpacity(0.7)),
+            ),
+            const SizedBox(height: 16),
+
             // Copy Button
             SizedBox(
               width: double.infinity,
-              height: 52,
+              height: 50,
               child: ElevatedButton(
                 onPressed: _copyToClipboard,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.tealGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.copy, color: AppColors.white, size: 20),
-                    SizedBox(width: 10),
+                  children: const [
+                    Icon(Icons.copy_rounded, color: AppColors.white, size: 18),
+                    SizedBox(width: 8),
                     Text(
                       'Copy Code',
                       style: TextStyle(
                         fontFamily: 'Poppins',
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: AppColors.white,
                       ),
@@ -282,31 +360,66 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
     );
   }
 
+  // Small decorative element inside pill
+  Widget _dotSep() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(
+        3,
+        (i) => Container(
+          margin: const EdgeInsets.symmetric(vertical: 2),
+          width: 4,
+          height: 4,
+          decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.4), shape: BoxShape.circle),
+        ),
+      ),
+    );
+  }
+
   Widget _buildShareSection() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
+          const Text(
             'Share via',
-            15,
-            AppColors.darkNavy,
-            FontWeight.w900,
-            1,
-            TextAlign.left,
-            0.0,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.darkNavy,
+            ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: _buildShareCard('WhatsApp', Icons.whatshot, Color(0xFF25D366), () => _shareReferral('whatsapp')),
+              _buildShareCard(
+                label: 'WhatsApp',
+                icon: Icons.whatshot_rounded,
+                color: const Color(0xFF25D366),
+                onTap: () => _shareReferral('whatsapp'),
               ),
-              SizedBox(width: 12),
-              Expanded(
-                child: _buildShareCard('More', Icons.share, AppColors.oxfordBlue, () => _shareReferral('other')),
+              const SizedBox(width: 10),
+              _buildShareCard(
+                label: 'Telegram',
+                icon: Icons.send_rounded,
+                color: const Color(0xFF229ED9),
+                onTap: () => _shareReferral('telegram'),
+              ),
+              const SizedBox(width: 10),
+              _buildShareCard(
+                label: 'Instagram',
+                icon: Icons.camera_alt_rounded,
+                color: const Color(0xFFE1306C),
+                onTap: () => _shareReferral('instagram'),
+              ),
+              const SizedBox(width: 10),
+              _buildShareCard(
+                label: 'More',
+                icon: Icons.share_rounded,
+                color: AppColors.oxfordBlue,
+                onTap: () => _shareReferral('other'),
               ),
             ],
           ),
@@ -315,33 +428,40 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
     );
   }
 
-  Widget _buildShareCard(String label, IconData icon, Color color, VoidCallback onTap) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 20),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.2), width: 1),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, size: 36, color: color),
-              SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.darkNavy,
+  Widget _buildShareCard({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.09),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: color.withOpacity(0.22), width: 1.2),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, size: 26, color: color),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkNavy,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -350,76 +470,107 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
 
   Widget _buildHowItWorks() {
     return Padding(
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
-            'How It Works',
-            15,
-            AppColors.darkNavy,
-            FontWeight.w900,
-            1,
-            TextAlign.left,
-            0.0,
-          ),
-          SizedBox(height: 20),
-          _buildStepItem('1', 'Share your code', 'Send your referral code to friends', AppColors.tealGreen),
-          _buildStepItem('2', 'Friend signs up', 'They register using your code', AppColors.darkNavy),
-          _buildStepItem(
-            '3',
-            'They buy courses or join quizzes',
-            'Earn when friends participate',
-            AppColors.oxfordBlue,
-          ),
-          _buildStepItem('4', 'Both get rewards', 'You earn up to ₹50, they get bonus!', AppColors.tealGreen),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.info_outline_rounded, size: 18, color: AppColors.tealGreen),
+                SizedBox(width: 8),
+                Text(
+                  'How It Works',
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkNavy,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            _buildStepItem('1', 'Share your code', 'Send your referral code to friends', AppColors.tealGreen),
+            _buildStepItem('2', 'Friend signs up', 'They register using your code', AppColors.darkNavy),
+            _buildStepItem(
+              '3',
+              'They buy courses or join quizzes',
+              'Earn when friends participate',
+              const Color(0xFF5B6EAD),
+            ),
+            _buildStepItem(
+              '4',
+              'Both get rewards',
+              'You earn up to ₹50, they get bonus!',
+              AppColors.tealGreen,
+              isLast: true,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildStepItem(String number, String title, String subtitle, Color color) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            child: Center(
-              child: Text(
-                number,
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.white,
+  Widget _buildStepItem(String number, String title, String subtitle, Color color, {bool isLast = false}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Center(
+                child: Text(
+                  number,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.white,
+                  ),
                 ),
               ),
             ),
-          ),
-          SizedBox(width: 16),
-          Expanded(
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 28,
+                margin: const EdgeInsets.symmetric(vertical: 3),
+                decoration: BoxDecoration(color: color.withOpacity(0.25), borderRadius: BorderRadius.circular(4)),
+              ),
+          ],
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: AppColors.darkNavy,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: AppColors.greyS700,
                   ),
@@ -427,8 +578,8 @@ class _ReferEarnPageState extends State<ReferEarnPage> {
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

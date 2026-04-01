@@ -41,23 +41,23 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   bool get isMockTest => widget.PageType == '4';
 
   final List<List<Color>> _liveGradients = const [
-    [Color(0xFF0D4B3B), Color(0xFF1A8070)],
-    [Color(0xFF0B3D5E), Color(0xFF1A6D8A)],
-    [Color(0xFF1A4D6D), Color(0xFF0D7A6B)],
-    [Color(0xFF0C3756), Color(0xFF28A194)],
-    [Color(0xFF093D4A), Color(0xFF1A7A6D)],
+    [Color(0xFF0D4B3B), Color(0xFF0D6E6E)],
+    [Color(0xFF0B3D5E), Color(0xFF0D6E6E)],
+    [Color(0xFF1A4D6D), Color(0xFF0D6E6E)],
+    [Color(0xFF0C3756), Color(0xFF0D6E6E)],
+    [Color(0xFF093D4A), Color(0xFF0D6E6E)],
   ];
 
   final List<List<Color>> _mockGradients = const [
-    [Color(0xFF1a237e), Color(0xFF283593)],
-    [Color(0xFF0D1B6D), Color(0xFF1a237e)],
-    [Color(0xFF283593), Color(0xFF3949AB)],
-    [Color(0xFF1a237e), Color(0xFF0D1B6D)],
-    [Color(0xFF3949AB), Color(0xFF283593)],
+    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
+    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
+    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
+    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
+    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
   ];
 
   List<List<Color>> get _gradients => isMockTest ? _mockGradients : _liveGradients;
-  Color get _accent => isMockTest ? const Color(0xFF3949AB) : AppColors.tealGreen;
+  Color get _accent => isMockTest ? const Color(0xFF0D6E6E) : AppColors.tealGreen;
 
   @override
   void initState() {
@@ -261,8 +261,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
             end: Alignment.bottomRight,
             colors:
                 isMockTest
-                    ? [AppColors.darkNavy, const Color(0xFF1a237e)]
-                    : [AppColors.darkNavy, const Color(0xFF0D4B3B)],
+                    ? [AppColors.darkNavy, const Color(0xFF0D6E6E)]
+                    : [AppColors.darkNavy, const Color(0xFF0D6E6E)],
           ),
         ),
       ),
@@ -288,7 +288,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
         'title': 'Not Attempted',
         'subtitle': 'Tests you haven\'t started yet',
         'icon': Icons.radio_button_unchecked,
-        'color': const Color(0xFF3949AB),
+        'color': const Color(0xFF0D6E6E),
       },
       {
         'key': 'attempted',
@@ -306,7 +306,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
         'title': 'All Quizzes',
         'subtitle': 'Show live, upcoming and assessments',
         'icon': Icons.view_list,
-        'color': AppColors.darkNavy,
+        'color': const Color(0xFF0D6E6E),
       },
       {
         'key': 'live',
@@ -374,7 +374,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                         const SizedBox(width: 12),
                         Text(
                           isMockTest ? 'Filter Tests' : 'Filter Quizzes',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0D6E6E)),
                         ),
                         const Spacer(),
                         IconButton(

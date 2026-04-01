@@ -42,6 +42,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
   bool _hasMore = true;
   bool _isLoadingMore = false;
 
+  // ── FIX: ScrollController for manual scroll detection ───────────────────
+  final ScrollController _scrollController = ScrollController();
+
   bool get isMockTest => widget.PageType == '4';
   Color get _accent => isMockTest ? const Color(0xFF3949AB) : AppColors.tealGreen;
 
@@ -54,24 +57,38 @@ class _QuizListScreenState extends State<QuizListScreen> {
   ];
 
   final List<List<Color>> _mockGradients = const [
-    [Color(0xFF1a237e), Color(0xFF283593)],
-    [Color(0xFF0D1B6D), Color(0xFF1a237e)],
-    [Color(0xFF283593), Color(0xFF3949AB)],
-    [Color(0xFF1a237e), Color(0xFF0D1B6D)],
-    [Color(0xFF3949AB), Color(0xFF283593)],
+    [Color(0xFF0D4B3B), Color(0xFF1A8070)],
+    [Color(0xFF0B3D5E), Color(0xFF1A6D8A)],
+    [Color(0xFF1A4D6D), Color(0xFF0D7A6B)],
+    [Color(0xFF0C3756), Color(0xFF28A194)],
+    [Color(0xFF093D4A), Color(0xFF1A7A6D)],
   ];
-
   List<List<Color>> get _gradients => isMockTest ? _mockGradients : _liveGradients;
 
   @override
   void initState() {
     super.initState();
     bannerService.loadAd(() => mounted ? setState(() => isBannerLoaded = true) : null);
+
+    // ── FIX: Scroll listener for normal scroll-based pagination ─────────
+    _scrollController.addListener(_onScroll);
+
     _getUserData();
+  }
+
+  // ── FIX: Extracted scroll handler ───────────────────────────────────────
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 300 && !_isLoadingMore && _hasMore) {
+      _loadMore();
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     bannerService.dispose();
     super.dispose();
   }
@@ -109,7 +126,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
 
-      // Pass type filter to API only for live/upcoming/missed
       final Map<String, dynamic> payload = {
         'Pagetype': widget.PageType,
         'category_id': categoryId.toString(),
@@ -142,6 +158,22 @@ class _QuizListScreenState extends State<QuizListScreen> {
           _hasMore = hasMore;
           _isFetchingQuizzes = false;
         });
+
+        // ── FIX: Check if screen is not filled after first page load ────
+        // Bade screens pe 5 items scroll nahi bante, isliye auto-load karo
+        if (page == 1 && hasMore) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            // Scroll controller attach nahi hua tab bhi safe hai
+            if (!_scrollController.hasClients) return;
+            final pos = _scrollController.position;
+            // maxScrollExtent == 0 means content screen se chhota hai
+            // 300 threshold: agar almost bottom pe hai, load karo
+            if (pos.maxScrollExtent == 0 || pos.maxScrollExtent < 300) {
+              _loadMore();
+            }
+          });
+        }
       }
     } catch (e) {
       setState(() => _isFetchingQuizzes = false);
@@ -155,15 +187,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
     if (mounted) setState(() => _isLoadingMore = false);
   }
 
-  // ── Filter — API already filters by type, so this is just local display ──
-  // API returns: upcoming | join_now | resume | submitted | missed
   List<QuizItem> get _filtered {
     if (isMockTest) return _quizzes;
-
-    // When a specific filter is active, API already returned filtered data
     if (_selectedFilter != 'all') return _quizzes;
-
-    // 'all' — show everything the API sent: live (all sub-states) + upcoming + missed
     return _quizzes;
   }
 
@@ -260,7 +286,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF0D6E6E), Color(0xFF14A3A3)],
+                  colors: [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -325,7 +351,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
   Widget _buildFilterSheet() {
     String tempFilter = _selectedFilter;
 
-    // Live quiz filters — now includes "Assessment" (missed)
     final liveFilters = [
       {
         'key': 'all',
@@ -353,7 +378,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
         'title': 'Assessment',
         'subtitle': 'Jo miss ho gaye — ab bhi attempt kar sakte ho',
         'icon': Icons.assignment_late_outlined,
-        'color': const Color(0xFF6366F1),
+        'color': const Color(0xFF1ABC9C),
       },
     ];
 
@@ -456,7 +481,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
                       onTap: () {
                         setState(() => _selectedFilter = tempFilter);
                         Navigator.pop(context);
-                        // Re-fetch with new type filter
                         _fetchQuizzes(_selectedCategoryId, page: 1);
                       },
                       child: Container(
@@ -520,7 +544,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         ? LinearGradient(
                           colors:
                               isMockTest
-                                  ? [const Color(0xFF1a237e), AppColors.darkNavy]
+                                  ? [const Color(0xFF0D6E6E), AppColors.darkNavy]
                                   : [AppColors.tealGreen, AppColors.darkNavy],
                         )
                         : null,
@@ -548,67 +572,60 @@ class _QuizListScreenState extends State<QuizListScreen> {
   // ─── CONTENT ──────────────────────────────────────────────────────────────
 
   Widget _buildContent() {
-    return NotificationListener<ScrollNotification>(
-      onNotification: (ScrollNotification scrollInfo) {
-        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 300 && !_isLoadingMore && _hasMore) {
-          _loadMore();
-        }
-        return false;
-      },
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final quiz = _filtered[index];
-                final colors = _gradients[index % _gradients.length];
-                return _buildCard(quiz, colors);
-              }, childCount: _filtered.length),
-            ),
+    // ── FIX: NotificationListener hatao, ScrollController directly use karo ──
+    return CustomScrollView(
+      controller: _scrollController, // ← FIX: controller attach kiya
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final quiz = _filtered[index];
+              final colors = _gradients[index % _gradients.length];
+              return _buildCard(quiz, colors);
+            }, childCount: _filtered.length),
           ),
-          if (isBannerLoaded && bannerService.bannerAd != null)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    height: bannerService.bannerAd!.size.height.toDouble(),
-                    width: bannerService.bannerAd!.size.width.toDouble(),
-                    child: AdWidget(ad: bannerService.bannerAd!),
-                  ),
+        ),
+        if (isBannerLoaded && bannerService.bannerAd != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  height: bannerService.bannerAd!.size.height.toDouble(),
+                  width: bannerService.bannerAd!.size.width.toDouble(),
+                  child: AdWidget(ad: bannerService.bannerAd!),
                 ),
               ),
             ),
-          SliverToBoxAdapter(
-            child:
-                _isLoadingMore
-                    ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                    : !_hasMore
-                    ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: Text('✅ All quizzes loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ),
-                    )
-                    : const SizedBox(height: 80),
           ),
-        ],
-      ),
+        SliverToBoxAdapter(
+          child:
+              _isLoadingMore
+                  ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_accent))),
+                  )
+                  : !_hasMore
+                  ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text('✅ All quizzes loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    ),
+                  )
+                  : const SizedBox(height: 80),
+        ),
+      ],
     );
   }
 
   // ─── CARD ─────────────────────────────────────────────────────────────────
 
   Widget _buildCard(QuizItem quiz, List<Color> colors) {
-    // ── Derive display flags from quiz_status ─────────────────────────────
-    final String status = quiz.quizStatus; // from API
-    final bool isLiveAny = _isLiveStatus(status); // join_now | resume | submitted
+    final String status = quiz.quizStatus;
+    final bool isLiveAny = _isLiveStatus(status);
     final bool isJoinNow = status == 'join_now';
     final bool isResume = status == 'resume';
     final bool isUpcoming = status == 'upcoming';
@@ -630,7 +647,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
           children: [
             Row(
               children: [
-                // ── Left panel ─────────────────────────────────────────
                 ClipRRect(
                   borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
                   child: SizedBox(
@@ -642,8 +658,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
                             : _buildGradientPanel(quiz, colors, isLiveAny, isJoinNow, isResume, isUpcoming, isMissed),
                   ),
                 ),
-
-                // ── Right content ──────────────────────────────────────
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -679,27 +693,19 @@ class _QuizListScreenState extends State<QuizListScreen> {
                               _chip(Icons.signal_cellular_alt, quiz.difficultyLevel, AppColors.tealGreen),
                             if (quiz.timeLimit.isNotEmpty && quiz.timeLimit != '0')
                               _chip(Icons.timer_outlined, '${quiz.timeLimit} min', AppColors.greyS600),
-
-                            // Countdown — only upcoming
                             if (isUpcoming && quiz.startsInText.isNotEmpty)
                               _chip(Icons.schedule, quiz.startsInText, Colors.orange),
-
-                            // Resume chip — live, in-progress
                             if (isResume) _chip(Icons.pending_actions_rounded, 'In Progress', const Color(0xFF00897B)),
-
-                            // Assessment chip — missed
                             if (isMissed) _chip(Icons.assignment_late_outlined, 'Assessment', const Color(0xFF6366F1)),
                           ],
                         ),
                         const SizedBox(height: 10),
-
-                        // ── Action button ───────────────────────────────
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 9),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: isMissed ? [const Color(0xFF6366F1), const Color(0xFF4338CA)] : colors,
+                              colors: isMissed ? [Color(0xFF0D4B3B), Color(0xFF1A8070)] : colors,
                             ),
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -725,8 +731,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 ),
               ],
             ),
-
-            // ── Mock test progress bar ────────────────────────────────
             if (isMockTest && quiz.is_attempted)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
@@ -828,7 +832,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isMissed ? [const Color(0xFF4338CA), const Color(0xFF6366F1)] : colors,
+          colors: isMissed ? [Color(0xFF0D4B3B), Color(0xFF1A8070)] : colors,
         ),
       ),
       child: Stack(
@@ -900,13 +904,13 @@ class _QuizListScreenState extends State<QuizListScreen> {
     } else if (isJoinNow || isLiveAny) {
       color = Colors.red;
       label = 'LIVE';
-      icon = null; // dot instead
+      icon = null;
     } else if (isUpcoming) {
       color = const Color(0xFFF59E0B);
       label = 'UPCOMING';
       icon = null;
     } else if (isMissed) {
-      color = const Color(0xFF6366F1);
+      color = const Color(0xFF1ABC9C);
       label = 'ASSESSMENT';
       icon = Icons.assignment_late_outlined;
     } else {
@@ -921,7 +925,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Pulsing dot for live
           if (!isMockTest && (isJoinNow || isLiveAny) && !isResume)
             Container(
               width: 5,
@@ -929,7 +932,6 @@ class _QuizListScreenState extends State<QuizListScreen> {
               margin: const EdgeInsets.only(right: 3),
               decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             ),
-          // Icon for resume / missed / mock
           if (icon != null)
             Padding(padding: const EdgeInsets.only(right: 3), child: Icon(icon, size: 7, color: Colors.white)),
           Text(
