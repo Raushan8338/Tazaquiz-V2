@@ -721,27 +721,33 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
   Widget _buildOptionCard(String letter, String text, int index) {
     bool isSelected = _selectedOption == index;
-    bool isCorrect = _answered && index == _correctAnswer;
-    bool isWrong = _answered && isSelected && index != _correctAnswer;
+    // ✅ Green/Red bilkul nahi — sirf selected highlight
+    bool isCorrect = false;
+    bool isWrong = false;
 
     Color backgroundColor = AppColors.white;
     Color borderColor = AppColors.greyS300;
     Color letterBgColor = AppColors.greyS1;
     Color textColor = AppColors.darkNavy;
-
-    if (isCorrect) {
-      backgroundColor = AppColors.tealGreen.withOpacity(0.1);
-      borderColor = AppColors.tealGreen;
-      letterBgColor = AppColors.tealGreen;
-    } else if (isWrong) {
-      backgroundColor = AppColors.red.withOpacity(0.1);
-      borderColor = AppColors.red;
-      letterBgColor = AppColors.red;
-    } else if (isSelected) {
+    if (isSelected) {
       backgroundColor = AppColors.lightGold.withOpacity(0.2);
       borderColor = AppColors.lightGold;
       letterBgColor = AppColors.lightGold;
     }
+
+    // if (isCorrect) {
+    //   backgroundColor = AppColors.tealGreen.withOpacity(0.1);
+    //   borderColor = AppColors.tealGreen;
+    //   letterBgColor = AppColors.tealGreen;
+    // } else if (isWrong) {
+    //   backgroundColor = AppColors.red.withOpacity(0.1);
+    //   borderColor = AppColors.red;
+    //   letterBgColor = AppColors.red;
+    // } else if (isSelected) {
+    //   backgroundColor = AppColors.lightGold.withOpacity(0.2);
+    //   borderColor = AppColors.lightGold;
+    //   letterBgColor = AppColors.lightGold;
+    // }
 
     return GestureDetector(
       onTap: () => _selectOption(index),
@@ -790,15 +796,15 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 0.0,
               ),
             ),
-            if (_answered && (isCorrect || isWrong))
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isCorrect ? AppColors.tealGreen : AppColors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(isCorrect ? Icons.check : Icons.close, color: AppColors.white, size: 20),
-              ),
+            // if (_answered && (isCorrect || isWrong))
+            //   Container(
+            //     padding: EdgeInsets.all(8),
+            //     decoration: BoxDecoration(
+            //       color: isCorrect ? AppColors.tealGreen : AppColors.red,
+            //       shape: BoxShape.circle,
+            //     ),
+            //     child: Icon(isCorrect ? Icons.check : Icons.close, color: AppColors.white, size: 20),
+            //   ),
           ],
         ),
       ),
