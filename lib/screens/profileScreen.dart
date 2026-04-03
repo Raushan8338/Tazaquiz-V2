@@ -1,12 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:tazaquiznew/API/Language_converter/language_selectionPage.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
 import 'package:tazaquiznew/screens/course_selection.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
-import 'package:tazaquiznew/screens/leaderboard_page.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/paymentHistory.dart';
 import 'package:tazaquiznew/screens/refer_earn_page.dart';
@@ -26,7 +27,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   final ScrollController _scrollController = ScrollController();
   bool _isCollapsed = false;
 
-  // Header expand height (profile banner ka height)
+  // Profile image related
+  File? _profileImage;
+  bool _isUploadingImage = false;
+  final ImagePicker _imagePicker = ImagePicker();
+
   final double _headerHeight = 150.0;
 
   @override
@@ -52,9 +57,144 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
   void _getUserData() async {
     _user = await SessionManager.getUser();
+    // Agar server se saved profile image URL fetch karni ho:
+    // final savedImagePath = await SessionManager.getProfileImagePath();
+    // if (savedImagePath != null) setState(() => _profileImage = File(savedImagePath));
     setState(() {});
   }
 
+  // ─── Profile Image Pick & Upload ─────────────────────────────
+  Future<void> _pickProfileImage() async {
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
+    final XFile? picked = await _imagePicker.pickImage(source: source, maxWidth: 512, maxHeight: 512, imageQuality: 80);
+    if (picked == null) return;
+
+    setState(() {
+      _profileImage = File(picked.path);
+      _isUploadingImage = true;
+    });
+
+    await _uploadProfileImage(File(picked.path));
+  }
+
+  /// Aap yahan apni API call integrate karo.
+  /// File ko multipart ya base64 mein bhejo — jo aapka backend accept kare.
+  Future<void> _uploadProfileImage(File imageFile) async {
+    try {
+      // ── APNI API CALL YAHAN LAGAO ──────────────────────────
+      // Example (multipart):
+      //
+      // final request = http.MultipartRequest(
+      //   'POST',
+      //   Uri.parse('https://api.yourbackend.com/user/profile-image'),
+      // );
+      // request.headers['Authorization'] = 'Bearer ${await SessionManager.getToken()}';
+      // request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+      // final response = await request.send();
+      //
+      // if (response.statusCode == 200) {
+      //   final body = await response.stream.bytesToString();
+      //   final json = jsonDecode(body);
+      //   await SessionManager.saveProfileImageUrl(json['imageUrl']);
+      //   if (mounted) {
+      //     ScaffoldMessenger.of(context).showSnackBar(
+      //       const SnackBar(content: Text('Profile photo updated!'), backgroundColor: Color(0xFF00695C)),
+      //     );
+      //   }
+      // }
+      // ────────────────────────────────────────────────────────
+
+      // Simulate kiya hai — API lagane ke baad ye line hata do:
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile photo updated! (API yahan connect karo)'),
+            backgroundColor: Color(0xFF00695C),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red));
+        setState(() => _profileImage = null);
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingImage = false);
+    }
+  }
+
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder:
+          (_) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Text('Update Profile Photo', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00695C).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF00695C)),
+                  ),
+                  title: const Text('Take Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF003161).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.photo_library_rounded, color: Color(0xFF003161)),
+                  ),
+                  title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                if (_profileImage != null)
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.delete_rounded, color: Colors.red),
+                    ),
+                    title: const Text('Remove Photo', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() => _profileImage = null);
+                    },
+                  ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+    );
+  }
+
+  // ─── Logout ──────────────────────────────────────────────────
   Future<void> handleLogout(BuildContext context) async {
     final googleSignIn = GoogleSignIn();
     await SessionManager.logout();
@@ -85,12 +225,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     return months[m - 1];
   }
 
+  // ─── Build ───────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
-
-      // ── AppBar: collapsed hone par name + joined dikhao ──────
       appBar: AppBar(
         elevation: _isCollapsed ? 4 : 0,
         toolbarHeight: _isCollapsed ? kToolbarHeight : 0,
@@ -101,25 +240,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           duration: const Duration(milliseconds: 250),
           child:
               _isCollapsed
-                  // Collapsed: name + joined
                   ? Row(
                     key: const ValueKey('collapsed'),
                     children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]),
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _getInitials(_user?.username),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
-                          ),
-                        ),
-                      ),
+                      _buildAvatarWidget(size: 36, fontSize: 14, borderWidth: 2),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -140,19 +264,14 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       ),
                     ],
                   )
-                  // Expanded: blank / just title text
                   : const SizedBox.shrink(key: ValueKey('expanded')),
         ),
       ),
-
       body: SingleChildScrollView(
         controller: _scrollController,
         child: Column(
           children: [
-            // ── Profile Header Banner ────────────────────────────
             _buildProfileHeader(),
-
-            // ── Content ──────────────────────────────────────────
             _buildContactCard(),
             _buildQuickActions(),
             _buildSettings(),
@@ -163,7 +282,73 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
-  // ── Profile Header (gradient banner) ──────────────────────────
+  // ─── Avatar widget (reusable) ─────────────────────────────────
+  Widget _buildAvatarWidget({
+    required double size,
+    required double fontSize,
+    double borderWidth = 3,
+    bool showEditOverlay = false,
+  }) {
+    return GestureDetector(
+      onTap: showEditOverlay ? _pickProfileImage : null,
+      child: Stack(
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient:
+                  _profileImage == null ? const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]) : null,
+              color: _profileImage != null ? Colors.grey.shade200 : null,
+              border: Border.all(color: Colors.white, width: borderWidth),
+              boxShadow:
+                  showEditOverlay
+                      ? [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))]
+                      : null,
+            ),
+            child: ClipOval(
+              child:
+                  _isUploadingImage
+                      ? Center(
+                        child: SizedBox(
+                          width: size * 0.4,
+                          height: size * 0.4,
+                          child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        ),
+                      )
+                      : _profileImage != null
+                      ? Image.file(_profileImage!, fit: BoxFit.cover, width: size, height: size)
+                      : Center(
+                        child: Text(
+                          _getInitials(_user?.username),
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: fontSize),
+                        ),
+                      ),
+            ),
+          ),
+          // Camera edit badge — sirf header avatar par
+          if (showEditOverlay && !_isUploadingImage)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: size * 0.33,
+                height: size * 0.33,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00695C),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                child: Icon(Icons.camera_alt_rounded, size: size * 0.18, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Profile Header ───────────────────────────────────────────
   Widget _buildProfileHeader() {
     return Container(
       width: double.infinity,
@@ -178,26 +363,9 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]),
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))],
-            ),
-            child: Center(
-              child: Text(
-                _getInitials(_user?.username),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 26),
-              ),
-            ),
-          ),
+          // Avatar with edit overlay
+          _buildAvatarWidget(size: 72, fontSize: 26, borderWidth: 3, showEditOverlay: true),
           const SizedBox(width: 16),
-
-          // Name + joined + badge
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,7 +399,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
                       ),
                     );
-                    if (mounted) setState(() {}); // badge update hoga
+                    if (mounted) setState(() {});
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -243,11 +411,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.translate_rounded, size: 12, color: Color(0xFF4CAF50)),
+                        const Icon(Icons.translate_rounded, size: 12, color: Color(0xFF4CAF50)),
                         const SizedBox(width: 6),
                         TranslatedText(
                           'Language',
-                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(width: 3),
                         Text(
@@ -255,10 +423,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                                   .instance
                                   .currentLanguage]?['native'] ??
                               'English',
-                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.arrow_drop_down_rounded, size: 14, color: Colors.white70),
+                        const Icon(Icons.arrow_drop_down_rounded, size: 14, color: Colors.white70),
                       ],
                     ),
                   ),
@@ -271,6 +439,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
+  // ─── Contact Card ─────────────────────────────────────────────
   Widget _buildContactCard() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -338,10 +507,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
+  // ─── Quick Actions (horizontal scroll) ───────────────────────
   Widget _buildQuickActions() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -350,90 +519,145 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle('Quick Actions'),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  'Test History ',
-                  Icons.history_rounded,
-                  const Color(0xFF00695C),
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 0))),
-                  'Attempts & Leaderboard',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  'My Courses',
-                  Icons.menu_book_rounded,
-                  const Color(0xFFFF9800),
-                  () =>
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen())),
-                  'Course & Leaderboard',
-                ),
-              ),
-            ],
+          Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 10), child: _buildSectionTitle('Quick Actions')),
+          _buildActionListItem(
+            icon: Icons.menu_book_rounded,
+            title: 'My Courses',
+            subtitle: 'Course & study material',
+            color: const Color(0xFFFF9800),
+            onTap:
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen())),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  'Mock Test',
-                  Icons.quiz_rounded,
-                  const Color(0xFF7B1FA2),
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 4))),
-                  'Attempts & Leaderboard',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  'All Payments',
-                  Icons.receipt_long_rounded,
-                  const Color(0xFF003161),
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentHistoryPage())),
+          _buildActionListItem(
+            icon: Icons.history_rounded,
+            title: 'Test Results',
+            subtitle: 'Attempts & leaderboard',
+            color: const Color(0xFF00695C),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 0))),
+            isFirst: true,
+          ),
 
-                  'View your payment history',
-                ),
-              ),
-            ],
+          _buildActionListItem(
+            icon: Icons.quiz_rounded,
+            title: 'Mock Test Results',
+            subtitle: 'Attempts & leaderboard',
+            color: const Color(0xFF7B1FA2),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 4))),
+          ),
+          _buildActionListItem(
+            icon: Icons.receipt_long_rounded,
+            title: 'All Payments',
+            subtitle: 'View payment history',
+            color: const Color(0xFF1565C0),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentHistoryPage())),
+          ),
+          _buildActionListItem(
+            icon: Icons.library_books_rounded,
+            title: 'PYPs History Results',
+            subtitle: 'Previous year questions',
+            color: const Color(0xFFC2185B),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 1))),
+          ),
+          _buildActionListItem(
+            icon: Icons.assignment_turned_in_rounded,
+            title: 'Full Mock Test',
+            subtitle: 'Full-length history',
+            color: const Color(0xFF00838F),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 2))),
+            isLast: true,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton(String title, IconData icon, Color color, VoidCallback onTap, String subtitle) {
+  Widget _buildActionListItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return Column(
+      children: [
+        if (isFirst) Divider(height: 1, thickness: 0.5, color: Colors.grey.shade100, indent: 0, endIndent: 0),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.only(
+            bottomLeft: isLast ? const Radius.circular(20) : Radius.zero,
+            bottomRight: isLast ? const Radius.circular(20) : Radius.zero,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Icon box
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(width: 14),
+                // Text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                    ],
+                  ),
+                ),
+                // Arrow
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade400),
+              ],
+            ),
+          ),
+        ),
+        if (!isLast) Divider(height: 1, thickness: 0.5, color: Colors.grey.shade100, indent: 16, endIndent: 16),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionCard(_QuickAction action) {
     return InkWell(
-      onTap: onTap,
+      onTap: action.onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        width: 90,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
+          color: action.color.withOpacity(0.07),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+          border: Border.all(color: action.color.withOpacity(0.2), width: 1.5),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 22),
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(color: action.color.withOpacity(0.12), shape: BoxShape.circle),
+              child: Icon(action.icon, color: action.color, size: 20),
             ),
             const SizedBox(height: 8),
             Text(
-              title,
-              style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w700),
+              action.title,
+              style: TextStyle(fontSize: 11, color: action.color, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
-              subtitle,
-              style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700),
+              action.subtitle,
+              style: TextStyle(fontSize: 9, color: action.color.withOpacity(0.8), fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
           ],
@@ -442,6 +666,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
+  // ─── Settings ─────────────────────────────────────────────────
   Widget _buildSettings() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -492,17 +717,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             const Color(0xFF00695C),
             () => Navigator.push(context, MaterialPageRoute(builder: (_) => ContactUsPage())),
           ),
-          _buildDivider(),
-          // _buildSettingItem(
-          //   Icons.school_rounded,
-          //   'Quiz-wise leaderboard',
-          //   'Manage your enrolled courses',
-          //   const Color(0xFF00695C),
-          //   () => Navigator.push(
-          //     context,
-          //     MaterialPageRoute(builder: (_) => LeaderboardPage(quizId: quiz.quizId, quizTitle: quiz.title)),
-          //   ),
-          // ),
           _buildDivider(),
           _buildSettingItem(
             Icons.card_giftcard_rounded,
@@ -603,6 +817,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
   }
 
+  // ─── Logout Dialog ────────────────────────────────────────────
   Future<void> _showLogoutDialog(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -681,4 +896,21 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
     );
     if (confirmed == true) handleLogout(context);
   }
+}
+
+// ─── Helper model for Quick Actions ──────────────────────────────
+class _QuickAction {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickAction({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 }
