@@ -72,6 +72,8 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     }
   }
 
+  // ─── BUILD ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,6 +96,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
               ),
     );
   }
+
   // ─── APP BAR ──────────────────────────────────────────────────────────────
 
   PreferredSizeWidget _buildAppBar() {
@@ -142,77 +145,271 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     final bool hasImage = material.thumbnail.isNotEmpty;
 
     if (material.is_premium == 1) {
-      // For subscriptions, we consider it "purchased" if the user has access to it
       isPackaged = 'FREE';
     } else if (material.is_premium == 2) {
-      // For single materials, we rely on the isPurchased flag from the API
       isPackaged = 'BASIC';
     } else {
-      // For non-premium materials, we can consider them purchased by default
       isPackaged = 'PREMIUM';
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 5))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Banner ──────────────────────────────────────
-          _buildBanner(material, hasImage, isSubscription),
+    return GestureDetector(
+      onTap: () {
+        if (isSubscription) {
+          _showCourseBottomSheet(context, material);
+        } else {
+          // For single material, directly open
+          if (material.contentType.toUpperCase() != 'VIDEO') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => PDFViewerPage(pdfUrl: material.filePath, title: material.title)),
+            );
+          } else {
+            launchUrl(Uri.parse(material.filePath));
+          }
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 5))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Banner ──────────────────────────────────────
+            _buildBanner(material, hasImage, isSubscription),
 
-          // ── Content ─────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title
-                Text(
-                  material.title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.darkNavy,
-                    height: 1.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-
-                // Description
-                if (material.description.isNotEmpty)
+            // ── Content ─────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
                   Text(
-                    material.description,
-                    style: TextStyle(fontSize: 12, color: AppColors.greyS600, height: 1.4),
+                    material.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkNavy,
+                      height: 1.3,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 6),
 
-                const SizedBox(height: 12),
+                  // Description
+                  if (material.description.isNotEmpty)
+                    Text(
+                      material.description,
+                      style: TextStyle(fontSize: 12, color: AppColors.greyS600, height: 1.4),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
 
-                // ── Action buttons ──
-                isSubscription ? _buildSubscriptionButtons(material) : _buildSingleButton(material),
+                  const SizedBox(height: 12),
 
-                const SizedBox(height: 10),
+                  // ── Start Now Row ──
+                  isSubscription ? _buildStartNowRow(material) : _buildSingleButton(material),
 
-                // Date
-                Text(
-                  material.access_valid_until != null && material.access_valid_until.isNotEmpty
-                      ? 'Valid Until: ${_formatDate(material.access_valid_until)}'
-                      : 'No Expiry',
-                  style: TextStyle(fontSize: 10, color: AppColors.greyS500, fontWeight: FontWeight.w500),
-                ),
-              ],
+                  const SizedBox(height: 10),
+
+                  // Date
+                  Text(
+                    material.access_valid_until != null && material.access_valid_until.isNotEmpty
+                        ? 'Valid Until: ${_formatDate(material.access_valid_until)}'
+                        : 'No Expiry',
+                    style: TextStyle(fontSize: 10, color: AppColors.greyS500, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  // ─── START NOW ROW (replaces grid buttons) ────────────────────────────────
+
+  Widget _buildStartNowRow(StudyMaterialDetailsItem material) {
+    // Small preview chips of what's inside
+    final List<Map<String, dynamic>> previewItems = [
+      {'icon': Icons.bolt_rounded, 'label': 'Live Test', 'color': AppColors.tealGreen},
+      {'icon': Icons.assignment_rounded, 'label': 'Mock Test', 'color': const Color(0xFF3949AB)},
+      {'icon': Icons.quiz_rounded, 'label': 'Full Mock', 'color': const Color(0xFFE65100)},
+      {'icon': Icons.history_edu_rounded, 'label': 'PYPs', 'color': const Color(0xFF00897B)},
+      {'icon': Icons.menu_book_rounded, 'label': 'Notes', 'color': const Color(0xFF00897B)},
+      {'icon': Icons.leaderboard_rounded, 'label': 'Leader Board', 'color': const Color(0xFF00897B)},
+    ];
+
+    return Row(
+      children: [
+        // Mini feature chips
+        Expanded(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children:
+                previewItems
+                    .map(
+                      (item) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: (item['color'] as Color).withOpacity(0.09),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: (item['color'] as Color).withOpacity(0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(item['icon'] as IconData, size: 10, color: item['color'] as Color),
+                            const SizedBox(width: 3),
+                            Text(
+                              item['label'] as String,
+                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: item['color'] as Color),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Start Now button
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3)),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Start', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+              SizedBox(width: 4),
+              Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── STYLISH BOTTOM SHEET ─────────────────────────────────────────────────
+
+  void _showCourseBottomSheet(BuildContext context, StudyMaterialDetailsItem material) {
+    final bool isPremium = material.is_premium == 1 || material.is_premium == 2;
+
+    final List<Map<String, dynamic>> actions = [
+      {
+        'icon': Icons.bolt_rounded,
+        'label': 'Live Test',
+        'subtitle': 'Attempt live quizzes',
+        'color': AppColors.tealGreen,
+        'locked': false,
+        'onTap': () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => Paid_QuizListScreen(material.materialId.toString(), '0')),
+          );
+        },
+      },
+      {
+        'icon': Icons.assignment_rounded,
+        'label': 'Mock Test',
+        'subtitle': 'Practice with mock papers',
+        'color': const Color(0xFF3949AB),
+        'locked': false,
+        'onTap': () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => Paid_QuizListScreen(material.materialId.toString(), '4')),
+          );
+        },
+      },
+      {
+        'icon': Icons.quiz_rounded,
+        'label': 'Full Mock Test',
+        'subtitle': 'Full-length exam simulation',
+        'color': const Color(0xFFE65100),
+        'locked': false,
+        'onTap': () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => Paid_QuizListScreen(material.materialId.toString(), '5')),
+          );
+        },
+      },
+      {
+        'icon': Icons.history_edu_rounded,
+        'label': 'PYP',
+        'subtitle': 'Previous year questions',
+        'color': const Color(0xFF00897B),
+        'locked': false,
+        'onTap': () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => Paid_QuizListScreen(material.materialId.toString(), '6')),
+          );
+        },
+      },
+      {
+        'icon': Icons.menu_book_rounded,
+        'label': 'Study Material',
+        'subtitle': isPremium ? 'Upgrade to access' : 'Notes & PDFs',
+        'color': isPremium ? const Color(0xFF9E9E9E) : AppColors.darkNavy,
+        'locked': isPremium,
+        'onTap': () {
+          Navigator.pop(context);
+          if (isPremium) {
+            _showPremiumPopup(context);
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => SubjectContentPage(material.materialId.toString())),
+            );
+          }
+        },
+      },
+      {
+        'icon': Icons.leaderboard_rounded,
+        'label': 'Leaderboard',
+        'subtitle': isPremium ? 'Upgrade to access' : 'See your ranking',
+        'color': isPremium ? const Color(0xFF9E9E9E) : const Color(0xFF6B4EFF),
+        'locked': isPremium,
+        'onTap': () {
+          Navigator.pop(context);
+          if (isPremium) {
+            _showPremiumPopup(context);
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LeaderboardPage(courseId: material.materialId, courseName: material.title),
+              ),
+            );
+          }
+        },
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CourseBottomSheet(material: material, actions: actions, formatDate: _formatDate),
     );
   }
 
@@ -223,7 +420,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
       borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
       child: Stack(
         children: [
-          // Background
           SizedBox(
             height: 140,
             width: double.infinity,
@@ -236,8 +432,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                     )
                     : _gradientBg(material.title),
           ),
-
-          // Overlay
           Container(
             height: 140,
             decoration: BoxDecoration(
@@ -248,8 +442,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
               ),
             ),
           ),
-
-          // Center icon
           Positioned.fill(
             child: Center(
               child: Container(
@@ -271,8 +463,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
               ),
             ),
           ),
-
-          // Top left — content type badge
           Positioned(
             top: 10,
             left: 10,
@@ -300,8 +490,6 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
               ),
             ),
           ),
-
-          // Top right — Purchased badge
           if (material.isPurchased)
             Positioned(
               top: 10,
@@ -331,237 +519,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     );
   }
 
-  // ─── SUBSCRIPTION BUTTONS ─────────────────────────────────────────────────
-
-  Widget _buildSubscriptionButtons(StudyMaterialDetailsItem material) {
-    return Column(
-      children: [
-        // Row 1 — Quiz + Mock Test
-        Row(
-          children: [
-            Expanded(
-              child: _actionBtn(
-                icon: Icons.bolt_rounded,
-                label: 'Live Quiz',
-                color: AppColors.tealGreen,
-                //Paid_QuizListScreen(material.materialId.toString())
-                onTap:
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (_) => Paid_QuizListScreen(
-                              material.materialId.toString(),
-                              '0', // pageType 0 = quiz
-                            ),
-                      ),
-                    ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _actionBtn(
-                icon: Icons.assignment_rounded,
-                label: 'Mock Test',
-                color: const Color(0xFF3949AB),
-                onTap:
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (_) => Paid_QuizListScreen(
-                              material.materialId.toString(),
-                              '4', // pageType 0 = quiz
-                            ),
-                      ),
-                    ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-
-        // Row 2 — Study Material + Leaderboard
-        Row(
-          children: [
-            Expanded(
-              child: _actionBtn(
-                icon: Icons.menu_book_rounded,
-                label: 'Study Material',
-                // Grey out color if premium
-                color:
-                    (material.is_premium == 1 || material.is_premium == 2)
-                        ? Color.fromARGB(255, 125, 124, 124)
-                        : AppColors.darkNavy,
-                onTap: () {
-                  if (material.is_premium == 1 || material.is_premium == 2) {
-                    _showPremiumPopup(context);
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => SubjectContentPage(material.materialId.toString())),
-                    );
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _actionBtn(
-                icon: Icons.leaderboard_rounded,
-                label: 'Leaderboard',
-                // Grey out color if premium
-                color:
-                    (material.is_premium == 1 || material.is_premium == 2)
-                        ? const Color.fromARGB(255, 144, 143, 143)
-                        : const Color(0xFF6B4EFF),
-                onTap: () {
-                  if (material.is_premium == 1 || material.is_premium == 2) {
-                    _showPremiumPopup(context);
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => LeaderboardPage(courseId: material.materialId, courseName: material.title),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // Premium Popup
-  void _showPremiumPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            backgroundColor: Colors.white,
-            child: Container(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.white),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Top teal header section
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 28),
-                    decoration: BoxDecoration(
-                      color: AppColors.tealGreen,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                          child: const Icon(Icons.workspace_premium_rounded, size: 40, color: Colors.white),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Premium Feature',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text('Unlock the full experience', style: TextStyle(fontSize: 13, color: Colors.white70)),
-                      ],
-                    ),
-                  ),
-
-                  // Body
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        // Feature chips
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            _featureChip(Icons.menu_book_rounded, 'Study Material'),
-                            _featureChip(Icons.leaderboard_rounded, 'Leaderboard'),
-                            _featureChip(Icons.lock_open_rounded, 'Exclusive Content'),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        const Text(
-                          'This feature is only available on the Premium Package. Upgrade now to access all features.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Buy Now Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.tealGreen,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              elevation: 0,
-                            ),
-                            onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage()));
-                              // TODO: Navigate to premium page
-                              //  Navigator.pop(context);
-                            },
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.star_rounded, size: 18),
-                                SizedBox(width: 6),
-                                Text('Buy Now', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Maybe Later
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Maybe Later', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-    );
-  }
-
-  // Feature chip helper
-  Widget _featureChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.tealGreen.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppColors.tealGreen),
-          const SizedBox(width: 5),
-          Text(label, style: TextStyle(fontSize: 12, color: AppColors.tealGreen, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-  // ─── SINGLE BUTTON (PDF/Video) ────────────────────────────────────────────
+  // ─── SINGLE BUTTON ────────────────────────────────────────────────────────
 
   Widget _buildSingleButton(StudyMaterialDetailsItem material) {
     return GestureDetector(
@@ -602,39 +560,118 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     );
   }
 
-  // ─── ACTION BUTTON ────────────────────────────────────────────────────────
+  // ─── PREMIUM POPUP ────────────────────────────────────────────────────────
 
-  Widget _actionBtn({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
-              child: Icon(icon, size: 20, color: color),
+  void _showPremiumPopup(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            backgroundColor: Colors.white,
+            child: Container(
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), color: Colors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 28),
+                    decoration: BoxDecoration(
+                      color: AppColors.tealGreen,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                          child: const Icon(Icons.workspace_premium_rounded, size: 40, color: Colors.white),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Premium Feature',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text('Unlock the full experience', style: TextStyle(fontSize: 13, color: Colors.white70)),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _featureChip(Icons.menu_book_rounded, 'Study Material'),
+                            _featureChip(Icons.leaderboard_rounded, 'Leaderboard'),
+                            _featureChip(Icons.lock_open_rounded, 'Exclusive Content'),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'This feature is only available on the Premium Package. Upgrade now to access all features.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.tealGreen,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage()));
+                            },
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.star_rounded, size: 18),
+                                SizedBox(width: 6),
+                                Text('Buy Now', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text('Maybe Later', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+    );
+  }
+
+  Widget _featureChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.tealGreen.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.tealGreen),
+          const SizedBox(width: 5),
+          Text(label, style: TextStyle(fontSize: 12, color: AppColors.tealGreen, fontWeight: FontWeight.w500)),
+        ],
       ),
     );
   }
@@ -642,10 +679,9 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
   // ─── GRADIENT BG ──────────────────────────────────────────────────────────
 
   Widget _gradientBg(String title) {
-    final colors = _getColors(title);
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: _getColors(title)),
       ),
     );
   }
@@ -680,6 +716,214 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
           ),
           const SizedBox(height: 6),
           Text('Subscribe to a course to get started', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── BOTTOM SHEET WIDGET ──────────────────────────────────────────────────────
+
+class _CourseBottomSheet extends StatelessWidget {
+  final StudyMaterialDetailsItem material;
+  final List<Map<String, dynamic>> actions;
+  final String Function(String) formatDate;
+
+  const _CourseBottomSheet({required this.material, required this.actions, required this.formatDate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Drag handle ──
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+          ),
+          const SizedBox(height: 4),
+
+          // ── Gradient Header ──
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                // Icon circle
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+                  ),
+                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        material.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today_rounded, size: 10, color: Colors.white.withOpacity(0.7)),
+                          const SizedBox(width: 4),
+                          Text(
+                            material.access_valid_until != null && material.access_valid_until.isNotEmpty
+                                ? 'Valid till ${formatDate(material.access_valid_until)}'
+                                : 'No Expiry',
+                            style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Purchased badge
+                if (material.isPurchased)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: AppColors.tealGreen, borderRadius: BorderRadius.circular(20)),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_rounded, size: 10, color: Colors.white),
+                        SizedBox(width: 3),
+                        Text('Active', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // ── Section title ──
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+            child: Row(
+              children: [
+                Text(
+                  'What do you want to do?',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade600,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Action List ──
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: actions.length,
+            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade100, indent: 56),
+            itemBuilder: (context, index) {
+              final action = actions[index];
+              final Color color = action['color'] as Color;
+              final bool locked = action['locked'] as bool;
+
+              return InkWell(
+                onTap: action['onTap'] as VoidCallback,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  child: Row(
+                    children: [
+                      // Icon container
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(action['icon'] as IconData, color: color, size: 20),
+                      ),
+                      const SizedBox(width: 14),
+                      // Label + subtitle
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              action['label'] as String,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: locked ? Colors.grey.shade400 : AppColors.darkNavy,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              action['subtitle'] as String,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: locked ? Colors.grey.shade400 : Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Arrow / Lock icon
+                      locked
+                          ? Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.lock_rounded, size: 14, color: Colors.grey.shade400),
+                          )
+                          : Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.arrow_forward_ios_rounded, size: 12, color: color),
+                          ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // ── Bottom safe area ──
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
         ],
       ),
     );

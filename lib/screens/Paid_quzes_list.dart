@@ -12,6 +12,12 @@ import 'package:tazaquiznew/screens/buyQuizes.dart';
 import 'package:tazaquiznew/screens/mock_test_detail_page.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
+// ─── PAGE TYPE CONSTANTS ──────────────────────────────────────────────────────
+// '0' → Live Tests       (with subject tabs)
+// '4' → Mock Tests       (with subject tabs)
+// '5' → Full Mock Test   (NO subject tabs — real exam style)
+// '6' → Previous Year Papers (NO subject tabs)
+
 class Paid_QuizListScreen extends StatefulWidget {
   final String pageId;
   final String PageType;
@@ -22,10 +28,9 @@ class Paid_QuizListScreen extends StatefulWidget {
   _Paid_QuizListScreenState createState() => _Paid_QuizListScreenState();
 }
 
-class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
-  // For live quizzes, filter can be: all / live / upcoming / missed / ended
-  // For mock tests, filter can be: all / attempted / unattempted
+class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTickerProviderStateMixin {
   String _selectedFilter = 'all';
+  String? _errorMessage;
 
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
@@ -38,44 +43,110 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   List<QuizItem> _quizzes = [];
   UserModel? _user;
 
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+
+  // ── Page type helpers ──────────────────────────────────────────────────────
+  bool get isLiveTest => widget.PageType == '0';
   bool get isMockTest => widget.PageType == '4';
+  bool get isFullMockTest => widget.PageType == '5';
+  bool get isPYP => widget.PageType == '6';
 
-  final List<List<Color>> _liveGradients = const [
-    [Color(0xFF0D4B3B), Color(0xFF0D6E6E)],
-    [Color(0xFF0B3D5E), Color(0xFF0D6E6E)],
-    [Color(0xFF1A4D6D), Color(0xFF0D6E6E)],
-    [Color(0xFF0C3756), Color(0xFF0D6E6E)],
-    [Color(0xFF093D4A), Color(0xFF0D6E6E)],
+  /// Pages that show subject/category tabs
+  bool get showCategoryTabs => isLiveTest || isMockTest;
+
+  String get pageTitle {
+    if (isLiveTest) return 'Live Tests';
+    if (isMockTest) return 'Mock Tests';
+    if (isFullMockTest) return 'Full Mock Test';
+    if (isPYP) return 'Previous Year Papers';
+    return 'Tests';
+  }
+
+  String get pageSubtitle {
+    if (isLiveTest) return 'Join live sessions in real-time';
+    if (isMockTest) return 'Practice with topic-wise mocks';
+    if (isFullMockTest) return 'Full-length exam simulation';
+    if (isPYP) return 'Solve actual past exam questions';
+    return '';
+  }
+
+  IconData get pageIcon {
+    if (isLiveTest) return Icons.bolt_rounded;
+    if (isMockTest) return Icons.assignment_rounded;
+    if (isFullMockTest) return Icons.quiz_rounded;
+    if (isPYP) return Icons.history_edu_rounded;
+    return Icons.quiz_rounded;
+  }
+
+  // ── Gradients & accent ─────────────────────────────────────────────────────
+  Color get _accent {
+    if (isLiveTest) return AppColors.tealGreen;
+    if (isMockTest) return const Color(0xFF3949AB);
+    if (isFullMockTest) return const Color(0xFFE65100);
+    if (isPYP) return const Color(0xFF00897B);
+    return AppColors.tealGreen;
+  }
+
+  Color get _accentDark {
+    if (isLiveTest) return const Color(0xFF0D4B3B);
+    if (isMockTest) return const Color(0xFF1A237E);
+    if (isFullMockTest) return const Color(0xFF7F2F00);
+    if (isPYP) return const Color(0xFF00504A);
+    return AppColors.darkNavy;
+  }
+
+  final List<List<Color>> _cardGradients = const [
+    [AppColors.darkNavy, Color(0xFF0D4B3B)],
+    [AppColors.darkNavy, Color(0xFF0D4B3B)],
+    [AppColors.darkNavy, Color(0xFF0D4B3B)],
+    [AppColors.darkNavy, Color(0xFF0D4B3B)],
+    [AppColors.darkNavy, Color(0xFF0D4B3B)],
   ];
 
-  final List<List<Color>> _mockGradients = const [
-    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
-    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
-    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
-    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
-    [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
-  ];
-
-  List<List<Color>> get _gradients => isMockTest ? _mockGradients : _liveGradients;
-  Color get _accent => isMockTest ? const Color(0xFF0D6E6E) : AppColors.tealGreen;
-
+  // ── Lifecycle ──────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+
     bannerService.loadAd(() => mounted ? setState(() => isBannerLoaded = true) : null);
     _getUserData();
   }
 
   @override
   void dispose() {
+    _animController.dispose();
     bannerService.dispose();
     super.dispose();
   }
 
+  // ── Data fetching ──────────────────────────────────────────────────────────
   Future<void> _getUserData() async {
-    _user = await SessionManager.getUser();
-    setState(() {});
-    await _fetchLevels();
+    try {
+      _user = await SessionManager.getUser();
+      if (_user == null) {
+        setState(() {
+          _errorMessage = 'Session expired. Please log in again.';
+          _isLoading = false;
+        });
+        return;
+      }
+      setState(() {});
+      if (showCategoryTabs) {
+        await _fetchLevels();
+      } else {
+        // Full Mock Test & PYP — skip category fetch, go straight to quizzes
+        setState(() => _isLoading = false);
+        await _fetchQuizzes(0, 1);
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Something went wrong. Please try again.';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _fetchLevels() async {
@@ -93,16 +164,33 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
             ...list.map((e) => CategoryItem.fromJson(e)).toList(),
           ];
           _isLoading = false;
+          _errorMessage = null;
         });
         await _fetchQuizzes(0, 1);
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load categories. Pull down to refresh.';
+          _isLoading = false;
+        });
       }
+    } on DioException catch (e) {
+      setState(() {
+        _errorMessage = _dioErrorMessage(e);
+        _isLoading = false;
+      });
     } catch (e) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _errorMessage = 'Unexpected error occurred. Please try again.';
+        _isLoading = false;
+      });
     }
   }
 
   Future<void> _fetchQuizzes(int categoryId, int educationLevelId) async {
-    setState(() => _isFetchingQuizzes = true);
+    setState(() {
+      _isFetchingQuizzes = true;
+      _errorMessage = null;
+    });
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
 
@@ -112,54 +200,63 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
         'category_id': categoryId.toString(),
         'education_level_id': educationLevelId == 0 ? categoryId.toString() : 0,
         'Pagetype': widget.PageType,
-        // For live quizzes, pass live/upcoming/missed to API
-        if (!isMockTest && (_selectedFilter == 'live' || _selectedFilter == 'upcoming' || _selectedFilter == 'missed'))
+        if (isLiveTest && (_selectedFilter == 'live' || _selectedFilter == 'upcoming' || _selectedFilter == 'missed'))
           'type': _selectedFilter,
       };
-      print('Fetching quizzes with data: $data');
 
       final response = await auth.get_paid_quizes_api(data);
-      print('Quiz API response: ${response.data}');
+
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
         setState(() {
           _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
           _isFetchingQuizzes = false;
         });
+        _animController.forward(from: 0);
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load tests. Pull down to refresh.';
+          _isFetchingQuizzes = false;
+        });
       }
+    } on DioException catch (e) {
+      setState(() {
+        _errorMessage = _dioErrorMessage(e);
+        _isFetchingQuizzes = false;
+      });
     } catch (e) {
-      setState(() => _isFetchingQuizzes = false);
+      setState(() {
+        _errorMessage = 'Unexpected error occurred. Please try again.';
+        _isFetchingQuizzes = false;
+      });
     }
   }
 
+  String _dioErrorMessage(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Connection timed out. Check your internet and try again.';
+      case DioExceptionType.connectionError:
+        return 'No internet connection. Please check your network.';
+      default:
+        return 'Network error. Please try again.';
+    }
+  }
+
+  // ── Filtering ──────────────────────────────────────────────────────────────
   List<QuizItem> get _filtered {
-    // ── MOCK TEST filters ──────────────────────────────────────────────────
-    if (isMockTest) {
-      if (_selectedFilter == 'attempted') {
-        return _quizzes.where((q) => q.is_attempted).toList();
-      }
-      if (_selectedFilter == 'unattempted') {
-        return _quizzes.where((q) => !q.is_attempted).toList();
-      }
-      // 'all'
+    if (isMockTest || isFullMockTest || isPYP) {
+      if (_selectedFilter == 'attempted') return _quizzes.where((q) => q.is_attempted).toList();
+      if (_selectedFilter == 'unattempted') return _quizzes.where((q) => !q.is_attempted).toList();
       return _quizzes;
     }
+    // Live Tests
+    if (_selectedFilter == 'live') return _quizzes.where((q) => q.isLive).toList();
+    if (_selectedFilter == 'upcoming') return _quizzes.where((q) => q.quizStatus == 'upcoming' && !q.isLive).toList();
+    if (_selectedFilter == 'ended') return _quizzes.where((q) => q.quizStatus == 'ended').toList();
+    if (_selectedFilter == 'missed') return _quizzes.where((q) => q.quizStatus == 'missed').toList();
 
-    // ── LIVE QUIZ filters ──────────────────────────────────────────────────
-    if (_selectedFilter == 'live') {
-      return _quizzes.where((q) => q.isLive).toList();
-    }
-    if (_selectedFilter == 'upcoming') {
-      return _quizzes.where((q) => q.quizStatus == 'upcoming' && !q.isLive).toList();
-    }
-    if (_selectedFilter == 'ended') {
-      return _quizzes.where((q) => q.quizStatus == 'ended').toList();
-    }
-    if (_selectedFilter == 'missed') {
-      return _quizzes.where((q) => q.quizStatus == 'missed').toList();
-    }
-
-    // 'all' — Live + Upcoming + Missed
     final live = _quizzes.where((q) => q.isLive).toList();
     final upcoming = _quizzes.where((q) => q.quizStatus == 'upcoming' && !q.isLive).toList();
     final missed = _quizzes.where((q) => q.quizStatus == 'missed').toList();
@@ -167,9 +264,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   }
 
   void _goToDetail(QuizItem quiz) {
-    if (isMockTest) {
+    if (isMockTest || isFullMockTest || isPYP) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => MockTestDetailPage(quizId: quiz.quizId)));
-      return;
     } else {
       Navigator.push(
         context,
@@ -178,44 +274,49 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     }
   }
 
-  // ─── BUILD ────────────────────────────────────────────────────────────────
-
+  // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F8),
-      appBar: _buildAppBar(int.parse(widget.PageType)),
-      body: Column(
-        children: [
-          _buildCategoryTabs(),
-          Expanded(
-            child:
-                _isFetchingQuizzes
-                    ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_accent)))
-                    : _filtered.isEmpty
-                    ? _buildEmptyState()
-                    : _buildContent(),
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
+      body:
+          _isLoading
+              ? _buildLoadingState()
+              : RefreshIndicator(
+                onRefresh: _getUserData,
+                color: AppColors.tealGreen,
+                child: Column(
+                  children: [
+                    if (showCategoryTabs) _buildCategoryTabs(),
+                    if (_errorMessage != null && !_isFetchingQuizzes) _buildErrorBanner(),
+                    Expanded(
+                      child:
+                          _isFetchingQuizzes
+                              ? _buildLoadingState()
+                              : _filtered.isEmpty && _errorMessage == null
+                              ? _buildEmptyState()
+                              : _errorMessage != null && _quizzes.isEmpty
+                              ? _buildFullErrorState()
+                              : _buildContent(),
+                    ),
+                  ],
+                ),
+              ),
     );
   }
 
-  // ─── APP BAR ──────────────────────────────────────────────────────────────
-
-  PreferredSizeWidget _buildAppBar(int pageType_data) {
-    // Title differs for mock vs live
-    final String title = isMockTest ? 'Mock Tests' : 'Live Quizzes';
-
+  // ── APP BAR ────────────────────────────────────────────────────────────────
+  PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: AppColors.darkNavy,
       elevation: 0,
       automaticallyImplyLeading: false,
       leading: IconButton(
         icon: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-          child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+          child: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -223,16 +324,16 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            pageTitle,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               fontFamily: 'Poppins',
             ),
           ),
           Text(
-            isMockTest ? '${_filtered.length} tests available' : '${_filtered.length} quizzes available',
+            '${_filtered.length} ${isMockTest || isFullMockTest || isPYP ? 'tests' : 'tests'} available',
             style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
           ),
         ],
@@ -241,8 +342,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
         IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.filter_list_rounded, color: Colors.white, size: 20),
           ),
           onPressed:
               () => showModalBottomSheet(
@@ -255,225 +356,135 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
         const SizedBox(width: 4),
       ],
       flexibleSpace: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors:
-                isMockTest
-                    ? [AppColors.darkNavy, const Color(0xFF0D6E6E)]
-                    : [AppColors.darkNavy, const Color(0xFF0D6E6E)],
+            colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
           ),
         ),
       ),
     );
   }
 
-  // ─── FILTER BOTTOM SHEET ──────────────────────────────────────────────────
-
-  Widget _buildFilterSheet() {
-    String tempFilter = _selectedFilter;
-
-    // ── Mock test filter options ──────────────────────────────────────────
-    final mockFilters = [
-      {
-        'key': 'all',
-        'title': 'All Tests',
-        'subtitle': 'Show every mock test in this series',
-        'icon': Icons.view_list,
-        'color': AppColors.darkNavy,
-      },
-      {
-        'key': 'unattempted',
-        'title': 'Not Attempted',
-        'subtitle': 'Tests you haven\'t started yet',
-        'icon': Icons.radio_button_unchecked,
-        'color': const Color(0xFF0D6E6E),
-      },
-      {
-        'key': 'attempted',
-        'title': 'Attempted',
-        'subtitle': 'Tests you have already completed',
-        'icon': Icons.check_circle_outline_rounded,
-        'color': const Color(0xFF00897B),
-      },
-    ];
-
-    // ── Live quiz filter options ───────────────────────────────────────────
-    final liveFilters = [
-      {
-        'key': 'all',
-        'title': 'All Quizzes',
-        'subtitle': 'Show live, upcoming and assessments',
-        'icon': Icons.view_list,
-        'color': const Color(0xFF0D6E6E),
-      },
-      {
-        'key': 'live',
-        'title': 'Live Now',
-        'subtitle': 'Quizzes currently live',
-        'icon': Icons.radio_button_checked,
-        'color': Colors.red,
-      },
-      {
-        'key': 'upcoming',
-        'title': 'Upcoming',
-        'subtitle': 'Quizzes scheduled ahead',
-        'icon': Icons.schedule,
-        'color': const Color(0xFFF59E0B),
-      },
-      {
-        'key': 'missed',
-        'title': 'Assessment',
-        'subtitle': 'Quizzes you missed — attempt now',
-        'icon': Icons.assignment_late_outlined,
-        'color': const Color(0xFF6366F1),
-      },
-      {
-        'key': 'ended',
-        'title': 'Ended',
-        'subtitle': 'Quizzes that have concluded',
-        'icon': Icons.history,
-        'color': AppColors.greyS600,
-      },
-    ];
-
-    final filters = isMockTest ? mockFilters : liveFilters;
-
-    return StatefulBuilder(
-      builder: (context, setModalState) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  // ── ERROR BANNER (inline, non-blocking) ────────────────────────────────────
+  Widget _buildErrorBanner() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: TextStyle(fontSize: 12, color: Colors.orange.shade900, fontWeight: FontWeight.w500),
+            ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(10)),
+          GestureDetector(
+            onTap: () => _fetchQuizzes(_selectedCategoryId, 1),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(8)),
+              child: Text(
+                'Retry',
+                style: TextStyle(fontSize: 11, color: Colors.orange.shade800, fontWeight: FontWeight.w700),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [_accent, AppColors.darkNavy]),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          isMockTest ? 'Filter Tests' : 'Filter Quizzes',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0D6E6E)),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.close, color: AppColors.greyS600),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    ...filters.map((f) {
-                      final bool sel = tempFilter == f['key'];
-                      final Color c = f['color'] as Color;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => tempFilter = f['key'] as String),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: sel ? c.withOpacity(0.08) : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: sel ? c : Colors.transparent, width: 1.5),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: sel ? c.withOpacity(0.15) : Colors.grey.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(f['icon'] as IconData, color: sel ? c : AppColors.greyS600, size: 18),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      f['title'] as String,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                                        color: sel ? c : AppColors.darkNavy,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      f['subtitle'] as String,
-                                      style: TextStyle(fontSize: 11, color: AppColors.greyS600),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (sel) Icon(Icons.check_circle_rounded, color: c, size: 20),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() => _selectedFilter = tempFilter);
-                        Navigator.pop(context);
-                        _fetchQuizzes(_selectedCategoryId, 1);
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [_accent, AppColors.darkNavy]),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Apply Filter',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: MediaQuery.of(context).padding.bottom),
-            ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  // ─── CATEGORY TABS ────────────────────────────────────────────────────────
+  // ── FULL ERROR STATE ───────────────────────────────────────────────────────
+  Widget _buildFullErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),
+              child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red.shade300),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Unable to Load',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppColors.greyS600),
+            ),
+            const SizedBox(height: 24),
+            GestureDetector(
+              onTap: _getUserData,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.tealGreen.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text('Try Again', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
+  // ── LOADING STATE ──────────────────────────────────────────────────────────
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.08), shape: BoxShape.circle),
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen),
+              strokeWidth: 3,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Loading ${pageTitle.toLowerCase()}...',
+            style: TextStyle(fontSize: 13, color: AppColors.greyS600, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── CATEGORY TABS ──────────────────────────────────────────────────────────
   Widget _buildCategoryTabs() {
     if (_isLoading) return const SizedBox(height: 52);
     return Container(
       height: 52,
-      color: AppColors.white,
+      color: Colors.white,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -491,7 +502,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                gradient: sel ? LinearGradient(colors: [_accent, AppColors.darkNavy]) : null,
+                gradient: sel ? LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]) : null,
                 color: sel ? null : const Color(0xFFF0F2F8),
                 borderRadius: BorderRadius.circular(20),
                 border: sel ? null : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
@@ -511,62 +522,59 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     );
   }
 
-  // ─── CONTENT ──────────────────────────────────────────────────────────────
-
+  // ── CONTENT LIST ───────────────────────────────────────────────────────────
   Widget _buildContent() {
     const int adAfterIndex = 4;
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildCard(_filtered[index], _gradients[index % _gradients.length]),
-              childCount: _filtered.length.clamp(0, adAfterIndex + 1),
-            ),
-          ),
-        ),
-        if (isBannerLoaded && bannerService.bannerAd != null)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  height: bannerService.bannerAd!.size.height.toDouble(),
-                  width: bannerService.bannerAd!.size.width.toDouble(),
-                  child: AdWidget(ad: bannerService.bannerAd!),
-                ),
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _buildCard(_filtered[index], _cardGradients[index % _cardGradients.length]),
+                childCount: _filtered.length.clamp(0, adAfterIndex + 1),
               ),
             ),
           ),
-        if (_filtered.length > adAfterIndex + 1)
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final i = adAfterIndex + 1 + index;
-                return _buildCard(_filtered[i], _gradients[i % _gradients.length]);
-              }, childCount: _filtered.length - adAfterIndex - 1),
+          if (isBannerLoaded && bannerService.bannerAd != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    height: bannerService.bannerAd!.size.height.toDouble(),
+                    width: bannerService.bannerAd!.size.width.toDouble(),
+                    child: AdWidget(ad: bannerService.bannerAd!),
+                  ),
+                ),
+              ),
             ),
-          ),
-        const SliverToBoxAdapter(child: SizedBox(height: 20)),
-      ],
+          if (_filtered.length > adAfterIndex + 1)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final i = adAfterIndex + 1 + index;
+                  return _buildCard(_filtered[i], _cardGradients[i % _cardGradients.length]);
+                }, childCount: _filtered.length - adAfterIndex - 1),
+              ),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        ],
+      ),
     );
   }
 
-  // ─── CARD ─────────────────────────────────────────────────────────────────
-
+  // ── CARD ───────────────────────────────────────────────────────────────────
   Widget _buildCard(QuizItem quiz, List<Color> colors) {
-    // For mock tests, status flags are irrelevant — use attempted flag
     final bool isAttempted = quiz.is_attempted;
-
-    // For live quizzes only
-    final bool isLive = !isMockTest && quiz.quizStatus == 'live';
-    final bool isUpcoming = !isMockTest && quiz.quizStatus == 'upcoming';
-    final bool isMissed = !isMockTest && quiz.quizStatus == 'missed';
-
+    final bool isLive = isLiveTest && quiz.quizStatus == 'live';
+    final bool isUpcoming = isLiveTest && quiz.quizStatus == 'upcoming';
+    final bool isMissed = isLiveTest && quiz.quizStatus == 'missed';
     final bool hasBanner = quiz.banner != null && quiz.banner!.isNotEmpty;
 
     return GestureDetector(
@@ -574,40 +582,44 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 14, offset: const Offset(0, 5))],
         ),
         child: Row(
           children: [
+            // ── Left panel ──
             ClipRRect(
-              borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(18), bottomLeft: Radius.circular(18)),
               child: SizedBox(
-                width: 95,
-                height: 120,
+                width: 100,
+                height: 130,
                 child:
                     hasBanner
                         ? _buildBannerPanel(quiz, colors, isLive, isUpcoming, isMissed, isAttempted)
                         : _buildGradientPanel(quiz, colors, isLive, isUpcoming, isMissed, isAttempted),
               ),
             ),
+            // ── Right content ──
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Title
                     Text(
                       quiz.title,
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
                         color: AppColors.darkNavy,
-                        height: 1.3,
+                        height: 1.35,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+
                     if (quiz.description.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(
@@ -617,47 +629,68 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
+
                     const SizedBox(height: 8),
+
+                    // Chips
                     Wrap(
                       spacing: 5,
-                      runSpacing: 4,
+                      runSpacing: 5,
                       children: [
                         if (quiz.difficultyLevel.isNotEmpty)
-                          _chip(Icons.signal_cellular_alt, quiz.difficultyLevel, AppColors.tealGreen),
+                          _chip(Icons.signal_cellular_alt_rounded, quiz.difficultyLevel, AppColors.tealGreen),
                         if (quiz.timeLimit.isNotEmpty && quiz.timeLimit != '0')
                           _chip(Icons.timer_outlined, '${quiz.timeLimit} min', AppColors.greyS600),
+                        if (quiz.totalQuestions > 0)
+                          _chip(Icons.help_outline_rounded, '${quiz.totalQuestions} Qs', AppColors.greyS600),
 
-                        // ── Mock test chips ──────────────────────────────
-                        if (isMockTest) ...[
+                        // Attempt status for mock/full mock/pyp
+                        if (!isLiveTest) ...[
                           if (isAttempted)
                             _chip(Icons.check_circle_outline_rounded, 'Attempted', const Color(0xFF00897B))
                           else
-                            _chip(Icons.assignment_outlined, 'Not Attempted', const Color(0xFF3949AB)),
-                          if (quiz.totalQuestions > 0)
-                            _chip(Icons.help_outline_rounded, '${quiz.totalQuestions} Qs', AppColors.greyS600),
+                            _chip(Icons.radio_button_unchecked_rounded, 'Not Attempted', const Color(0xFF3949AB)),
                         ],
 
-                        // ── Live quiz chips ──────────────────────────────
-                        if (!isMockTest) ...[
+                        // Live test specific
+                        if (isLiveTest) ...[
                           if (quiz.startsInText.isNotEmpty && !isLive)
-                            _chip(Icons.schedule, quiz.startsInText, Colors.orange),
+                            _chip(Icons.schedule_rounded, quiz.startsInText, Colors.orange.shade700),
                           if (isMissed) _chip(Icons.assignment_late_outlined, 'Assessment', const Color(0xFF6366F1)),
                         ],
                       ],
                     ),
+
                     const SizedBox(height: 10),
+
+                    // CTA button
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: colors),
+                        gradient: LinearGradient(
+                          colors:
+                              quiz.isAccessible
+                                  ? [AppColors.darkNavy, AppColors.tealGreen]
+                                  : [Colors.grey.shade400, Colors.grey.shade500],
+                        ),
                         borderRadius: BorderRadius.circular(10),
+                        boxShadow:
+                            quiz.isAccessible
+                                ? [
+                                  BoxShadow(
+                                    color: AppColors.tealGreen.withOpacity(0.25),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ]
+                                : null,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(_btnIcon(quiz, isLive, isAttempted), color: Colors.white, size: 14),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: 6),
                           Text(
                             _btnText(quiz, isLive, isMissed, isAttempted),
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
@@ -675,8 +708,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     );
   }
 
-  // ─── BANNER PANEL ─────────────────────────────────────────────────────────
-
+  // ── BANNER PANEL ───────────────────────────────────────────────────────────
   Widget _buildBannerPanel(
     QuizItem quiz,
     List<Color> colors,
@@ -698,7 +730,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Colors.black.withOpacity(0.45)],
+              colors: [Colors.transparent, Colors.black.withOpacity(0.55)],
             ),
           ),
         ),
@@ -712,8 +744,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     );
   }
 
-  // ─── GRADIENT PANEL ───────────────────────────────────────────────────────
-
+  // ── GRADIENT PANEL ─────────────────────────────────────────────────────────
   Widget _buildGradientPanel(
     QuizItem quiz,
     List<Color> colors,
@@ -730,11 +761,11 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
         children: [
           Positioned.fill(child: CustomPaint(painter: _DotPatternPainter())),
           Positioned(
-            right: -15,
-            bottom: -15,
+            right: -18,
+            bottom: -18,
             child: Container(
-              width: 55,
-              height: 55,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(color: Colors.white.withOpacity(0.07), shape: BoxShape.circle),
             ),
           ),
@@ -743,14 +774,25 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withOpacity(0.18),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
+                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
                   ),
-                  child: Center(child: Text(isMockTest ? '📝' : '⚡', style: const TextStyle(fontSize: 22))),
+                  child: Center(
+                    child: Text(
+                      isLiveTest
+                          ? '⚡'
+                          : isMockTest
+                          ? '📝'
+                          : isFullMockTest
+                          ? '🎯'
+                          : '📜',
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 _statusBadge(isLive, isUpcoming, isMissed, isAttempted),
@@ -762,36 +804,22 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     );
   }
 
-  // ─── STATUS BADGE ─────────────────────────────────────────────────────────
-
+  // ── STATUS BADGE ───────────────────────────────────────────────────────────
   Widget _statusBadge(bool isLive, bool isUpcoming, bool isMissed, bool isAttempted) {
-    // ── Mock test badge — no live/upcoming concept ─────────────────────────
-    if (isMockTest) {
-      final Color color =
-          isAttempted
-              ? const Color(0xFF00897B) // teal — completed
-              : const Color(0xFF3949AB); // indigo — available
-
-      final String label = isAttempted ? 'DONE' : 'ATTEMPT';
-
+    // Non-live types
+    if (!isLiveTest) {
+      final Color color = isAttempted ? const Color(0xFF00897B) : const Color(0xFF3949AB);
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(isAttempted ? Icons.check_circle_outline : Icons.play_arrow_rounded, size: 7, color: Colors.white),
-            const SizedBox(width: 3),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
-            ),
-          ],
+        child: Text(
+          isAttempted ? 'DONE' : 'ATTEMPT',
+          style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
         ),
       );
     }
 
-    // ── Live quiz badge ────────────────────────────────────────────────────
+    // Live test
     final Color color =
         isLive
             ? Colors.red
@@ -807,11 +835,11 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
             : isUpcoming
             ? 'UPCOMING'
             : isMissed
-            ? 'ASSESSMENT'
+            ? 'ASSESS'
             : 'ENDED';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -823,11 +851,6 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
               margin: const EdgeInsets.only(right: 3),
               decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             ),
-          if (isMissed)
-            const Padding(
-              padding: EdgeInsets.only(right: 3),
-              child: Icon(Icons.assignment_late_outlined, size: 7, color: Colors.white),
-            ),
           Text(
             label,
             style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
@@ -837,28 +860,232 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
     );
   }
 
-  // ─── HELPERS ──────────────────────────────────────────────────────────────
+  // ── FILTER SHEET ───────────────────────────────────────────────────────────
+  Widget _buildFilterSheet() {
+    String tempFilter = _selectedFilter;
 
+    final mockFilters = [
+      {
+        'key': 'all',
+        'title': 'All Tests',
+        'subtitle': 'Show every test in this series',
+        'icon': Icons.view_list_rounded,
+        'color': AppColors.darkNavy,
+      },
+      {
+        'key': 'unattempted',
+        'title': 'Not Attempted',
+        'subtitle': 'Tests you haven\'t started yet',
+        'icon': Icons.radio_button_unchecked_rounded,
+        'color': const Color(0xFF3949AB),
+      },
+      {
+        'key': 'attempted',
+        'title': 'Attempted',
+        'subtitle': 'Tests you have already completed',
+        'icon': Icons.check_circle_outline_rounded,
+        'color': const Color(0xFF00897B),
+      },
+    ];
+
+    final liveFilters = [
+      {
+        'key': 'all',
+        'title': 'All Tests',
+        'subtitle': 'Show live, upcoming and assessments',
+        'icon': Icons.view_list_rounded,
+        'color': AppColors.darkNavy,
+      },
+      {
+        'key': 'live',
+        'title': 'Live Now',
+        'subtitle': 'Tests currently running',
+        'icon': Icons.radio_button_checked_rounded,
+        'color': Colors.red,
+      },
+      {
+        'key': 'upcoming',
+        'title': 'Upcoming',
+        'subtitle': 'Tests scheduled ahead',
+        'icon': Icons.schedule_rounded,
+        'color': const Color(0xFFF59E0B),
+      },
+      {
+        'key': 'missed',
+        'title': 'Assessment',
+        'subtitle': 'Missed tests — attempt anytime',
+        'icon': Icons.assignment_late_outlined,
+        'color': const Color(0xFF6366F1),
+      },
+      {
+        'key': 'ended',
+        'title': 'Ended',
+        'subtitle': 'Tests that have concluded',
+        'icon': Icons.history_rounded,
+        'color': AppColors.greyS600,
+      },
+    ];
+
+    final filters = isLiveTest ? liveFilters : mockFilters;
+
+    return StatefulBuilder(
+      builder: (context, setModalState) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.filter_list_rounded, color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Filter Tests',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.close_rounded, color: AppColors.greyS600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Filter options
+                    ...filters.map((f) {
+                      final bool sel = tempFilter == f['key'];
+                      final Color c = f['color'] as Color;
+                      return GestureDetector(
+                        onTap: () => setModalState(() => tempFilter = f['key'] as String),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(13),
+                          decoration: BoxDecoration(
+                            color: sel ? c.withOpacity(0.07) : const Color(0xFFF5F7FA),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: sel ? c : Colors.transparent, width: 1.5),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: sel ? c.withOpacity(0.15) : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(f['icon'] as IconData, color: sel ? c : AppColors.greyS600, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      f['title'] as String,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                                        color: sel ? c : AppColors.darkNavy,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      f['subtitle'] as String,
+                                      style: TextStyle(fontSize: 11, color: AppColors.greyS500),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (sel) Icon(Icons.check_circle_rounded, color: c, size: 20),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+
+                    const SizedBox(height: 8),
+
+                    // Apply button
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _selectedFilter = tempFilter);
+                        Navigator.pop(context);
+                        _fetchQuizzes(_selectedCategoryId, 1);
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.tealGreen.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Apply Filter',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ── HELPERS ────────────────────────────────────────────────────────────────
   IconData _btnIcon(QuizItem quiz, bool isLive, bool isAttempted) {
-    if (!quiz.isAccessible) return Icons.lock_outline;
-    // Mock test
-    if (isMockTest) {
+    if (!quiz.isAccessible) return Icons.lock_outline_rounded;
+    if (!isLiveTest) {
       return isAttempted ? Icons.bar_chart_rounded : Icons.play_arrow_rounded;
     }
-    // Live quiz
     if (isLive) return Icons.play_arrow_rounded;
     return Icons.arrow_forward_rounded;
   }
 
   String _btnText(QuizItem quiz, bool isLive, bool isMissed, bool isAttempted) {
     if (!quiz.isAccessible) return 'Subscribe to Unlock';
-
-    // Mock test
-    if (isMockTest) {
+    if (!isLiveTest) {
       return isAttempted ? 'View Result' : 'Start Test';
     }
-
-    // Live quiz
     if (isLive) return 'Join Now';
     if (isMissed) return 'Attempt Now';
     return 'View Details';
@@ -866,8 +1093,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
 
   Widget _chip(IconData icon, String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(color: color.withOpacity(0.09), borderRadius: BorderRadius.circular(7)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -880,36 +1107,56 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> {
   }
 
   Widget _buildEmptyState() {
+    final Map<String, Map<String, dynamic>> emptyData = {
+      '0': {'icon': '⚡', 'title': 'No Live Tests Found', 'subtitle': 'Check back later or try a different category.'},
+      '4': {'icon': '📝', 'title': 'No Mock Tests Found', 'subtitle': 'Try selecting a different subject or filter.'},
+      '5': {
+        'icon': '🎯',
+        'title': 'No Full Mock Tests Available',
+        'subtitle': 'Full mock tests will appear here when published.',
+      },
+      '6': {'icon': '📜', 'title': 'No Previous Year Papers', 'subtitle': 'PYP papers will appear here when added.'},
+    };
+
+    final data = emptyData[widget.PageType] ?? {'icon': '📭', 'title': 'Nothing Here', 'subtitle': 'Try again later.'};
+
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isMockTest ? Icons.assignment_outlined : Icons.quiz_outlined,
-            size: 64,
-            color: AppColors.greyS600.withOpacity(0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isMockTest ? 'No tests found' : 'No quizzes found',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.greyS600),
-          ),
-          const SizedBox(height: 6),
-          Text('Try a different category', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.07), shape: BoxShape.circle),
+              child: Text(data['icon'] as String, style: const TextStyle(fontSize: 48)),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              data['title'] as String,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              data['subtitle'] as String,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppColors.greyS600),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ─── DOT PATTERN ──────────────────────────────────────────────────────────────
+// ─── PAINTERS ─────────────────────────────────────────────────────────────────
 
 class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = Colors.white.withOpacity(0.06)
+          ..color = Colors.white.withOpacity(0.07)
           ..strokeWidth = 1;
     const spacing = 14.0;
     for (double x = 0; x < size.width; x += spacing) {

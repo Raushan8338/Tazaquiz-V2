@@ -60,8 +60,7 @@ class MockTestDetailPage extends StatefulWidget {
   _MockTestDetailPageState createState() => _MockTestDetailPageState();
 }
 
-class _MockTestDetailPageState extends State<MockTestDetailPage>
-    with SingleTickerProviderStateMixin {
+class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTickerProviderStateMixin {
   final RewardedAdService rewardedAdService = RewardedAdService();
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
@@ -112,10 +111,8 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _fadeAnimation =
-        CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
     rewardedAdService.loadAd();
     bannerService.loadAd(() => setState(() => isBannerLoaded = true));
     _getUserData();
@@ -139,13 +136,9 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
   Future<void> fetchQuizDetails(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {
-        'quiz_id': widget.quizId.toString(),
-        'user_id': userid.toString()
-      };
+      final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
       print('Fetching mock test details: $data');
-      final responseFuture =
-          await authRepository.get_quizId_wise_details(data);
+      final responseFuture = await authRepository.get_quizId_wise_details(data);
 
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
@@ -192,11 +185,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MockTestScreen(
-          testTitle: _currentQuiz!.title.toString(),
-          subject: _currentQuiz!.difficultyLevel.toString(),
-          Quiz_id: widget.quizId.toString(),
-        ),
+        builder:
+            (context) => MockTestScreen(
+              testTitle: _currentQuiz!.title.toString(),
+              subject: _currentQuiz!.difficultyLevel.toString(),
+              Quiz_id: widget.quizId.toString(),
+            ),
       ),
     );
   }
@@ -209,111 +203,77 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (_) => Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 76,
-                height: 76,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFF3E0),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.lock_clock_rounded,
-                  color: Color(0xFFE65100),
-                  size: 38,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Daily Limit Reached!',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0D1B3E),
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "You've already attempted 2 Mock Tests today.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF6B7A99),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Come back tomorrow\nto attempt more! 🌅',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0D1B3E),
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 18, vertical: 9),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: const Color(0xFFFFCC80)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.timer_outlined,
-                        size: 15, color: Color(0xFFE65100)),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Resets in ${hoursLeft}h ${minsLeft}m',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFE65100),
+      builder:
+          (_) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: const BoxDecoration(color: Color(0xFFFFF3E0), shape: BoxShape.circle),
+                    child: const Icon(Icons.lock_clock_rounded, color: Color(0xFFE65100), size: 38),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Daily Limit Reached!',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0D1B3E)),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "You've already attempted 2 Mock Tests today.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99), height: 1.5),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Come back tomorrow\nto attempt more! 🌅',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0D1B3E), height: 1.4),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3E0),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: const Color(0xFFFFCC80)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.timer_outlined, size: 15, color: Color(0xFFE65100)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Resets in ${hoursLeft}h ${minsLeft}m',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFE65100)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D1B3E),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0D1B3E),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      child: const Text('Okay, Got it!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                     ),
                   ),
-                  child: const Text(
-                    'Okay, Got it!',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -329,8 +289,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
         showResume = true;
         break;
       case 'upgrade_required':
-        message =
-            'You have used your free attempt this month. Activate to continue!';
+        message = 'You have used your free attempt this month. Activate to continue!';
         buttonText = 'Activate Now';
         break;
       case 'plan_expired':
@@ -338,8 +297,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
         buttonText = 'Renew Plan';
         break;
       case 'purchase_required':
-        message =
-            'This mock test requires a course purchase. Get full access now!';
+        message = 'This mock test requires a course purchase. Get full access now!';
         buttonText = 'Activate Now';
         break;
       default:
@@ -349,50 +307,40 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Access Required',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Text(message, style: const TextStyle(fontSize: 13)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              showResume ? _navigateToMockTest() : _handleSubscribe();
-            },
-            child: Text(buttonText),
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('Access Required', style: TextStyle(fontWeight: FontWeight.w800)),
+            content: Text(message, style: const TextStyle(fontSize: 13)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  showResume ? _navigateToMockTest() : _handleSubscribe();
+                },
+                child: Text(buttonText),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _handleSubscribe() {
     if (_currentQuiz == null) return;
-    Navigator.push(context,
-            MaterialPageRoute(builder: (context) => PricingPage()))
-        .then((value) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
       if (value == true) _getUserData();
     });
   }
 
   String _formatDateTime(String raw) {
     try {
-      final dt =
-          DateTime.parse(raw.trim().replaceAll(' ', 'T'));
-      const months = [
-        'Jan','Feb','Mar','Apr','May','Jun',
-        'Jul','Aug','Sep','Oct','Nov','Dec'
-      ];
+      final dt = DateTime.parse(raw.trim().replaceAll(' ', 'T'));
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
       final m = dt.minute.toString().padLeft(2, '0');
       final ap = dt.hour >= 12 ? 'PM' : 'AM';
@@ -411,17 +359,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(
-                  valueColor:
-                      AlwaysStoppedAnimation<Color>(_primary),
-                  strokeWidth: 3),
+              CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_primary), strokeWidth: 3),
               const SizedBox(height: 16),
               Text(
                 'Loading mock test...',
-                style: TextStyle(
-                    color: _primary.withOpacity(0.7),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500),
+                style: TextStyle(color: _primary.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -432,9 +374,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     if (_currentQuiz == null) {
       return Scaffold(
         backgroundColor: _bg,
-        appBar: AppBar(
-            backgroundColor: _primary,
-            title: const Text('Error')),
+        appBar: AppBar(backgroundColor: _primary, title: const Text('Error')),
         body: const Center(child: Text('Test not found')),
       );
     }
@@ -461,19 +401,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                     const SizedBox(height: 10),
                     _buildExpectSection(),
                     const SizedBox(height: 10),
-                    if (!_hasFullAccess)
-                      _buildSubscriptionSection()
-                    else
-                      _buildTestInfoSection(),
+                    if (!_hasFullAccess) _buildSubscriptionSection() else _buildTestInfoSection(),
                     const SizedBox(height: 10),
-                    if (_currentQuiz!.description.isNotEmpty) ...[
-                      _buildDescriptionCard(),
-                      const SizedBox(height: 10)
-                    ],
-                    if (_currentQuiz!.instruction.isNotEmpty) ...[
-                      _buildInstructionsCard(),
-                      const SizedBox(height: 10)
-                    ],
+                    if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 10)],
+                    if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), const SizedBox(height: 10)],
                     _buildImportantInfo(),
                   ],
                 ),
@@ -494,51 +425,37 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     _AccessBannerCfg cfg;
 
     if (_hasFullAccess) {
-      cfg = quiz.isPurchased
-          ? _AccessBannerCfg(
-              gradient: [
-                const Color(0xFF00897B),
-                const Color(0xFF004D40)
-              ],
-              icon: Icons.verified_rounded,
-              badge: _planDisplayName,
-              headline: 'Full Access Unlocked',
-              subLine: msg.isNotEmpty
-                  ? msg
-                  : 'You can attempt this test anytime.',
-              statusLabel: 'GRANTED',
-              statusColor: const Color(0xFF69F0AE),
-              locked: false,
-            )
-          : _AccessBannerCfg(
-              gradient: [
-                const Color(0xFF1976D2),
-                const Color(0xFF0D47A1)
-              ],
-              icon: Icons.lock_open_rounded,
-              badge: _planDisplayName,
-              headline: 'Free Test — Open to All',
-              subLine: msg.isNotEmpty
-                  ? msg
-                  : 'This test is free to attempt.',
-              statusLabel: 'FREE',
-              statusColor: const Color(0xFF82B1FF),
-              locked: false,
-            );
+      cfg =
+          quiz.isPurchased
+              ? _AccessBannerCfg(
+                gradient: [const Color(0xFF00897B), const Color(0xFF004D40)],
+                icon: Icons.verified_rounded,
+                badge: _planDisplayName,
+                headline: 'Full Access Unlocked',
+                subLine: msg.isNotEmpty ? msg : 'You can attempt this test anytime.',
+                statusLabel: 'GRANTED',
+                statusColor: const Color(0xFF69F0AE),
+                locked: false,
+              )
+              : _AccessBannerCfg(
+                gradient: [const Color(0xFF1976D2), const Color(0xFF0D47A1)],
+                icon: Icons.lock_open_rounded,
+                badge: _planDisplayName,
+                headline: 'Free Test — Open to All',
+                subLine: msg.isNotEmpty ? msg : 'This test is free to attempt.',
+                statusLabel: 'FREE',
+                statusColor: const Color(0xFF82B1FF),
+                locked: false,
+              );
     } else {
       switch (error) {
         case 'upgrade_required':
           cfg = _AccessBannerCfg(
-            gradient: [
-              const Color(0xFFBF360C),
-              const Color(0xFF870000)
-            ],
+            gradient: [const Color(0xFFBF360C), const Color(0xFF870000)],
             icon: Icons.lock_clock_rounded,
             badge: _planDisplayName,
             headline: 'Monthly Limit Reached',
-            subLine: msg.isNotEmpty
-                ? msg
-                : "You've used all free attempts this month.",
+            subLine: msg.isNotEmpty ? msg : "You've used all free attempts this month.",
             statusLabel: 'LOCKED',
             statusColor: const Color(0xFFFF6E6E),
             locked: true,
@@ -546,16 +463,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
           break;
         case 'plan_expired':
           cfg = _AccessBannerCfg(
-            gradient: [
-              const Color(0xFF6A1B9A),
-              const Color(0xFF38006B)
-            ],
+            gradient: [const Color(0xFF6A1B9A), const Color(0xFF38006B)],
             icon: Icons.workspace_premium_rounded,
             badge: _planDisplayName,
             headline: 'Plan Expired',
-            subLine: msg.isNotEmpty
-                ? msg
-                : 'Renew your plan to regain full access.',
+            subLine: msg.isNotEmpty ? msg : 'Renew your plan to regain full access.',
             statusLabel: 'EXPIRED',
             statusColor: const Color(0xFFCE93D8),
             locked: true,
@@ -563,16 +475,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
           break;
         case 'purchase_required':
           cfg = _AccessBannerCfg(
-            gradient: [
-              const Color(0xFF1A237E),
-              const Color(0xFF0D1340)
-            ],
+            gradient: [const Color(0xFF1A237E), const Color(0xFF0D1340)],
             icon: Icons.shopping_bag_rounded,
             badge: _planDisplayName,
             headline: 'Course Purchase Required',
-            subLine: msg.isNotEmpty
-                ? msg
-                : 'Purchase this course to unlock access.',
+            subLine: msg.isNotEmpty ? msg : 'Purchase this course to unlock access.',
             statusLabel: 'LOCKED',
             statusColor: const Color(0xFF9FA8DA),
             locked: true,
@@ -580,16 +487,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
           break;
         case 'attempt_pending':
           cfg = _AccessBannerCfg(
-            gradient: [
-              const Color(0xFF00695C),
-              const Color(0xFF003D33)
-            ],
+            gradient: [const Color(0xFF00695C), const Color(0xFF003D33)],
             icon: Icons.pending_actions_rounded,
             badge: _planDisplayName,
             headline: 'Pending Attempt Found',
-            subLine: msg.isNotEmpty
-                ? msg
-                : 'Complete your ongoing attempt first.',
+            subLine: msg.isNotEmpty ? msg : 'Complete your ongoing attempt first.',
             statusLabel: 'PENDING',
             statusColor: const Color(0xFFFFD740),
             locked: true,
@@ -597,16 +499,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
           break;
         default:
           cfg = _AccessBannerCfg(
-            gradient: [
-              const Color(0xFF263238),
-              const Color(0xFF0D1B2A)
-            ],
+            gradient: [const Color(0xFF263238), const Color(0xFF0D1B2A)],
             icon: Icons.block_rounded,
             badge: _planDisplayName,
             headline: 'Access Restricted',
-            subLine: msg.isNotEmpty
-                ? msg
-                : 'You do not have access to this test.',
+            subLine: msg.isNotEmpty ? msg : 'You do not have access to this test.',
             statusLabel: 'LOCKED',
             statusColor: const Color(0xFFB0BEC5),
             locked: true,
@@ -618,20 +515,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_DS.r8),
-        gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: cfg.gradient),
-        boxShadow: [
-          BoxShadow(
-              color: cfg.gradient.first.withOpacity(0.22),
-              blurRadius: 10,
-              offset: const Offset(0, 3))
-        ],
+        gradient: LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: cfg.gradient),
+        boxShadow: [BoxShadow(color: cfg.gradient.first.withOpacity(0.22), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         child: Row(
           children: [
             Icon(cfg.icon, color: Colors.white, size: 15),
@@ -652,35 +540,25 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    cfg.locked
-                        ? _getLockedActionHint()
-                        : cfg.subLine,
+                    cfg.locked ? _getLockedActionHint() : cfg.subLine,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.white.withOpacity(0.78),
-                        fontWeight: FontWeight.w400),
+                    style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.78), fontWeight: FontWeight.w400),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.22),
-                  borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: Colors.black.withOpacity(0.22), borderRadius: BorderRadius.circular(20)),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 5,
                     height: 5,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: cfg.statusColor),
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: cfg.statusColor),
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -725,11 +603,8 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       leading: IconButton(
         icon: Container(
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8)),
-          child: const Icon(Icons.arrow_back,
-              color: Colors.white, size: 20),
+          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+          child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -744,25 +619,17 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
         1.2,
       ),
       flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-            decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    colors: [_primary, _secondary]))),
+        background: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [_primary, _secondary]))),
       ),
     );
   }
 
   BoxDecoration _cardDecor({double radius = _DS.r16}) => BoxDecoration(
-        color: _DS.card,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: _DS.border),
-        boxShadow: [
-          BoxShadow(
-              color: _DS.navy.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 3))
-        ],
-      );
+    color: _DS.card,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: _DS.border),
+    boxShadow: [BoxShadow(color: _DS.navy.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 3))],
+  );
 
   Widget _buildCombinedHeader() {
     final materialName = _currentQuiz?.Material_name ?? '';
@@ -775,17 +642,14 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
         children: [
           if (materialName.isNotEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [_DS.navy, _DS.navyMid],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(_DS.r16),
-                    topRight: Radius.circular(_DS.r16)),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(_DS.r16), topRight: Radius.circular(_DS.r16)),
               ),
               child: Row(
                 children: [
@@ -795,10 +659,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                       color: Colors.white.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                        Icons.library_books_rounded,
-                        color: Colors.white,
-                        size: 15),
+                    child: const Icon(Icons.library_books_rounded, color: Colors.white, size: 15),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -830,25 +691,18 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 9, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
                       color: _DS.gold.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: _DS.gold.withOpacity(0.4)),
+                      border: Border.all(color: _DS.gold.withOpacity(0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
-                        Icon(Icons.menu_book_rounded,
-                            size: 10, color: _DS.gold),
+                        Icon(Icons.menu_book_rounded, size: 10, color: _DS.gold),
                         SizedBox(width: 4),
-                        Text('Series',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: _DS.gold)),
+                        Text('Series', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _DS.gold)),
                       ],
                     ),
                   ),
@@ -866,37 +720,25 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                   children: [
                     _attempted
                         ? _buildTag(
-                            icon:
-                                Icons.check_circle_outline_rounded,
-                            label: 'ATTEMPTED',
-                            color: const Color(0xFF00897B),
-                          )
+                          icon: Icons.check_circle_outline_rounded,
+                          label: 'ATTEMPTED',
+                          color: const Color(0xFF00897B),
+                        )
                         : _buildTag(
-                            icon: Icons.assignment_outlined,
-                            label: 'NOT ATTEMPTED',
-                            color: const Color(0xFF3949AB),
-                          ),
+                          icon: Icons.assignment_outlined,
+                          label: 'NOT ATTEMPTED',
+                          color: const Color(0xFF3949AB),
+                        ),
                     if (_currentQuiz!.difficultyLevel.isNotEmpty)
                       _buildTag(
-                        icon:
-                            Icons.signal_cellular_alt_rounded,
+                        icon: Icons.signal_cellular_alt_rounded,
                         label: _currentQuiz!.difficultyLevel,
                         color: _DS.navy,
                       ),
                     _isFree
-                        ? _buildTag(
-                            icon: Icons.lock_open_rounded,
-                            label: 'FREE',
-                            color: _DS.teal)
-                        : _buildTag(
-                            icon:
-                                Icons.workspace_premium_rounded,
-                            label: 'PREMIUM',
-                            color: _DS.gold),
-                    _buildTag(
-                        icon: Icons.assignment_outlined,
-                        label: 'MOCK TEST',
-                        color: _DS.navy),
+                        ? _buildTag(icon: Icons.lock_open_rounded, label: 'FREE', color: _DS.teal)
+                        : _buildTag(icon: Icons.workspace_premium_rounded, label: 'PREMIUM', color: _DS.gold),
+                    _buildTag(icon: Icons.assignment_outlined, label: 'MOCK TEST', color: _DS.navy),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -910,8 +752,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                     letterSpacing: -0.1,
                   ),
                 ),
-                if (_currentQuiz!
-                    .subscription_description.isNotEmpty) ...[
+                if (_currentQuiz!.subscription_description.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
@@ -936,28 +777,20 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: const Color(0xFF43A047)
-                              .withOpacity(0.4)),
+                      border: Border.all(color: const Color(0xFF43A047).withOpacity(0.4)),
                     ),
                     child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.check_circle_rounded,
-                            color: Color(0xFF2E7D32), size: 16),
+                        Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 16),
                         SizedBox(width: 8),
                         Text(
                           'You have already attempted this test',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF2E7D32)),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2E7D32)),
                         ),
                       ],
                     ),
@@ -971,13 +804,9 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     );
   }
 
-  Widget _buildTag(
-      {required IconData icon,
-      required String label,
-      required Color color}) {
+  Widget _buildTag({required IconData icon, required String label, required Color color}) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),
@@ -988,12 +817,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
         children: [
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                  letterSpacing: 0.3)),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.3)),
         ],
       ),
     );
@@ -1010,9 +834,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                 icon: Icons.timer_outlined,
                 iconBg: const Color(0xFFFFF8EC),
                 iconColor: const Color(0xFFBA7517),
-                value: _currentQuiz?.timeLimit.isEmpty == false
-                    ? '${_currentQuiz!.timeLimit} min'
-                    : '—',
+                value: _currentQuiz?.timeLimit.isEmpty == false ? '${_currentQuiz!.timeLimit} min' : '—',
                 label: 'Duration',
               ),
               const SizedBox(width: 10),
@@ -1020,8 +842,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                 icon: Icons.emoji_events_outlined,
                 iconBg: const Color(0xFFE1F5EE),
                 iconColor: const Color(0xFF0F6E56),
-                value:
-                    _currentQuiz?.totalMarks.toString() ?? '—',
+                value: _currentQuiz?.totalMarks.toString() ?? '—',
                 label: 'Total Marks',
               ),
             ],
@@ -1033,9 +854,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                 icon: Icons.help_outline_rounded,
                 iconBg: const Color(0xFFEEF1F9),
                 iconColor: const Color(0xFF1A2F5A),
-                value: _currentQuiz?.totalQuestions != null
-                    ? '${_currentQuiz!.totalQuestions}'
-                    : '—',
+                value: _currentQuiz?.totalQuestions != null ? '${_currentQuiz!.totalQuestions}' : '—',
                 label: 'Questions',
               ),
               const SizedBox(width: 10),
@@ -1043,9 +862,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                 icon: Icons.verified_outlined,
                 iconBg: const Color(0xFFEEEDFE),
                 iconColor: const Color(0xFF534AB7),
-                value: _currentQuiz?.passing_score != null
-                    ? '${_currentQuiz!.passing_score}'
-                    : '—',
+                value: _currentQuiz?.passing_score != null ? '${_currentQuiz!.passing_score}' : '—',
                 label: 'Passing Marks',
               ),
             ],
@@ -1064,51 +881,32 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
   }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border:
-              Border.all(color: _primary.withOpacity(0.1)),
-          boxShadow: [
-            BoxShadow(
-                color: _primary.withOpacity(0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 3))
-          ],
+          border: Border.all(color: _primary.withOpacity(0.1)),
+          boxShadow: [BoxShadow(color: _primary.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3))],
         ),
         child: Row(
           children: [
             Container(
               width: 42,
               height: 42,
-              decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(11)),
-              child:
-                  Icon(icon, color: iconColor, size: 20),
+              decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(11)),
+              child: Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     value,
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: _primary,
-                        height: 1.1),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _primary, height: 1.1),
                   ),
                   const SizedBox(height: 3),
-                  Text(label,
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.greyS600,
-                          fontWeight: FontWeight.w400)),
+                  Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w400)),
                 ],
               ),
             ),
@@ -1125,52 +923,31 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: _primary.withOpacity(0.1)),
-        boxShadow: [
-          BoxShadow(
-              color: _primary.withOpacity(0.07),
-              blurRadius: 14,
-              offset: const Offset(0, 4))
-        ],
+        border: Border.all(color: _primary.withOpacity(0.1)),
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(
-              Icons.featured_play_list_outlined,
-              'Mock Test Features'),
+          _buildSectionHead(Icons.featured_play_list_outlined, 'Mock Test Features'),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                  child: _buildFeatureTile('🗂️',
-                      'Question\nPalette', 'Jump to any question')),
+              Expanded(child: _buildFeatureTile('🗂️', 'Question\nPalette', 'Jump to any question')),
               const SizedBox(width: 8),
-              Expanded(
-                  child: _buildFeatureTile('🔖',
-                      'Mark for\nReview', 'Flag & revisit later')),
+              Expanded(child: _buildFeatureTile('🔖', 'Mark for\nReview', 'Flag & revisit later')),
               const SizedBox(width: 8),
-              Expanded(
-                  child: _buildFeatureTile('⏸️',
-                      'Pause &\nResume', 'Pick up where left')),
+              Expanded(child: _buildFeatureTile('⏸️', 'Pause &\nResume', 'Pick up where left')),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(
-                  child: _buildFeatureTile('📊',
-                      'Detailed\nAnalysis',
-                      'Topic-wise breakdown')),
+              Expanded(child: _buildFeatureTile('📊', 'Detailed\nAnalysis', 'Topic-wise breakdown')),
               const SizedBox(width: 8),
-              Expanded(
-                  child: _buildFeatureTile('✏️',
-                      'Change\nAnswers', 'Edit before submit')),
+              Expanded(child: _buildFeatureTile('✏️', 'Change\nAnswers', 'Edit before submit')),
               const SizedBox(width: 8),
-              Expanded(
-                  child: _buildFeatureTile('📈',
-                      'Track\nProgress', 'Compare attempts')),
+              Expanded(child: _buildFeatureTile('📈', 'Track\nProgress', 'Compare attempts')),
             ],
           ),
         ],
@@ -1178,40 +955,28 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     );
   }
 
-  Widget _buildFeatureTile(
-      String emoji, String title, String subtitle) {
+  Widget _buildFeatureTile(String emoji, String title, String subtitle) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-          vertical: 10, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
         color: _primary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(10),
-        border:
-            Border.all(color: _primary.withOpacity(0.1)),
+        border: Border.all(color: _primary.withOpacity(0.1)),
       ),
       child: Column(
         children: [
-          Text(emoji,
-              style: const TextStyle(fontSize: 18)),
+          Text(emoji, style: const TextStyle(fontSize: 18)),
           const SizedBox(height: 5),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: _primary,
-                height: 1.3),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _primary, height: 1.3),
           ),
           const SizedBox(height: 3),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 8.5,
-                color: AppColors.greyS600,
-                fontWeight: FontWeight.w400,
-                height: 1.3),
+            style: TextStyle(fontSize: 8.5, color: AppColors.greyS600, fontWeight: FontWeight.w400, height: 1.3),
           ),
         ],
       ),
@@ -1225,67 +990,43 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: _primary.withOpacity(0.07),
-              blurRadius: 14,
-              offset: const Offset(0, 4))
-        ],
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(
-              Icons.info_outline_rounded, 'Test Details',
-              isGreen: false),
+          _buildSectionHead(Icons.info_outline_rounded, 'Test Details', isGreen: false),
           const SizedBox(height: 14),
-          _buildDetailRow(Icons.all_inclusive_rounded,
-              'Availability',
-              'Attempt anytime — no schedule'),
+          _buildDetailRow(Icons.all_inclusive_rounded, 'Availability', 'Attempt anytime — no schedule'),
           if (_currentQuiz!.timeLimit.isNotEmpty)
-            _buildDetailRow(Icons.timer_outlined, 'Duration',
-                '${_currentQuiz!.timeLimit} Minutes'),
+            _buildDetailRow(Icons.timer_outlined, 'Duration', '${_currentQuiz!.timeLimit} Minutes'),
           _buildDetailRow(
             Icons.repeat_rounded,
             'Attempts',
-            _attempted
-                ? 'Already attempted once'
-                : 'One attempt allowed',
+            _attempted ? 'Already attempted once' : 'One attempt allowed',
           ),
           if (_currentQuiz!.totalQuestions > 0)
-            _buildDetailRow(Icons.help_outline_rounded,
-                'Questions',
-                '${_currentQuiz!.totalQuestions} questions'),
+            _buildDetailRow(Icons.help_outline_rounded, 'Questions', '${_currentQuiz!.totalQuestions} questions'),
           if (_currentQuiz!.totalMarks > 0)
-            _buildDetailRow(Icons.emoji_events_outlined,
-                'Total Marks',
-                '${_currentQuiz!.totalMarks} marks'),
+            _buildDetailRow(Icons.emoji_events_outlined, 'Total Marks', '${_currentQuiz!.totalMarks} marks'),
           const SizedBox(height: 6),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: _accent.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: _accent.withOpacity(0.25)),
+              border: Border.all(color: _accent.withOpacity(0.25)),
             ),
             child: Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.school_outlined,
-                    size: 14, color: _accent),
+                Icon(Icons.school_outlined, size: 14, color: _accent),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Designed to simulate actual exam conditions — same pattern, same time pressure.',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: _primary,
-                        fontWeight: FontWeight.w500,
-                        height: 1.4),
+                    style: TextStyle(fontSize: 11, color: _primary, fontWeight: FontWeight.w500, height: 1.4),
                   ),
                 ),
               ],
@@ -1296,32 +1037,20 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     );
   }
 
-  Widget _buildDetailRow(
-      IconData icon, String label, String value) {
+  Widget _buildDetailRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-                color: _primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8)),
-            child:
-                Icon(icon, color: _primary, size: 15),
+            decoration: BoxDecoration(color: _primary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: _primary, size: 15),
           ),
           const SizedBox(width: 11),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.greyS600,
-                  fontWeight: FontWeight.w500)),
+          Text(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
           const Spacer(),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: _primary)),
+          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _primary)),
         ],
       ),
     );
@@ -1339,27 +1068,21 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
 
     if (error == 'plan_expired') {
       headline = 'Your Plan Has Expired';
-      subtitle =
-          'Renew now and get instant access to everything you had before';
-      headerGradient = [
-        Colors.orange.shade800,
-        Colors.deepOrange.shade900
-      ];
+      subtitle = 'Renew now and get instant access to everything you had before';
+      headerGradient = [Colors.orange.shade800, Colors.deepOrange.shade900];
       badgeColor = Colors.orange.shade300;
       badgeLabel = 'Plan Expired';
       badgeIcon = Icons.warning_amber_rounded;
     } else if (error == 'upgrade_required') {
       headline = 'Free Attempt Used\nUpgrade to Continue';
-      subtitle =
-          "You've used your monthly free attempt — subscribe for unlimited access";
+      subtitle = "You've used your monthly free attempt — subscribe for unlimited access";
       headerGradient = [_primary, const Color(0xFF1a3a5c)];
       badgeColor = _gold;
       badgeLabel = 'Activate Required';
       badgeIcon = Icons.workspace_premium_rounded;
     } else {
       headline = 'Unlock This Mock Test';
-      subtitle =
-          'This test is not in your current plan — upgrade for full access';
+      subtitle = 'This test is not in your current plan — upgrade for full access';
       headerGradient = [_primary, const Color(0xFF1a3a5c)];
       badgeColor = _gold;
       badgeLabel = 'Upgrade Required';
@@ -1370,12 +1093,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: _primary.withOpacity(0.22),
-              blurRadius: 24,
-              offset: const Offset(0, 8))
-        ],
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.22), blurRadius: 24, offset: const Offset(0, 8))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -1385,10 +1103,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: headerGradient),
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: headerGradient),
               ),
               child: Stack(
                 children: [
@@ -1398,41 +1113,27 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                     child: Container(
                       width: 100,
                       height: 100,
-                      decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color:
-                              Colors.white.withOpacity(0.06)),
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.06)),
                     ),
                   ),
                   Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 11, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                         decoration: BoxDecoration(
-                          color:
-                              badgeColor.withOpacity(0.2),
-                          borderRadius:
-                              BorderRadius.circular(8),
-                          border: Border.all(
-                              color: badgeColor
-                                  .withOpacity(0.4)),
+                          color: badgeColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: badgeColor.withOpacity(0.4)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(badgeIcon,
-                                color: badgeColor,
-                                size: 14),
+                            Icon(badgeIcon, color: badgeColor, size: 14),
                             const SizedBox(width: 6),
                             Text(
                               badgeLabel,
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: badgeColor),
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: badgeColor),
                             ),
                           ],
                         ),
@@ -1452,8 +1153,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                         subtitle,
                         style: TextStyle(
                           fontSize: 12,
-                          color:
-                              Colors.white.withOpacity(0.78),
+                          color: Colors.white.withOpacity(0.78),
                           fontWeight: FontWeight.w400,
                           height: 1.4,
                         ),
@@ -1465,29 +1165,21 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
             ),
             Container(
               color: AppColors.white,
-              padding:
-                  const EdgeInsets.fromLTRB(16, 18, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
                         width: 3,
                         height: 18,
-                        decoration: BoxDecoration(
-                            color: _accent,
-                            borderRadius:
-                                BorderRadius.circular(2)),
+                        decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2)),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'What you get after subscribing',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: _primary),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                       ),
                     ],
                   ),
@@ -1497,48 +1189,42 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                       emoji: '📝',
                       icon: Icons.quiz_outlined,
                       title: 'Unlimited Mock Tests',
-                      desc:
-                          'Practice with full-length exam-pattern tests every day',
+                      desc: 'Practice with full-length exam-pattern tests every day',
                       color: _primary,
                     ),
                     _BenefitItem(
                       emoji: '📰',
                       icon: Icons.newspaper_rounded,
                       title: 'Daily Current Affairs',
-                      desc:
-                          'Fresh news & GK updates delivered daily',
+                      desc: 'Fresh news & GK updates delivered daily',
                       color: const Color(0xFF1565C0),
                     ),
                     _BenefitItem(
                       emoji: '🧩',
                       icon: Icons.psychology_outlined,
                       title: 'Daily Practice Quizzes',
-                      desc:
-                          'Topic-wise quizzes to sharpen your concepts',
+                      desc: 'Topic-wise quizzes to sharpen your concepts',
                       color: _accent,
                     ),
                     _BenefitItem(
                       emoji: '📚',
                       icon: Icons.menu_book_rounded,
                       title: 'Study Material',
-                      desc:
-                          'PDFs, notes & video lessons for complete prep',
+                      desc: 'PDFs, notes & video lessons for complete prep',
                       color: const Color(0xFFE65100),
                     ),
                     _BenefitItem(
                       emoji: '📊',
                       icon: Icons.analytics_outlined,
                       title: 'Performance Analytics',
-                      desc:
-                          'Detailed reports to track your weak areas',
+                      desc: 'Detailed reports to track your weak areas',
                       color: const Color(0xFF6A1B9A),
                     ),
                     _BenefitItem(
                       emoji: '🏆',
                       icon: Icons.leaderboard_rounded,
                       title: 'All India Ranking',
-                      desc:
-                          'Compare your score with students nationwide',
+                      desc: 'Compare your score with students nationwide',
                       color: _gold,
                     ),
                   ]),
@@ -1546,42 +1232,28 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                   Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [
-                        _accent.withOpacity(0.1),
-                        _primary.withOpacity(0.05)
-                      ]),
-                      borderRadius:
-                          BorderRadius.circular(12),
-                      border: Border.all(
-                          color: _accent.withOpacity(0.3),
-                          width: 1.2),
+                      gradient: LinearGradient(colors: [_accent.withOpacity(0.1), _primary.withOpacity(0.05)]),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _accent.withOpacity(0.3), width: 1.2),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color:
-                                _accent.withOpacity(0.15),
-                            borderRadius:
-                                BorderRadius.circular(10),
+                            color: _accent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.bolt_rounded,
-                              color: _accent, size: 18),
+                          child: Icon(Icons.bolt_rounded, color: _accent, size: 18),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'One plan. Everything included.',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight:
-                                        FontWeight.w800,
-                                    color: _primary),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -1589,8 +1261,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: AppColors.greyS600,
-                                  fontWeight:
-                                      FontWeight.w400,
+                                  fontWeight: FontWeight.w400,
                                   height: 1.4,
                                 ),
                               ),
@@ -1612,18 +1283,16 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
   Widget _buildBenefitGrid(List<_BenefitItem> items) {
     final rows = <Widget>[];
     for (int i = 0; i < items.length; i += 2) {
-      rows.add(Row(
-        children: [
-          Expanded(child: _buildBenefitCard(items[i])),
-          const SizedBox(width: 10),
-          Expanded(
-              child: i + 1 < items.length
-                  ? _buildBenefitCard(items[i + 1])
-                  : const SizedBox()),
-        ],
-      ));
-      if (i + 2 < items.length)
-        rows.add(const SizedBox(height: 10));
+      rows.add(
+        Row(
+          children: [
+            Expanded(child: _buildBenefitCard(items[i])),
+            const SizedBox(width: 10),
+            Expanded(child: i + 1 < items.length ? _buildBenefitCard(items[i + 1]) : const SizedBox()),
+          ],
+        ),
+      );
+      if (i + 2 < items.length) rows.add(const SizedBox(height: 10));
     }
     return Column(children: rows);
   }
@@ -1634,8 +1303,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       decoration: BoxDecoration(
         color: item.color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: item.color.withOpacity(0.15)),
+        border: Border.all(color: item.color.withOpacity(0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1644,32 +1312,19 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
             children: [
               Container(
                 padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                    color: item.color.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(9)),
-                child: Icon(item.icon,
-                    color: item.color, size: 16),
+                decoration: BoxDecoration(color: item.color.withOpacity(0.14), borderRadius: BorderRadius.circular(9)),
+                child: Icon(item.icon, color: item.color, size: 16),
               ),
               const SizedBox(width: 6),
-              Text(item.emoji,
-                  style: const TextStyle(fontSize: 16)),
+              Text(item.emoji, style: const TextStyle(fontSize: 16)),
             ],
           ),
           const SizedBox(height: 8),
-          Text(item.title,
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: _primary,
-                  height: 1.2)),
+          Text(item.title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _primary, height: 1.2)),
           const SizedBox(height: 4),
           Text(
             item.desc,
-            style: TextStyle(
-                fontSize: 9.5,
-                color: AppColors.greyS600,
-                fontWeight: FontWeight.w400,
-                height: 1.4),
+            style: TextStyle(fontSize: 9.5, color: AppColors.greyS600, fontWeight: FontWeight.w400, height: 1.4),
           ),
         ],
       ),
@@ -1683,18 +1338,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: _primary.withOpacity(0.07),
-              blurRadius: 14,
-              offset: const Offset(0, 4))
-        ],
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(
-              Icons.description_outlined, 'Description'),
+          _buildSectionHead(Icons.description_outlined, 'Description'),
           const SizedBox(height: 10),
           AppRichText.setTextPoppinsStyle(
             context,
@@ -1712,10 +1361,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
   }
 
   Widget _buildInstructionsCard() {
-    final lines = _currentQuiz!.instruction
-        .split('\n')
-        .where((l) => l.trim().isNotEmpty)
-        .toList();
+    final lines = _currentQuiz!.instruction.split('\n').where((l) => l.trim().isNotEmpty).toList();
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1723,19 +1369,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: _primary.withOpacity(0.07),
-              blurRadius: 14,
-              offset: const Offset(0, 4))
-        ],
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(
-              Icons.format_list_bulleted_outlined,
-              'Instructions'),
+          _buildSectionHead(Icons.format_list_bulleted_outlined, 'Instructions'),
           const SizedBox(height: 12),
           if (lines.isEmpty)
             AppRichText.setTextPoppinsStyle(
@@ -1750,50 +1389,40 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
             )
           else
             ...lines.asMap().entries.map(
-                  (e) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          margin:
-                              const EdgeInsets.only(top: 1),
-                          decoration: BoxDecoration(
-                              color: _primary,
-                              borderRadius:
-                                  BorderRadius.circular(5)),
-                          child: Center(
-                            child: Text(
-                              '${e.key + 1}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight:
-                                      FontWeight.w800),
-                            ),
-                          ),
+              (e) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      margin: const EdgeInsets.only(top: 1),
+                      decoration: BoxDecoration(color: _primary, borderRadius: BorderRadius.circular(5)),
+                      child: Center(
+                        child: Text(
+                          '${e.key + 1}',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child:
-                              AppRichText.setTextPoppinsStyle(
-                            context,
-                            e.value.trim(),
-                            12,
-                            AppColors.greyS700,
-                            FontWeight.w400,
-                            5,
-                            TextAlign.left,
-                            1.5,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: AppRichText.setTextPoppinsStyle(
+                        context,
+                        e.value.trim(),
+                        12,
+                        AppColors.greyS700,
+                        FontWeight.w400,
+                        5,
+                        TextAlign.left,
+                        1.5,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
         ],
       ),
     );
@@ -1806,34 +1435,20 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: _primary.withOpacity(0.07),
-              blurRadius: 14,
-              offset: const Offset(0, 4))
-        ],
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHead(Icons.info_outline_rounded,
-              'Important Information',
-              isGreen: false),
+          _buildSectionHead(Icons.info_outline_rounded, 'Important Information', isGreen: false),
           const SizedBox(height: 10),
-          _buildInfoRow(Icons.touch_app_rounded,
-              'One attempt only — make every question count'),
-          _buildInfoRow(Icons.swap_horiz_rounded,
-              'Navigate freely — jump to any question anytime'),
-          _buildInfoRow(Icons.bookmark_border_rounded,
-              'Mark for review — revisit flagged questions before submitting'),
-          _buildInfoRow(Icons.timer_outlined,
-              'Timer runs continuously — does not stop even on pause'),
-          _buildInfoRow(Icons.wifi_rounded,
-              'Stable internet connection required throughout the test'),
-          _buildInfoRow(Icons.bar_chart_rounded,
-              'Detailed performance analysis available after submission'),
-          _buildInfoRow(Icons.block_rounded,
-              'Once submitted, the attempt cannot be retaken'),
+          _buildInfoRow(Icons.touch_app_rounded, 'One attempt only — make every question count'),
+          _buildInfoRow(Icons.swap_horiz_rounded, 'Navigate freely — jump to any question anytime'),
+          _buildInfoRow(Icons.bookmark_border_rounded, 'Mark for review — revisit flagged questions before submitting'),
+          _buildInfoRow(Icons.timer_outlined, 'Timer runs continuously — does not stop even on pause'),
+          _buildInfoRow(Icons.wifi_rounded, 'Stable internet connection required throughout the test'),
+          _buildInfoRow(Icons.bar_chart_rounded, 'Detailed performance analysis available after submission'),
+          _buildInfoRow(Icons.block_rounded, 'Once submitted, the attempt cannot be retaken'),
         ],
       ),
     );
@@ -1864,20 +1479,16 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     );
   }
 
-  Widget _buildSectionHead(IconData icon, String label,
-      {bool isGreen = true}) {
+  Widget _buildSectionHead(IconData icon, String label, {bool isGreen = true}) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-              color: _primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(9)),
+          decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(9)),
           child: Icon(icon, color: _primary, size: 15),
         ),
         const SizedBox(width: 9),
-        AppRichText.setTextPoppinsStyle(context, label, 13,
-            AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0),
+        AppRichText.setTextPoppinsStyle(context, label, 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0),
       ],
     );
   }
@@ -1891,8 +1502,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     List<Color> colors;
     VoidCallback onTap;
 
-    if (quiz.pendingAttemptId != null &&
-        quiz.pendingAttemptId! > 0) {
+    if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
       label = 'Resume Test';
       icon = Icons.play_circle_outline;
       colors = [_accent, _primary];
@@ -1900,28 +1510,22 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
     } else if (_attempted) {
       label = 'Already Attempted';
       icon = Icons.check_circle_outline;
-      colors = [
-        Colors.grey.shade500,
-        Colors.grey.shade700
-      ];
-      onTap = () => ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(
-        content:
-            const Text('You have already attempted this test'),
-        backgroundColor: Colors.grey.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10)),
-      ));
+      colors = [Colors.grey.shade500, Colors.grey.shade700];
+      onTap =
+          () => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('You have already attempted this test'),
+              backgroundColor: Colors.grey.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
     } else if (!_hasFullAccess) {
       final error = quiz.accessError ?? '';
       if (error == 'plan_expired') {
         label = 'Renew Plan Now';
         icon = Icons.refresh_rounded;
-        colors = [
-          Colors.orange.shade700,
-          Colors.orange.shade900
-        ];
+        colors = [Colors.orange.shade700, Colors.orange.shade900];
       } else if (error == 'upgrade_required') {
         label = 'Activate Now';
         icon = Icons.workspace_premium_rounded;
@@ -1943,12 +1547,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-              color: _primary.withOpacity(0.1),
-              blurRadius: 18,
-              offset: const Offset(0, -4))
-        ],
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.1), blurRadius: 18, offset: const Offset(0, -4))],
       ),
       child: SafeArea(
         top: false,
@@ -1959,19 +1558,13 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.info_outline_rounded,
-                        size: 12,
-                        color: _primary.withOpacity(0.5)),
+                    Icon(Icons.info_outline_rounded, size: 12, color: _primary.withOpacity(0.5)),
                     const SizedBox(width: 5),
                     Text(
                       'Timer starts as soon as the test begins',
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: _primary.withOpacity(0.6),
-                          fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 10, color: _primary.withOpacity(0.6), fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -1981,11 +1574,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                 gradient: LinearGradient(colors: colors),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
-                  BoxShadow(
-                      color:
-                          colors.first.withOpacity(0.35),
-                      blurRadius: 14,
-                      offset: const Offset(0, 5))
+                  BoxShadow(color: colors.first.withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 5)),
                 ],
               ),
               child: Material(
@@ -1994,14 +1583,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage>
                   borderRadius: BorderRadius.circular(14),
                   onTap: onTap,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(icon,
-                            color: Colors.white, size: 21),
+                        Icon(icon, color: Colors.white, size: 21),
                         const SizedBox(width: 9),
                         AppRichText.setTextPoppinsStyle(
                           context,
