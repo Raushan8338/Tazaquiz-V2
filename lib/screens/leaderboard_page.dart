@@ -88,6 +88,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
       print('Leaderboard fetch: $data');
 
       final res = await auth.fetchLeaderboard(data);
+      print('Leaderboard fetch: ${res.data}');
       if (res.statusCode == 200) {
         setState(() {
           _data = LeaderboardResponse.fromJson(res.data);
@@ -379,7 +380,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                   item.profileImage.isNotEmpty
                       ? ClipOval(
                         child: Image.network(
-                          item.profileImage,
+                          'https://tazaquiz.com/uploads/profile/${item.profileImage}',
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => _avatar(item.username, pc, av),
                         ),
@@ -490,7 +491,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                 item.profileImage.isNotEmpty
                     ? ClipOval(
                       child: Image.network(
-                        item.profileImage,
+                        'https://tazaquiz.com/uploads/profile/${item.profileImage}',
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => _avatar(item.username, AppColors.tealGreen, 40),
                       ),
@@ -621,7 +622,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                     item.profileImage.isNotEmpty
                         ? ClipOval(
                           child: Image.network(
-                            item.profileImage,
+                            'https://tazaquiz.com/uploads/profile/${item.profileImage}',
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => _avatar(item.username, AppColors.darkNavy, 40),
                           ),

@@ -165,9 +165,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => MockTestDetailPage(quizId: quiz.quizId),
-                    ),
+                    MaterialPageRoute(builder: (context) => MockTestDetailPage(quizId: quiz.quizId)),
                   );
                 },
                 child: Container(
@@ -342,9 +340,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder:
-                                                (context) =>
-                                                    MockTestDetailPage(quizId: quiz.quizId),
+                                            builder: (context) => MockTestDetailPage(quizId: quiz.quizId),
                                           ),
                                         );
                                       },

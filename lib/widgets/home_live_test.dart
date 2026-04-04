@@ -226,7 +226,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: isLive ? Colors.red : Colors.orange.shade600,
+                                      color: isLive ? Colors.red : Color(0xFF00695C),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Row(
@@ -248,7 +248,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                           const SizedBox(width: 4),
                                         ],
                                         Text(
-                                          isLive ? 'LIVE' : 'UPCOMING',
+                                          isLive ? 'LIVE' : 'Unlock Now',
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 9,
@@ -321,7 +321,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                         elevation: 0,
                                       ),
                                       child: Text(
-                                        isLive ? '⚡ Join Now' : '🔔 Remind Me',
+                                        isLive ? '⚡ Join Now' : '⚡ View Details',
                                         style: TextStyle(
                                           color: gradientColors[0],
                                           fontSize: 11,

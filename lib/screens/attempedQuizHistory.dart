@@ -11,7 +11,9 @@ import 'package:tazaquiznew/utils/session_manager.dart';
 
 class QuizHistoryPage extends StatefulWidget {
   final int pageType; // 0 for history, 1 for leaderboard
-  const QuizHistoryPage({Key? key, required this.pageType}) : super(key: key);
+  final String Pagetitle;
+
+  const QuizHistoryPage({Key? key, required this.pageType, required this.Pagetitle}) : super(key: key);
   @override
   _QuizHistoryPageState createState() => _QuizHistoryPageState();
 }
@@ -39,13 +41,12 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     setState(() => _isLoading = true);
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
-     
+
       final response = await auth.fetch_Quiz_performanceApi({
         'user_id': _user!.id.toString(),
         'pageType': widget.pageType.toString(),
       });
-     
-     
+
       if (response.statusCode == 200) {
         final parsed = QuizHistoryResponse.fromJson(response.data);
         setState(() {
@@ -81,7 +82,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F8),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(widget.Pagetitle),
       body:
           _isLoading
               ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)))
@@ -113,7 +114,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
 
   // ─── APP BAR ─────────────────────────────────────────────────────────────
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(String pagetitle) {
     return AppBar(
       elevation: 0,
       backgroundColor: AppColors.darkNavy,
@@ -125,8 +126,8 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
         ),
         onPressed: () => Navigator.pop(context),
       ),
-      title: const Text(
-        'My Performance',
+      title: Text(
+        pagetitle,
         style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Poppins'),
       ),
       flexibleSpace: Container(

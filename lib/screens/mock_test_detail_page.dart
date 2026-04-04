@@ -395,13 +395,14 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     const SizedBox(height: 14),
                     _buildAccessBanner(),
                     const SizedBox(height: 10),
-                    _buildCombinedHeader(),
+                    if (!_hasFullAccess) _buildSubscriptionSection() else _buildCombinedHeader(),
                     const SizedBox(height: 10),
+
                     _buildStatsRow(),
                     const SizedBox(height: 10),
                     _buildExpectSection(),
                     const SizedBox(height: 10),
-                    if (!_hasFullAccess) _buildSubscriptionSection() else _buildTestInfoSection(),
+                    if (!_hasFullAccess) _buildCombinedHeader() else _buildTestInfoSection(),
                     const SizedBox(height: 10),
                     if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 10)],
                     if (_currentQuiz!.instruction.isNotEmpty) ...[_buildInstructionsCard(), const SizedBox(height: 10)],
@@ -752,8 +753,9 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     letterSpacing: -0.1,
                   ),
                 ),
-                if (_currentQuiz!.subscription_description.isNotEmpty) ...[
+                if (_currentQuiz!.instruction.isNotEmpty) ...[
                   const SizedBox(height: 10),
+
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
@@ -762,14 +764,50 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: _DS.border),
                     ),
-                    child: Text(
-                      _currentQuiz!.subscription_description,
-                      style: const TextStyle(
-                        fontSize: _DS.fsSm,
-                        fontWeight: FontWeight.w400,
-                        color: _DS.textSec,
-                        height: 1.6,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        /// 🔥 NOTICE TITLE
+                        Row(
+                          children: const [
+                            Icon(Icons.info_outline, size: 16, color: Color(0xFF00695C)),
+                            SizedBox(width: 6),
+                            Text(
+                              "Notice",
+                              style: TextStyle(
+                                fontSize: _DS.fsSm,
+                                fontWeight: FontWeight.w700, // bold
+                                color: Color(0xFF00695C),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+
+                        /// 📄 INSTRUCTION TEXT
+                        Text(
+                          'Test Name : ${_currentQuiz!.title}',
+                          style: const TextStyle(
+                            fontSize: _DS.fsSm,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF00695C),
+                            height: 1.6,
+                          ),
+                        ),
+
+                        const SizedBox(height: 3),
+
+                        /// 📄 INSTRUCTION TEXT
+                        Text(
+                          _currentQuiz!.instruction,
+                          style: const TextStyle(
+                            fontSize: _DS.fsSm,
+                            fontWeight: FontWeight.w400,
+                            color: Color.fromARGB(255, 87, 104, 137),
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1058,6 +1096,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   Widget _buildSubscriptionSection() {
     final error = _currentQuiz?.accessError ?? '';
+    final courseName = (_currentQuiz?.Material_name ?? '').isNotEmpty ? _currentQuiz!.Material_name : 'this course';
 
     String headline;
     String subtitle;
@@ -1068,29 +1107,29 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
     if (error == 'plan_expired') {
       headline = 'Your Plan Has Expired';
-      subtitle = 'Renew now and get instant access to everything you had before';
+      subtitle = 'Renew now and get instant access to "$courseName" and everything you had before';
       headerGradient = [Colors.orange.shade800, Colors.deepOrange.shade900];
       badgeColor = Colors.orange.shade300;
       badgeLabel = 'Plan Expired';
       badgeIcon = Icons.warning_amber_rounded;
     } else if (error == 'upgrade_required') {
       headline = 'Free Attempt Used\nUpgrade to Continue';
-      subtitle = "You've used your monthly free attempt — subscribe for unlimited access";
-      headerGradient = [_primary, const Color(0xFF1a3a5c)];
-      badgeColor = _gold;
-      badgeLabel = 'Activate Required';
-      badgeIcon = Icons.workspace_premium_rounded;
-    } else {
-      headline = 'Unlock This Mock Test';
-      subtitle = 'This test is not in your current plan — upgrade for full access';
+      subtitle = "You've used your monthly free attempt for \"$courseName\" — subscribe for unlimited access";
       headerGradient = [_primary, const Color(0xFF1a3a5c)];
       badgeColor = _gold;
       badgeLabel = 'Upgrade Required';
       badgeIcon = Icons.workspace_premium_rounded;
+    } else {
+      headline = 'Unlock "$courseName"';
+      subtitle = 'This mock test is part of "$courseName" — subscribe to get full access';
+      headerGradient = [_primary, const Color(0xFF1a3a5c)];
+      badgeColor = _gold;
+      badgeLabel = 'Purchase Required';
+      badgeIcon = Icons.workspace_premium_rounded;
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: _primary.withOpacity(0.22), blurRadius: 24, offset: const Offset(0, 8))],
@@ -1099,9 +1138,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         borderRadius: BorderRadius.circular(20),
         child: Column(
           children: [
+            // ── Header ──────────────────────────────────────────────────
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
                 gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: headerGradient),
               ),
@@ -1119,6 +1159,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Badge
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                         decoration: BoxDecoration(
@@ -1139,10 +1180,36 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         ),
                       ),
                       const SizedBox(height: 12),
+
+                      // Course name pill
+                      // if ((_currentQuiz?.Material_name ?? '').isNotEmpty) ...[
+                      //   Container(
+                      //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.white.withOpacity(0.12),
+                      //       borderRadius: BorderRadius.circular(8),
+                      //       border: Border.all(color: Colors.white.withOpacity(0.2)),
+                      //     ),
+                      //     child: Row(
+                      //       mainAxisSize: MainAxisSize.min,
+                      //       children: [
+                      //         const Icon(Icons.library_books_rounded, size: 11, color: Colors.white),
+                      //         const SizedBox(width: 6),
+                      //         Text(
+                      //           _currentQuiz!.Material_name,
+                      //           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                      //         ),
+                      //       ],
+                      //     ),
+                      //   ),
+                      //   const SizedBox(height: 10),
+                      // ],
+
+                      // Headline
                       Text(
                         headline,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                           height: 1.3,
@@ -1163,12 +1230,15 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                 ],
               ),
             ),
+
+            // ── Body ────────────────────────────────────────────────────
             Container(
               color: AppColors.white,
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Section label
                   Row(
                     children: [
                       Container(
@@ -1178,46 +1248,48 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'What you get after subscribing',
+                        'What you get with this subscription',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                       ),
                     ],
                   ),
                   const SizedBox(height: 14),
+
+                  // Benefits grid
                   _buildBenefitGrid([
                     _BenefitItem(
                       emoji: '📝',
-                      icon: Icons.quiz_outlined,
-                      title: 'Unlimited Mock Tests',
-                      desc: 'Practice with full-length exam-pattern tests every day',
+                      icon: Icons.assignment_rounded,
+                      title: 'Mock Tests',
+                      desc: 'Attempt all mock tests in "$courseName" — unlimited practice',
                       color: _primary,
+                    ),
+                    _BenefitItem(
+                      emoji: '🎯',
+                      icon: Icons.quiz_rounded,
+                      title: 'Full Mock Tests',
+                      desc: 'Full-length real exam simulation papers for "$courseName"',
+                      color: const Color(0xFFE65100),
+                    ),
+                    _BenefitItem(
+                      emoji: '📜',
+                      icon: Icons.history_edu_rounded,
+                      title: 'Previous Year Papers',
+                      desc: 'Solve actual past exam questions (PYPs) for "$courseName"',
+                      color: const Color(0xFF00897B),
                     ),
                     _BenefitItem(
                       emoji: '📰',
                       icon: Icons.newspaper_rounded,
                       title: 'Daily Current Affairs',
-                      desc: 'Fresh news & GK updates delivered daily',
+                      desc: 'Fresh GK & news updates every day',
                       color: const Color(0xFF1565C0),
-                    ),
-                    _BenefitItem(
-                      emoji: '🧩',
-                      icon: Icons.psychology_outlined,
-                      title: 'Daily Practice Quizzes',
-                      desc: 'Topic-wise quizzes to sharpen your concepts',
-                      color: _accent,
                     ),
                     _BenefitItem(
                       emoji: '📚',
                       icon: Icons.menu_book_rounded,
                       title: 'Study Material',
                       desc: 'PDFs, notes & video lessons for complete prep',
-                      color: const Color(0xFFE65100),
-                    ),
-                    _BenefitItem(
-                      emoji: '📊',
-                      icon: Icons.analytics_outlined,
-                      title: 'Performance Analytics',
-                      desc: 'Detailed reports to track your weak areas',
                       color: const Color(0xFF6A1B9A),
                     ),
                     _BenefitItem(
@@ -1228,11 +1300,14 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       color: _gold,
                     ),
                   ]),
+
                   const SizedBox(height: 16),
+
+                  // Bottom highlight box
                   Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [_accent.withOpacity(0.1), _primary.withOpacity(0.05)]),
+                      gradient: LinearGradient(colors: [_accent.withOpacity(0.08), _primary.withOpacity(0.04)]),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: _accent.withOpacity(0.3), width: 1.2),
                     ),
@@ -1252,12 +1327,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'One plan. Everything included.',
+                                'One subscription. Everything included.',
                                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Subscribe once and unlock your full exam preparation toolkit.',
+                                'Mock Tests + Full Mock Tests + PYPs + Study Material + Live Tests — all in one plan.',
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: AppColors.greyS600,

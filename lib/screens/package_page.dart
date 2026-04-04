@@ -274,7 +274,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF0C3756), AppColors.darkNavy],
+            colors: [const Color(0xFF0C3756), AppColors.darkNavy],
           ),
         ),
         child: SafeArea(
@@ -310,7 +310,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                     ],
                   ),
                 ),
-                _statChip('4.8 ★', 'Rating'),
+                // _statChip('4.8 ★', 'Rating'),
               ],
             ),
           ),
@@ -408,7 +408,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                             Row(
                               children: [
                                 Icon(Icons.check_circle_rounded, color: AppColors.tealGreen, size: 16),
-                                SizedBox(width: 6),
+                                const SizedBox(width: 6),
                                 Text(
                                   '✓ Current Plan',
                                   style: TextStyle(
@@ -540,8 +540,6 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // Price with shimmer
                 AnimatedBuilder(
                   animation: _shimmerAnim,
                   builder: (context, child) {
@@ -568,15 +566,11 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
                 Divider(color: AppColors.white.withOpacity(0.15)),
                 const SizedBox(height: 12),
-
                 ...pkg.features.map((f) => _featureRowDark(f.text, included: f.isIncluded)),
-
                 const SizedBox(height: 18),
-
                 if (isActive && _activatedCourse != null) ...[
                   _buildActivatedCourseBadge(),
                 ] else if (isActive) ...[
@@ -701,7 +695,6 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                   ],
                 ),
                 const SizedBox(height: 14),
-
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -727,19 +720,15 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
                 Divider(color: AppColors.white.withOpacity(0.1)),
                 const SizedBox(height: 12),
-
                 ...pkg.features
                     .where(
                       (f) => !f.text.toLowerCase().contains('offline') && !f.text.toLowerCase().contains('certificate'),
                     )
                     .map((f) => _featureRowDark(f.text, included: f.isIncluded, accent: AppColors.lightGold)),
-
                 const SizedBox(height: 18),
-
                 if (isActive) ...[
                   Container(
                     width: double.infinity,
@@ -753,7 +742,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 16),
-                        SizedBox(width: 6),
+                        const SizedBox(width: 6),
                         Text(
                           '✓ Current Plan — Active',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.lightGold),
@@ -862,7 +851,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
           Row(
             children: [
               Icon(Icons.check_circle_rounded, color: AppColors.lightGold, size: 16),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Text(
                 '✓ Current Plan',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.white),
@@ -909,7 +898,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
           Row(
             children: [
               Icon(Icons.check_circle_rounded, color: AppColors.lightGold, size: 16),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Text(
                 course != null ? '✓ ${course.categoryName}' : '✓ Current Plan',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.white),
@@ -995,7 +984,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(icon, style: TextStyle(fontSize: 20)),
+        Text(icon, style: const TextStyle(fontSize: 20)),
         const SizedBox(height: 4),
         Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.darkNavy)),
         Text(sub, style: TextStyle(fontSize: 10, color: AppColors.greyS500)),
@@ -1157,7 +1146,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
   }
 }
 
-// ─── COURSE SELECTION BOTTOM SHEET (shared for Basic & Premium) ──────────────
+// ─── COURSE SELECTION BOTTOM SHEET ───────────────────────────────────────────
 
 class _CourseSelectionSheet extends StatefulWidget {
   final _Package pkg;
@@ -1178,295 +1167,377 @@ class _CourseSelectionSheet extends StatefulWidget {
 
 class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
   SelectedCourseItem? _selected;
+  final TextEditingController _searchCtrl = TextEditingController();
+  List<SelectedCourseItem> _filtered = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.userCourses;
+    _searchCtrl.addListener(_onSearch);
+  }
+
+  void _onSearch() {
+    final q = _searchCtrl.text.toLowerCase().trim();
+    setState(() {
+      _filtered =
+          q.isEmpty
+              ? widget.userCourses
+              : widget.userCourses.where((c) => c.categoryName.toLowerCase().contains(q)).toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final courses = widget.userCourses;
+    final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+    final screenH = MediaQuery.of(context).size.height;
 
     return Container(
-      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(color: AppColors.greyS300, borderRadius: BorderRadius.circular(2)),
-            ),
+      constraints: BoxConstraints(maxHeight: screenH * 0.88),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(bottom: bottomPad),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(color: AppColors.greyS300, borderRadius: BorderRadius.circular(2)),
+          ),
 
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.isPremium ? 'Select Your Course 👑' : 'Select Your Course 📋',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
-                        ),
-                        Text(
-                          widget.isPremium
-                              ? 'All courses unlock · ${widget.pkg.validityDays} days validity'
-                              : '1 course · ${widget.pkg.validityDays} days validity',
-                          style: TextStyle(fontSize: 11, color: AppColors.greyS500),
-                        ),
-                      ],
-                    ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.isPremium ? 'Select Your Course 👑' : 'Select Your Course 📋',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.isPremium
+                            ? 'All courses unlock · ${widget.pkg.validityDays} days validity'
+                            : '1 course · ${widget.pkg.validityDays} days validity',
+                        style: TextStyle(fontSize: 11, color: AppColors.greyS500),
+                      ),
+                    ],
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(20)),
-                      child: Icon(Icons.close, size: 18, color: AppColors.greyS600),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(20)),
+                    child: Icon(Icons.close, size: 18, color: AppColors.greyS600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Premium banner
+          if (widget.isPremium) ...[
+            const SizedBox(height: 10),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: AppColors.lightGold.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.lightGold.withOpacity(0.35)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('👑', style: TextStyle(fontSize: 15)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(fontSize: 11, color: AppColors.greyS700, height: 1.4),
+                        children: [
+                          TextSpan(
+                            text: 'More than Basic! ',
+                            style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                          ),
+                          const TextSpan(text: 'Get '),
+                          TextSpan(
+                            text: 'Selected Courses + Leaderboard + Study Material',
+                            style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.tealGreen),
+                          ),
+                          const TextSpan(
+                            text: '. Basic only gives Mock Test and Quizzes with no Leaderboard or Study Material.',
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+          ],
 
-            // Premium info banner
-            if (widget.isPremium) ...[
-              const SizedBox(height: 10),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(11),
-                decoration: BoxDecoration(
-                  color: AppColors.lightGold.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.lightGold.withOpacity(0.35)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('👑', style: TextStyle(fontSize: 15)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: TextStyle(fontSize: 11, color: AppColors.greyS700, height: 1.4),
-                          children: [
-                            TextSpan(
-                              text: 'More than Basic! ',
-                              style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.darkNavy),
-                            ),
-                            const TextSpan(text: 'Get '),
-                            TextSpan(
-                              text: 'Selected Courses + Leaderboard + Study Material',
-                              style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.tealGreen),
-                            ),
-                            const TextSpan(
-                              text: '. Basic only gives Mock Test and Quizzes with no Leaderboard or Study Material.',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.greyS1,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.greyS200),
+              ),
+              child: TextField(
+                controller: _searchCtrl,
+                style: const TextStyle(fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Search course...',
+                  hintStyle: TextStyle(fontSize: 13, color: AppColors.greyS400),
+                  prefixIcon: Icon(Icons.search_rounded, size: 20, color: AppColors.greyS400),
+                  suffixIcon:
+                      _searchCtrl.text.isNotEmpty
+                          ? GestureDetector(
+                            onTap: () {
+                              _searchCtrl.clear();
+                              FocusScope.of(context).unfocus();
+                            },
+                            child: Icon(Icons.close_rounded, size: 18, color: AppColors.greyS400),
+                          )
+                          : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 11, horizontal: 4),
+                  isDense: true,
                 ),
               ),
-            ],
+            ),
+          ),
 
-            const SizedBox(height: 6),
-            Divider(color: AppColors.greyS200),
+          Divider(color: AppColors.greyS200, height: 20),
 
-            // Empty state
-            if (courses.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-                child: Column(
-                  children: [
-                    const Text('😕', style: TextStyle(fontSize: 40)),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'No courses selected',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Please go to "My Courses" first and select your courses, then come back to activate.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: AppColors.greyS500, height: 1.5),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Go to My Courses CTA (empty state)
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0)));
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
-                        decoration: BoxDecoration(color: AppColors.darkNavy, borderRadius: BorderRadius.circular(10)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add_circle_outline_rounded, size: 16, color: AppColors.white),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Go to My Courses',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.white),
-                            ),
-                          ],
+          // Course grid / empty states
+          Flexible(
+            child:
+                widget.userCourses.isEmpty
+                    ? _buildEmptyState()
+                    : _filtered.isEmpty
+                    ? _buildNoResultsState()
+                    : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 1.7,
                         ),
+                        itemCount: _filtered.length,
+                        itemBuilder: (context, index) {
+                          final course = _filtered[index];
+                          final isSelected = _selected?.categoryId == course.categoryId;
+                          return _SelectedCourseCard(
+                            course: course,
+                            isSelected: isSelected,
+                            onTap: () => setState(() => _selected = course),
+                          );
+                        },
                       ),
                     ),
-                  ],
-                ),
-              )
-            else ...[
-              // Course Grid
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.7,
+          ),
+
+          // Swap banner
+          if (widget.userCourses.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.tealGreen.withOpacity(0.07),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
                   ),
-                  itemCount: courses.length,
-                  itemBuilder: (context, index) {
-                    final course = courses[index];
-                    final isSelected = _selected?.categoryId == course.categoryId;
-                    return _SelectedCourseCard(
-                      course: course,
-                      isSelected: isSelected,
-                      onTap: () => setState(() => _selected = course),
-                    );
-                  },
-                ),
-              ),
-
-              // "Want to purchase a different course?" banner
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0)));
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.tealGreen.withOpacity(0.07),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.tealGreen.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.swap_horiz_rounded, size: 18, color: AppColors.tealGreen),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: RichText(
-                            text: TextSpan(
-                              style: TextStyle(fontSize: 12, color: AppColors.greyS600, height: 1.4),
-                              children: [
-                                TextSpan(
-                                  text: 'Want to purchase a different course? ',
-                                  style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.darkNavy),
-                                ),
-                                const TextSpan(text: 'Go to "Selected Courses" and select it first.'),
-                              ],
-                            ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_horiz_rounded, size: 18, color: AppColors.tealGreen),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            style: TextStyle(fontSize: 12, color: AppColors.greyS600, height: 1.4),
+                            children: [
+                              TextSpan(
+                                text: 'Want a different course? ',
+                                style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                              ),
+                              const TextSpan(text: 'Go to "Selected Courses" and select it first.'),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppColors.tealGreen),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppColors.tealGreen),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+
+          // CTA area
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 14, 16, MediaQuery.of(context).padding.bottom + 20),
+            child: Column(
+              children: [
+                GestureDetector(
+                  onTap:
+                      _selected != null
+                          ? () => widget.onActivate(_selected!.categoryId.toString(), _selected!.categoryName)
+                          : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient:
+                          _selected != null
+                              ? LinearGradient(
+                                colors:
+                                    widget.isPremium
+                                        ? [AppColors.lightGold, AppColors.lightGoldS2]
+                                        : [AppColors.darkNavy, AppColors.tealGreen],
+                              )
+                              : null,
+                      color: _selected != null ? null : AppColors.greyS200,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow:
+                          _selected != null
+                              ? [
+                                BoxShadow(
+                                  color: (widget.isPremium ? AppColors.lightGold : AppColors.tealGreen).withOpacity(
+                                    0.3,
+                                  ),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ]
+                              : [],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(widget.isPremium ? '👑' : '✅', style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Text(
+                          _selected != null
+                              ? '${_selected!.categoryName} · Pay ${widget.pkg.priceDisplay}'
+                              : 'Select a Course First',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color:
+                                _selected != null
+                                    ? (widget.isPremium ? AppColors.darkNavy : AppColors.white)
+                                    : AppColors.greyS500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
-              ),
-
-              // Activate button
-              Padding(
-                padding: EdgeInsets.fromLTRB(16, 18, 16, MediaQuery.of(context).padding.bottom + 24),
-                child: Column(
-                  children: [
-                    GestureDetector(
-                      onTap:
-                          _selected != null
-                              ? () => widget.onActivate(_selected!.categoryId.toString(), _selected!.categoryName)
-                              : null,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient:
-                              _selected != null
-                                  ? LinearGradient(
-                                    colors:
-                                        widget.isPremium
-                                            ? [AppColors.lightGold, AppColors.lightGoldS2]
-                                            : [AppColors.darkNavy, AppColors.tealGreen],
-                                  )
-                                  : null,
-                          color: _selected != null ? null : AppColors.greyS200,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow:
-                              _selected != null
-                                  ? [
-                                    BoxShadow(
-                                      color: (widget.isPremium ? AppColors.lightGold : AppColors.tealGreen).withOpacity(
-                                        0.3,
-                                      ),
-                                      blurRadius: 14,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
-                                  : [],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(widget.isPremium ? '👑' : '✅', style: const TextStyle(fontSize: 16)),
-                            const SizedBox(width: 8),
-                            Text(
-                              _selected != null
-                                  ? '${_selected!.categoryName} · Pay ${widget.pkg.priceDisplay}'
-                                  : 'Select a Course First',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color:
-                                    _selected != null
-                                        ? (widget.isPremium ? AppColors.darkNavy : AppColors.white)
-                                        : AppColors.greyS500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.isPremium
-                          ? '⚠️  All courses will unlock · Select your primary course'
-                          : '⚠️  Cannot be changed once selected',
-                      style: TextStyle(fontSize: 11, color: AppColors.greyS400),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Maybe Later', style: TextStyle(fontSize: 13, color: AppColors.greyS500)),
-                    ),
-                  ],
+                const SizedBox(height: 8),
+                Text(
+                  widget.isPremium
+                      ? '⚠️  All courses will unlock · Select your primary course'
+                      : '⚠️  Cannot be changed once selected',
+                  style: TextStyle(fontSize: 11, color: AppColors.greyS400),
+                  textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: 4),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Maybe Later', style: TextStyle(fontSize: 13, color: AppColors.greyS500)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      child: Column(
+        children: [
+          const Text('😕', style: TextStyle(fontSize: 40)),
+          const SizedBox(height: 12),
+          const Text(
+            'No courses selected',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Please go to "My Courses" first and select your courses, then come back to activate.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: AppColors.greyS500, height: 1.5),
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+              decoration: BoxDecoration(color: AppColors.darkNavy, borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_circle_outline_rounded, size: 16, color: AppColors.white),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Go to My Courses',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.white),
+                  ),
+                ],
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoResultsState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 28),
+      child: Column(
+        children: [
+          const Text('🔍', style: TextStyle(fontSize: 32)),
+          const SizedBox(height: 10),
+          Text(
+            'No course found for "${_searchCtrl.text}"',
+            style: TextStyle(fontSize: 13, color: AppColors.greyS500),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

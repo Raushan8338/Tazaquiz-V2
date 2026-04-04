@@ -19,7 +19,6 @@ class QuizReviewQuestion {
   final String questionText;
   final String explanation;
   final double marks;
-  final double negativeMarks;
   final int? userAnswerId;
   final int? correctAnswerId;
   final bool isCorrect;
@@ -32,7 +31,6 @@ class QuizReviewQuestion {
     required this.questionText,
     required this.explanation,
     required this.marks,
-    required this.negativeMarks,
     required this.userAnswerId,
     required this.correctAnswerId,
     required this.isCorrect,
@@ -47,7 +45,6 @@ class QuizReviewQuestion {
       questionText: j['question_text'] ?? '',
       explanation: j['explanation'] ?? '',
       marks: (j['marks'] ?? 1).toDouble(),
-      negativeMarks: (j['negative_marks'] ?? 0).toDouble(),
       userAnswerId: j['user_answer_id'] != null ? (j['user_answer_id']).toInt() : null,
       correctAnswerId: j['correct_answer_id'] != null ? (j['correct_answer_id']).toInt() : null,
       isCorrect: j['is_correct'] == true || j['is_correct'] == 1,
@@ -81,11 +78,30 @@ class QuizReviewAttempt {
   final int quizId;
   final String quizTitle;
   final String categoryName;
+
+  // ✅ Raw score (marks mein) — e.g. 7.0
   final double score;
+
+  // ✅ Score % — e.g. 14.0
+  final double scorePercent;
+
+  // ✅ Total marks — e.g. 50.0
   final double totalScore;
+
+  // ✅ Passing marks — e.g. 30.0
   final double passingScore;
+
+  // ✅ Passing % — e.g. 60.0
+  final double passingPercent;
+
+  // ✅ Negative marking info
+  final double negativeMarkRate; // per wrong question — e.g. 0.5
+  final double negativeDeducted; // total kata — e.g. 2.5
+
   final bool passed;
   final String status;
+  final String startTime;
+  final String endTime;
 
   QuizReviewAttempt({
     required this.attemptId,
@@ -93,10 +109,16 @@ class QuizReviewAttempt {
     required this.quizTitle,
     required this.categoryName,
     required this.score,
+    required this.scorePercent,
     required this.totalScore,
     required this.passingScore,
+    required this.passingPercent,
+    required this.negativeMarkRate,
+    required this.negativeDeducted,
     required this.passed,
     required this.status,
+    required this.startTime,
+    required this.endTime,
   });
 
   factory QuizReviewAttempt.fromJson(Map<String, dynamic> j) {
@@ -106,10 +128,16 @@ class QuizReviewAttempt {
       quizTitle: j['quiz_title'] ?? '',
       categoryName: j['category_name'] ?? '',
       score: (j['score'] ?? 0).toDouble(),
+      scorePercent: (j['score_percent'] ?? 0).toDouble(),
       totalScore: (j['total_score'] ?? 0).toDouble(),
       passingScore: (j['passing_score'] ?? 0).toDouble(),
+      passingPercent: (j['passing_percent'] ?? 0).toDouble(),
+      negativeMarkRate: (j['negative_mark_rate'] ?? 0).toDouble(),
+      negativeDeducted: (j['negative_deducted'] ?? 0).toDouble(),
       passed: j['passed'] == true || j['passed'] == 1,
       status: j['status'] ?? '',
+      startTime: j['start_time'] ?? '',
+      endTime: j['end_time'] ?? '',
     );
   }
 }

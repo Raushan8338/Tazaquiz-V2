@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tazaquiznew/API/Language_converter/language_selectionPage.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
@@ -15,6 +17,7 @@ import 'package:tazaquiznew/screens/splash.dart';
 import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 import 'package:tazaquiznew/testpage.dart' hide ContactUsPage;
 import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 class StudentProfilePage extends StatefulWidget {
@@ -84,38 +87,54 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   Future<void> _uploadProfileImage(File imageFile) async {
     try {
       // ── APNI API CALL YAHAN LAGAO ──────────────────────────
-      // Example (multipart):
-      //
-      // final request = http.MultipartRequest(
-      //   'POST',
-      //   Uri.parse('https://api.yourbackend.com/user/profile-image'),
-      // );
-      // request.headers['Authorization'] = 'Bearer ${await SessionManager.getToken()}';
-      // request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
-      // final response = await request.send();
-      //
-      // if (response.statusCode == 200) {
-      //   final body = await response.stream.bytesToString();
-      //   final json = jsonDecode(body);
-      //   await SessionManager.saveProfileImageUrl(json['imageUrl']);
-      //   if (mounted) {
-      //     ScaffoldMessenger.of(context).showSnackBar(
-      //       const SnackBar(content: Text('Profile photo updated!'), backgroundColor: Color(0xFF00695C)),
-      //     );
-      //   }
-      // }
+      String user_ids = _user?.id.toString() ?? '';
+
+      final request = http.MultipartRequest('POST', Uri.parse('https://tazaquiz.com/profile_pic_update.php'));
+      request.fields['user_id'] = user_ids;
+      request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+      final response = await request.send();
+      print('Sending file path: ${imageFile.path}');
+      print('User ID: $user_ids');
+      print('Upload response status: ${response.statusCode}');
+      print('Upload response headers: ${response.headers}');
+
+      if (response.statusCode == 200) {
+        final body = await response.stream.bytesToString();
+        final json = jsonDecode(body);
+
+        // existing user lo
+        final user = await SessionManager.getUser();
+
+        if (user != null) {
+          final Map<String, dynamic> userData = user.toJson();
+
+          // update image
+          userData['profile_image'] = json['imageUrl'];
+
+          // dobara save karo
+          await SessionManager.saveUser(UserModel.fromJson(userData));
+        }
+
+        if (mounted) {
+          setState(() {});
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Profile photo updated!'), backgroundColor: Color(0xFF00695C)));
+        }
+      }
       // ────────────────────────────────────────────────────────
 
       // Simulate kiya hai — API lagane ke baad ye line hata do:
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile photo updated! (API yahan connect karo)'),
-            backgroundColor: Color(0xFF00695C),
-          ),
-        );
-      }
+      // await Future.delayed(const Duration(seconds: 1));
+      // if (mounted) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(
+      //       content: Text('Profile photo updated! (API yahan connect karo)'),
+      //       backgroundColor: Color(0xFF00695C),
+      //     ),
+      //   );
+      // }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -274,6 +293,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             _buildProfileHeader(),
             _buildContactCard(),
             _buildQuickActions(),
+            _buildQuickperformance(),
             _buildSettings(),
             const SizedBox(height: 24),
           ],
@@ -299,8 +319,13 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient:
-                  _profileImage == null ? const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)]) : null,
-              color: _profileImage != null ? Colors.grey.shade200 : null,
+                  (_profileImage == null && (_user?.profileImage == null || _user!.profileImage!.isEmpty))
+                      ? const LinearGradient(colors: [Color(0xFFFFB347), Color(0xFFFF6B35)])
+                      : null,
+              color:
+                  (_profileImage != null || (_user?.profileImage != null && _user!.profileImage!.isNotEmpty))
+                      ? Colors.grey.shade200
+                      : null,
               border: Border.all(color: Colors.white, width: borderWidth),
               boxShadow:
                   showEditOverlay
@@ -310,6 +335,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             child: ClipOval(
               child:
                   _isUploadingImage
+                      /// 🔄 LOADING
                       ? Center(
                         child: SizedBox(
                           width: size * 0.4,
@@ -317,8 +343,28 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                           child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         ),
                       )
+                      /// 📷 LOCAL IMAGE (just picked)
                       : _profileImage != null
                       ? Image.file(_profileImage!, fit: BoxFit.cover, width: size, height: size)
+                      /// 🌐 NETWORK IMAGE (session / DB)
+                      : (_user?.profileImage != null && _user!.profileImage!.isNotEmpty)
+                      ? Image.network(
+                        "https://tazaquiz.com/uploads/profile/${_user!.profileImage}?t=${DateTime.now().millisecondsSinceEpoch}",
+                        fit: BoxFit.cover,
+                        width: size,
+                        height: size,
+
+                        /// ❌ ERROR fallback
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Text(
+                              _getInitials(_user?.username),
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: fontSize),
+                            ),
+                          );
+                        },
+                      )
+                      /// 👤 DEFAULT INITIALS
                       : Center(
                         child: Text(
                           _getInitials(_user?.username),
@@ -327,7 +373,8 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       ),
             ),
           ),
-          // Camera edit badge — sirf header avatar par
+
+          /// 📸 CAMERA ICON
           if (showEditOverlay && !_isUploadingImage)
             Positioned(
               right: 0,
@@ -528,21 +575,21 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             onTap:
                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen())),
           ),
-          _buildActionListItem(
-            icon: Icons.history_rounded,
-            title: 'Test Results',
-            subtitle: 'Attempts & leaderboard',
-            color: const Color(0xFF00695C),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 0))),
-            isFirst: true,
-          ),
 
           _buildActionListItem(
-            icon: Icons.quiz_rounded,
-            title: 'Mock Test Results',
-            subtitle: 'Attempts & leaderboard',
-            color: const Color(0xFF7B1FA2),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 4))),
+            icon: Icons.workspace_premium_rounded,
+            title: 'Buy Courses / Upgrade Plan',
+            subtitle: 'View & upgrade your plan',
+            color: const Color(0xFFFF9800),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage())),
+            isFirst: true,
+          ),
+          _buildActionListItem(
+            icon: Icons.school_rounded,
+            title: 'Selected Courses',
+            subtitle: 'Manage your enrolled courses',
+            color: const Color(0xFF00695C),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
           ),
           _buildActionListItem(
             icon: Icons.receipt_long_rounded,
@@ -552,18 +599,73 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentHistoryPage())),
           ),
           _buildActionListItem(
-            icon: Icons.library_books_rounded,
-            title: 'PYPs History Results',
-            subtitle: 'Previous year questions',
-            color: const Color(0xFFC2185B),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 1))),
+            icon: Icons.translate_rounded,
+            title: 'Select Language',
+            subtitle: 'Change the app language',
+            color: const Color(0xFF00695C),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
+                  ),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickperformance() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+            child: _buildSectionTitle('My Results / Performance'),
+          ),
+
+          _buildActionListItem(
+            icon: Icons.history_rounded,
+            title: 'Test Performance',
+            subtitle: 'Attempts & leaderboard',
+            color: const Color(0xFF00695C),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 0, Pagetitle: 'Test Performance')),
+                ),
+            isFirst: true,
+          ),
+
+          _buildActionListItem(
+            icon: Icons.quiz_rounded,
+            title: 'Mock Test Performance',
+            subtitle: 'Attempts & leaderboard',
+            color: const Color(0xFF7B1FA2),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 4, Pagetitle: 'Mock Test Performance')),
+                ),
           ),
           _buildActionListItem(
             icon: Icons.assignment_turned_in_rounded,
-            title: 'Full Mock Test',
-            subtitle: 'Full-length history',
+            title: 'PYPs Performance',
+            subtitle: 'Previous Year Papers attempts',
             color: const Color(0xFF00838F),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 2))),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 6, Pagetitle: 'PYPs Performance')),
+                ),
             isLast: true,
           ),
         ],
@@ -681,35 +783,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         children: [
           _buildSectionTitle('Settings'),
           const SizedBox(height: 12),
-          _buildSettingItem(
-            Icons.school_rounded,
-            'Selected Courses',
-            'Manage your enrolled courses',
-            const Color(0xFF00695C),
-            () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
-          ),
-          _buildDivider(),
-          _buildSettingItem(
-            Icons.workspace_premium_rounded,
-            'Plan',
-            'View & upgrade your plan',
-            const Color(0xFFFF9800),
-            () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage())),
-          ),
-          _buildDivider(),
-          _buildSettingItem(
-            Icons.translate_rounded,
-            'Select Language',
-            'Change the app language',
-            const Color(0xFF00695C),
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
-              ),
-            ),
-          ),
-          _buildDivider(),
+
           _buildSettingItem(
             Icons.support_agent_rounded,
             'Need Help',

@@ -906,8 +906,8 @@ class _QuizListScreenState extends State<QuizListScreen> {
       label = 'LIVE';
       icon = null;
     } else if (isUpcoming) {
-      color = const Color(0xFFF59E0B);
-      label = 'UPCOMING';
+      color = const Color(0xFF00695C);
+      label = 'Unlock Now';
       icon = null;
     } else if (isMissed) {
       color = const Color(0xFF1ABC9C);

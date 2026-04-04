@@ -621,13 +621,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     // ✅ Assessment banner for missed status
                     if (_isMissed && _hasFullAccess) ...[_buildAssessmentBanner(), const SizedBox(height: 12)],
 
-                    _buildCombinedHeader(),
+                    if (!_hasFullAccess) _buildSubscriptionSection() else _buildCombinedHeader(),
                     const SizedBox(height: 12),
 
                     _buildStatsRow(),
                     const SizedBox(height: 12),
 
-                    if (!canStartQuiz) _buildSubscriptionSection() else _buildScheduleSection(),
+                    if (!canStartQuiz) _buildCombinedHeader() else _buildScheduleSection(),
                     const SizedBox(height: 12),
 
                     if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 12)],
@@ -1240,8 +1240,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   ),
                 ),
 
-                if (_currentQuiz!.subscription_description.isNotEmpty) ...[
+                if (_currentQuiz!.instruction.isNotEmpty) ...[
                   const SizedBox(height: 10),
+
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
@@ -1250,14 +1251,50 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: _DS.border),
                     ),
-                    child: Text(
-                      _currentQuiz!.subscription_description,
-                      style: const TextStyle(
-                        fontSize: _DS.fsSm,
-                        fontWeight: FontWeight.w400,
-                        color: _DS.textSec,
-                        height: 1.6,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        /// 🔥 NOTICE TITLE
+                        Row(
+                          children: const [
+                            Icon(Icons.info_outline, size: 16, color: Color(0xFF00695C)),
+                            SizedBox(width: 6),
+                            Text(
+                              "Notice",
+                              style: TextStyle(
+                                fontSize: _DS.fsSm,
+                                fontWeight: FontWeight.w700, // bold
+                                color: Color(0xFF00695C),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+
+                        /// 📄 INSTRUCTION TEXT
+                        Text(
+                          'Test Name : ${_currentQuiz!.title}',
+                          style: const TextStyle(
+                            fontSize: _DS.fsSm,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF00695C),
+                            height: 1.6,
+                          ),
+                        ),
+
+                        const SizedBox(height: 3),
+
+                        /// 📄 INSTRUCTION TEXT
+                        Text(
+                          _currentQuiz!.instruction,
+                          style: const TextStyle(
+                            fontSize: _DS.fsSm,
+                            fontWeight: FontWeight.w400,
+                            color: Color.fromARGB(255, 87, 104, 137),
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1441,213 +1478,251 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
   Widget _buildSubscriptionSection() {
     final error = _currentQuiz?.accessError ?? '';
-    return error == 'upgrade_required' ? _buildFreeUserSection() : _buildPremiumSection();
-  }
+    final courseName = (_currentQuiz?.Material_name ?? '').isNotEmpty ? _currentQuiz!.Material_name : 'this course';
 
-  Widget _buildFreeUserSection() {
+    String headline;
+    String subtitle;
+    List<Color> headerGradient;
+    Color badgeColor;
+    String badgeLabel;
+    IconData badgeIcon;
+
+    if (error == 'plan_expired') {
+      headline = 'Your Plan Has Expired';
+      subtitle = 'Renew now and get instant access to "$courseName" and everything you had before';
+      headerGradient = [Colors.orange.shade800, Colors.deepOrange.shade900];
+      badgeColor = Colors.orange.shade300;
+      badgeLabel = 'Plan Expired';
+      badgeIcon = Icons.warning_amber_rounded;
+    } else if (error == 'upgrade_required') {
+      headline = 'Free Attempt Used\nUpgrade to Continue';
+      subtitle = "You've used your monthly free attempt for \"$courseName\" — subscribe for unlimited access";
+      headerGradient = [_primary, const Color(0xFF1a3a5c)];
+      badgeColor = _gold;
+      badgeLabel = 'Upgrade Required';
+      badgeIcon = Icons.workspace_premium_rounded;
+    } else {
+      headline = 'Unlock "$courseName"';
+      subtitle = 'This mock test is part of "$courseName" — subscribe to get full access';
+      headerGradient = [_primary, const Color(0xFF1a3a5c)];
+      badgeColor = _gold;
+      badgeLabel = 'Purchase Required';
+      badgeIcon = Icons.workspace_premium_rounded;
+    }
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(_DS.r20),
-        boxShadow: [BoxShadow(color: _DS.navy.withOpacity(0.14), blurRadius: 20, offset: const Offset(0, 6))],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.22), blurRadius: 24, offset: const Offset(0, 8))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(_DS.r20),
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           children: [
+            // ── Header ──────────────────────────────────────────────────
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [_DS.navy, Color(0xFF1A3A5C)],
-                ),
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: headerGradient),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Stack(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: _DS.teal.withOpacity(0.18), shape: BoxShape.circle),
-                    child: const Icon(Icons.lock_clock_rounded, color: _DS.teal, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Free Attempt Used — Upgrade to Continue',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            height: 1.35,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Subscribe for unlimited monthly attempts.',
-                          style: TextStyle(
-                            fontSize: _DS.fsXs,
-                            color: Colors.white.withOpacity(0.68),
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.06)),
                     ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: badgeColor.withOpacity(0.4)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(badgeIcon, color: badgeColor, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              badgeLabel,
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: badgeColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Course name pill
+                      // if ((_currentQuiz?.Material_name ?? '').isNotEmpty) ...[
+                      //   Container(
+                      //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.white.withOpacity(0.12),
+                      //       borderRadius: BorderRadius.circular(8),
+                      //       border: Border.all(color: Colors.white.withOpacity(0.2)),
+                      //     ),
+                      //     child: Row(
+                      //       mainAxisSize: MainAxisSize.min,
+                      //       children: [
+                      //         const Icon(Icons.library_books_rounded, size: 11, color: Colors.white),
+                      //         const SizedBox(width: 6),
+                      //         Text(
+                      //           _currentQuiz!.Material_name,
+                      //           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                      //         ),
+                      //       ],
+                      //     ),
+                      //   ),
+                      //   const SizedBox(height: 10),
+                      // ],
+
+                      // Headline
+                      Text(
+                        headline,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.78),
+                          fontWeight: FontWeight.w400,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
 
+            // ── Body ────────────────────────────────────────────────────
             Container(
-              color: _DS.card,
+              color: AppColors.white,
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionLabel('WHAT YOU GET AFTER SUBSCRIBING'),
+                  // Section label
+                  Row(
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 18,
+                        decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'What you get with this subscription',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 14),
+
+                  // Benefits grid
                   _buildBenefitGrid([
-                    _BenefitEntry(
+                    _BenefitItem(
                       emoji: '📝',
-                      icon: Icons.quiz_outlined,
-                      title: 'Unlimited Mock Tests',
-                      desc: 'Full-length exam-pattern tests every day',
-                      color: _DS.navy,
+                      icon: Icons.assignment_rounded,
+                      title: 'Mock Tests',
+                      desc: 'Attempt all mock tests in "$courseName" — unlimited practice',
+                      color: _primary,
                     ),
-                    _BenefitEntry(
+                    _BenefitItem(
+                      emoji: '🎯',
+                      icon: Icons.quiz_rounded,
+                      title: 'Full Mock Tests',
+                      desc: 'Full-length real exam simulation papers for "$courseName"',
+                      color: const Color(0xFFE65100),
+                    ),
+                    _BenefitItem(
+                      emoji: '📜',
+                      icon: Icons.history_edu_rounded,
+                      title: 'Previous Year Papers',
+                      desc: 'Solve actual past exam questions (PYPs) for "$courseName"',
+                      color: const Color(0xFF00897B),
+                    ),
+                    _BenefitItem(
                       emoji: '📰',
                       icon: Icons.newspaper_rounded,
                       title: 'Daily Current Affairs',
-                      desc: 'Fresh GK & news updates daily',
+                      desc: 'Fresh GK & news updates every day',
                       color: const Color(0xFF1565C0),
                     ),
-                    _BenefitEntry(
-                      emoji: '🧩',
-                      icon: Icons.psychology_outlined,
-                      title: 'Practice Quizzes',
-                      desc: 'Topic-wise quizzes for concept clarity',
-                      color: _DS.teal,
-                    ),
-                    _BenefitEntry(
+                    _BenefitItem(
                       emoji: '📚',
                       icon: Icons.menu_book_rounded,
                       title: 'Study Material',
-                      desc: 'PDFs, notes & video lessons',
-                      color: const Color(0xFFE65100),
-                    ),
-                    _BenefitEntry(
-                      emoji: '📊',
-                      icon: Icons.analytics_outlined,
-                      title: 'Analytics',
-                      desc: 'Track weak areas & progress',
+                      desc: 'PDFs, notes & video lessons for complete prep',
                       color: const Color(0xFF6A1B9A),
                     ),
-                    _BenefitEntry(
+                    _BenefitItem(
                       emoji: '🏆',
                       icon: Icons.leaderboard_rounded,
-                      title: 'All India Rank',
-                      desc: 'Compare score nationwide',
-                      color: _DS.gold,
+                      title: 'All India Ranking',
+                      desc: 'Compare your score with students nationwide',
+                      color: _gold,
                     ),
                   ]),
+
                   const SizedBox(height: 16),
+
+                  // Bottom highlight box
                   Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [_DS.teal.withOpacity(0.09), _DS.navy.withOpacity(0.04)]),
+                      gradient: LinearGradient(colors: [_accent.withOpacity(0.08), _primary.withOpacity(0.04)]),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _DS.teal.withOpacity(0.28), width: 1.2),
+                      border: Border.all(color: _accent.withOpacity(0.3), width: 1.2),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: _DS.teal.withOpacity(0.15),
+                            color: _accent.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.bolt_rounded, color: _DS.teal, size: 18),
+                          child: Icon(Icons.bolt_rounded, color: _accent, size: 18),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'One plan. Everything included.',
-                                style: TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w800, color: _DS.textPri),
+                              Text(
+                                'One subscription. Everything included.',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Subscribe once and unlock your full exam preparation toolkit.',
+                                'Mock Tests + Full Mock Tests + PYPs + Study Material + Live Tests — all in one plan.',
                                 style: TextStyle(
-                                  fontSize: _DS.fsXs,
-                                  color: _DS.textSec,
+                                  fontSize: 10,
+                                  color: AppColors.greyS600,
                                   fontWeight: FontWeight.w400,
                                   height: 1.4,
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Container(
-              color: _DS.card,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Divider(color: _DS.border),
-                  const SizedBox(height: 8),
-                  _buildSectionLabel("THIS MONTH'S USAGE"),
-                  const SizedBox(height: 12),
-                  _buildUsageRow(
-                    icon: Icons.assignment_outlined,
-                    label: 'Mock Test',
-                    used: 1,
-                    total: 1,
-                    color: _DS.red,
-                  ),
-                  const SizedBox(height: 10),
-                  _buildUsageRow(
-                    icon: Icons.quiz_outlined,
-                    label: 'Live / Upcoming Test',
-                    used: 1,
-                    total: 1,
-                    color: _DS.red,
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _DS.teal.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _DS.teal.withOpacity(0.25)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.workspace_premium_rounded, color: _DS.teal, size: 16),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Text(
-                            'Upgrade to Basic — get unlimited attempts for your course!',
-                            style: TextStyle(
-                              fontSize: _DS.fsSm,
-                              color: _DS.textPri,
-                              fontWeight: FontWeight.w500,
-                              height: 1.4,
-                            ),
                           ),
                         ),
                       ],
@@ -1662,15 +1737,15 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  Widget _buildBenefitGrid(List<_BenefitEntry> items) {
+  Widget _buildBenefitGrid(List<_BenefitItem> items) {
     final rows = <Widget>[];
     for (int i = 0; i < items.length; i += 2) {
       rows.add(
         Row(
           children: [
-            Expanded(child: _buildBenefitEntryCard(items[i])),
+            Expanded(child: _buildBenefitCard(items[i])),
             const SizedBox(width: 10),
-            Expanded(child: i + 1 < items.length ? _buildBenefitEntryCard(items[i + 1]) : const SizedBox()),
+            Expanded(child: i + 1 < items.length ? _buildBenefitCard(items[i + 1]) : const SizedBox()),
           ],
         ),
       );
@@ -1679,12 +1754,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     return Column(children: rows);
   }
 
-  Widget _buildBenefitEntryCard(_BenefitEntry item) {
+  Widget _buildBenefitCard(_BenefitItem item) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: item.color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: item.color.withOpacity(0.15)),
       ),
       child: Column(
@@ -1693,27 +1768,20 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: item.color.withOpacity(0.13), borderRadius: BorderRadius.circular(8)),
-                child: Icon(item.icon, color: item.color, size: 15),
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(color: item.color.withOpacity(0.14), borderRadius: BorderRadius.circular(9)),
+                child: Icon(item.icon, color: item.color, size: 16),
               ),
               const SizedBox(width: 6),
               Text(item.emoji, style: const TextStyle(fontSize: 16)),
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            item.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _DS.textPri, height: 1.2),
-          ),
+          Text(item.title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _primary, height: 1.2)),
           const SizedBox(height: 4),
           Text(
             item.desc,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 9.5, color: _DS.textSec, fontWeight: FontWeight.w400, height: 1.4),
+            style: TextStyle(fontSize: 9.5, color: AppColors.greyS600, fontWeight: FontWeight.w400, height: 1.4),
           ),
         ],
       ),
@@ -2459,6 +2527,22 @@ class _BenefitEntry {
   final Color color;
 
   const _BenefitEntry({
+    required this.emoji,
+    required this.icon,
+    required this.title,
+    required this.desc,
+    required this.color,
+  });
+}
+
+class _BenefitItem {
+  final String emoji;
+  final IconData icon;
+  final String title;
+  final String desc;
+  final Color color;
+
+  const _BenefitItem({
     required this.emoji,
     required this.icon,
     required this.title,

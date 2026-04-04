@@ -156,7 +156,10 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
     final s = _data!.summary;
     final attempt = _data!.attempt;
     final passed = attempt.passed;
-    final score = attempt.score;
+
+    // ✅ Score % use karo — 14.0% (not raw 7)
+    final scorePercent = attempt.scorePercent;
+    final passingPercent = attempt.passingPercent;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -172,12 +175,11 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
       ),
       child: Column(
         children: [
-          // Top — score + status
           Padding(
             padding: const EdgeInsets.all(18),
             child: Row(
               children: [
-                // Score circle
+                // ✅ Score circle — % dikhao
                 Container(
                   width: 80,
                   height: 80,
@@ -190,7 +192,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '${score.toStringAsFixed(0)}%',
+                        '${scorePercent.toStringAsFixed(0)}%', // ✅ 14% dikhega
                         style: const TextStyle(
                           fontSize: 20,
                           color: Colors.white,
@@ -203,15 +205,14 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   ),
                 ),
                 const SizedBox(width: 16),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         passed
-                            ? '✅ ${widget.pageType == 0 ? 'Test Passed' : 'Mock Test Passed'} '
-                            : '❌ ${widget.pageType == 0 ? 'Test Failed' : 'Mock Test Failed'},',
+                            ? '✅ ${widget.pageType == 0 ? 'Test Passed' : 'Mock Test Passed'}'
+                            : '❌ ${widget.pageType == 0 ? 'Test Failed' : 'Mock Test Failed'}',
                         style: const TextStyle(
                           fontSize: 18,
                           color: Colors.white,
@@ -226,7 +227,8 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
+                      // ✅ Passing % vs Your %
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
@@ -234,7 +236,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'Passing: ${attempt.passingScore.toStringAsFixed(0)}%  •  Yours: ${score.toStringAsFixed(0)}%',
+                          'Passing: ${passingPercent.toStringAsFixed(0)}%  •  Yours: ${scorePercent.toStringAsFixed(0)}%',
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.white.withOpacity(0.85),
@@ -242,6 +244,21 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                           ),
                         ),
                       ),
+                      // ✅ Negative marking info — sirf tab dikhao jab ho
+                      if (attempt.negativeMarkRate > 0) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '−${attempt.negativeDeducted.toStringAsFixed(1)} marks deducted  •  ${attempt.negativeMarkRate.toStringAsFixed(2)}/wrong',
+                            style: const TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -249,7 +266,6 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
             ),
           ),
 
-          // Divider
           Divider(color: Colors.white.withOpacity(0.1), height: 1),
 
           // Bottom stats
@@ -590,10 +606,11 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   'Marks: +${q.marks.toStringAsFixed(0)}',
                   style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
                 ),
-                if (q.negativeMarks > 0) ...[
+                // ✅ attempt level se negative rate lo
+                if (_data!.attempt.negativeMarkRate > 0) ...[
                   const SizedBox(width: 10),
                   Text(
-                    '-${q.negativeMarks.toStringAsFixed(0)} negative',
+                    '-${_data!.attempt.negativeMarkRate.toStringAsFixed(2)} negative',
                     style: const TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.w500),
                   ),
                 ],
