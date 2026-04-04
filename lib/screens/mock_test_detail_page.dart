@@ -10,6 +10,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/mockTestScreen.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
+import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
@@ -190,6 +191,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
               testTitle: _currentQuiz!.title.toString(),
               subject: _currentQuiz!.difficultyLevel.toString(),
               Quiz_id: widget.quizId.toString(),
+              timeLimit: int.parse(_currentQuiz!.timeLimit.toString()),
             ),
       ),
     );
@@ -332,7 +334,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   void _handleSubscribe() {
     if (_currentQuiz == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PricingPage(CourseIds: _currentQuiz!.subscription_id.toString())),
+    ).then((value) {
       if (value == true) _getUserData();
     });
   }
@@ -1583,16 +1588,21 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       colors = [_accent, _primary];
       onTap = _navigateToMockTest;
     } else if (_attempted) {
-      label = 'Already Attempted';
-      icon = Icons.check_circle_outline;
-      colors = [Colors.grey.shade500, Colors.grey.shade700];
+      label = 'View Result';
+      icon = Icons.bar_chart_rounded;
+      colors = [_DS.teal, _DS.tealDark];
+
       onTap =
-          () => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('You have already attempted this test'),
-              backgroundColor: Colors.grey.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => QuizReviewPage(
+                    attemptId: quiz.completedAttemptId ?? 0, // ✅ attempt_id
+                    userId: int.tryParse(_user!.id.toString()) ?? 0,
+                    quizTitle: quiz.title,
+                    pageType: 4,
+                  ),
             ),
           );
     } else if (!_hasFullAccess) {
@@ -1604,11 +1614,17 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       } else if (error == 'upgrade_required') {
         label = 'Activate Now';
         icon = Icons.workspace_premium_rounded;
-        colors = [_primary, const Color(0xFF1a3a5c)];
+        colors = [
+          Color(0xFF00C9A7), // Green
+          Color(0xFF0D3B66), // Blue
+        ];
       } else {
         label = 'Activate Now';
         icon = Icons.workspace_premium_rounded;
-        colors = [_gold, _primary];
+        colors = [
+          Color(0xFF00C9A7), // Green
+          Color(0xFF0D3B66), // Blue
+        ];
       }
       onTap = _handleSubscribe;
     } else {

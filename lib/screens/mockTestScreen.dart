@@ -15,8 +15,9 @@ class MockTestScreen extends StatefulWidget {
   final String testTitle;
   final String subject;
   final String Quiz_id;
+  final int timeLimit;
 
-  MockTestScreen({required this.testTitle, required this.subject, required this.Quiz_id});
+  MockTestScreen({required this.testTitle, required this.subject, required this.Quiz_id, required this.timeLimit});
 
   @override
   _MockTestScreenState createState() => _MockTestScreenState();
@@ -67,6 +68,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     _user = await SessionManager.getUser();
     setState(() {});
     loadQuizData();
+    _totalSeconds = widget.timeLimit * 60;
   }
 
   void loadQuizData() async {
@@ -83,18 +85,8 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     _questions = apiResponse['questions'] ?? [];
     totalQuestions = _questions.length;
 
-    if (_questions.isNotEmpty) {
-      print('=== FULL QUESTION[0] STRUCTURE ===');
-      print(jsonEncode(_questions[0]));
-      final List firstAnswers = _questions[0]['answers'] ?? [];
-      if (firstAnswers.isNotEmpty) {
-        print('=== ANSWER[0] KEYS: ${(firstAnswers[0] as Map).keys.toList()}');
-        print('=== ANSWER[0] DATA: ${jsonEncode(firstAnswers[0])}');
-      }
-    }
-
-    int timeLimitMinutes = int.tryParse(apiResponse['time_limit']?.toString() ?? '30') ?? 30;
-    _totalSeconds = timeLimitMinutes * 60;
+    // int timeLimitMinutes = int.tryParse(apiResponse['time_limit']?.toString() ?? '30') ?? 30;
+    // _totalSeconds = timeLimitMinutes * 60;
 
     if (_questions.isNotEmpty) {
       setQuestionFromApi(0);
@@ -331,7 +323,8 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
       if (mounted) {
         setState(() => _isSubmitting = false);
-        Navigator.push(
+
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder:
@@ -342,6 +335,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   pageType: 4,
                 ),
           ),
+          (route) => route.isFirst, // 🔥 IMPORTANT (sab clear karega)
         );
       }
     } catch (e) {

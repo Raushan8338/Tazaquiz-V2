@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/screens/buyQuizes.dart';
+import 'package:tazaquiznew/screens/buyStudyM.dart';
+import 'package:tazaquiznew/screens/course_search_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeBanner extends StatefulWidget {
   const HomeBanner({super.key, required this.imgLists});
@@ -71,31 +75,60 @@ class _HomeBannerState extends State<HomeBanner> {
             },
             itemBuilder: (context, index) {
               print('Banner Images: ${Api_Client.baseUrl + widget.imgLists[index]['banner']}');
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 3)),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: CachedNetworkImage(
-                    imageUrl: Api_Client.baseUrl + widget.imgLists[index]['banner'] ?? '',
-                    fit: BoxFit.cover,
-                    placeholder:
-                        (context, url) => Container(
-                          color: Colors.grey[300],
-                          child: const Center(child: CircularProgressIndicator(color: Color(0xFF00BFB3))),
-                        ),
-                    errorWidget:
-                        (context, url, error) => Container(
-                          color: const Color(0xFF00BFB3).withOpacity(0.2),
-                          child: Center(
-                            child: Icon(Icons.quiz, size: 50, color: const Color(0xFF00BFB3).withOpacity(0.7)),
+              return GestureDetector(
+                onTap: () {
+                  if (widget.imgLists[index]['banner_type'] == 'quiz') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => QuizDetailPage(quizId: widget.imgLists[index]['url'], is_subscribed: false),
+                      ),
+                    );
+                    // Handle URL tap, e.g., open in browser
+                  } else if (widget.imgLists[index]['banner_type'] == 'course') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) =>
+                                BuyCoursePage(contentId: widget.imgLists[index]['url'], page_API_call: 'SUBSCRIPTION'),
+                      ),
+                    );
+                    // Handle banner type tap, e.g., navigate to specific screen
+                  } else if (widget.imgLists[index]['banner_type'] == 'all_course') {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => StudyMaterialSearchScreen()));
+                    // Handle banner type tap, e.g., navigate to specific screen
+                  } else if (widget.imgLists[index]['banner_type'] == 'url') {
+                    launchUrl(widget.imgLists[index]['url']);
+                  } else {}
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 3)),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: CachedNetworkImage(
+                      imageUrl: Api_Client.baseUrl + widget.imgLists[index]['banner'] ?? '',
+                      fit: BoxFit.cover,
+                      placeholder:
+                          (context, url) => Container(
+                            color: Colors.grey[300],
+                            child: const Center(child: CircularProgressIndicator(color: Color(0xFF00BFB3))),
                           ),
-                        ),
+                      errorWidget:
+                          (context, url, error) => Container(
+                            color: const Color(0xFF00BFB3).withOpacity(0.2),
+                            child: Center(
+                              child: Icon(Icons.quiz, size: 50, color: const Color(0xFF00BFB3).withOpacity(0.7)),
+                            ),
+                          ),
+                    ),
                   ),
                 ),
               );

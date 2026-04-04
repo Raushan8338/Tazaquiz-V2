@@ -3,7 +3,25 @@ import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'fonts.dart';
 
 class AppRichText {
-  /// ❓ Quiz Question (Responsive & Small Screen Safe)
+  /// 🔥 App Header / AppBar Title / Page Title
+  static Widget appHeader(String text, {Color? color, TextAlign align = TextAlign.start}) {
+    return TranslatedRichText(
+      textAlign: align,
+      softWrap: true,
+      spans: [TranslatedSpan(text: text, style: AppFonts.appHeader.copyWith(color: color))],
+    );
+  }
+
+  /// 🧩 Section Title (Score Distribution, Top Categories, Answer Breakdown)
+  static Widget sectionTitle(String text, {Color? color, TextAlign align = TextAlign.start}) {
+    return TranslatedRichText(
+      textAlign: align,
+      softWrap: true,
+      spans: [TranslatedSpan(text: text, style: AppFonts.sectionTitle.copyWith(color: color))],
+    );
+  }
+
+  /// ❓ Quiz Question
   static Widget question(String text, {TextAlign align = TextAlign.start, int? maxLines}) {
     return TranslatedRichText(
       textAlign: align,
@@ -24,19 +42,50 @@ class AppRichText {
   }
 
   /// 📝 Normal Body Text
-  static Widget body(String text, {TextAlign align = TextAlign.start}) {
+  static Widget body(String text, {TextAlign align = TextAlign.start, Color? color}) {
     return TranslatedRichText(
       textAlign: align,
       softWrap: true,
-      spans: [TranslatedSpan(text: text, style: AppFonts.bodyText)],
+      spans: [TranslatedSpan(text: text, style: AppFonts.bodyText.copyWith(color: color))],
     );
   }
 
-  /// ⭐ Highlight / Eye Catch
+  /// ⭐ Highlight / Score / Rank / Timer
   static Widget highlight(String text, {Color? color}) {
     return TranslatedRichText(
       softWrap: true,
       spans: [TranslatedSpan(text: text, style: AppFonts.highlight.copyWith(color: color))],
+    );
+  }
+
+  /// 🔢 Stat Value (Large bold numbers — Score%, Correct, Wrong, Rank in cards)
+  static Widget statValue(String text, {Color? color, double? fontSize}) {
+    return TranslatedRichText(
+      softWrap: true,
+      spans: [
+        TranslatedSpan(
+          text: text,
+          style: AppFonts.highlight.copyWith(color: color, fontSize: fontSize ?? 18, fontWeight: FontWeight.w900),
+        ),
+      ],
+    );
+  }
+
+  /// ⏱️ Caption / Small Label (date, time, chip label, footer text)
+  static Widget caption(String text, {Color? color, TextAlign align = TextAlign.start}) {
+    return TranslatedRichText(
+      textAlign: align,
+      softWrap: true,
+      overflow: TextOverflow.ellipsis,
+      spans: [TranslatedSpan(text: text, style: AppFonts.caption.copyWith(color: color))],
+    );
+  }
+
+  /// 🔘 Button Text
+  static Widget button(String text, {Color? color}) {
+    return TranslatedRichText(
+      softWrap: true,
+      spans: [TranslatedSpan(text: text, style: AppFonts.button.copyWith(color: color))],
     );
   }
 
@@ -47,12 +96,12 @@ class AppRichText {
       softWrap: true,
       spans: [
         TranslatedSpan(text: boldText, style: AppFonts.bodyText.copyWith(fontWeight: FontWeight.w600)),
-
         TranslatedSpan(text: normalText, style: AppFonts.bodyText),
       ],
     );
   }
 
+  /// 🎨 Custom Poppins Style (Legacy support)
   static Widget setTextPoppinsStyle(
     context,
     String text,
@@ -63,7 +112,6 @@ class AppRichText {
     TextAlign textAlign,
     double letterSpacing,
   ) {
-    // ✅ RichText → TranslatedRichText
     return TranslatedRichText(
       overflow: TextOverflow.ellipsis,
       maxLines: lines,
@@ -84,6 +132,7 @@ class AppRichText {
     );
   }
 
+  /// ~~Strikethrough~~ Style (Legacy support)
   static Widget setTextLineThroughStyle(
     context,
     String text,

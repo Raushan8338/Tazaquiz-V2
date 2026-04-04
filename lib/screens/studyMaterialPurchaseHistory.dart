@@ -352,17 +352,38 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
         },
       },
       {
-        'icon': Icons.history_edu_rounded,
-        'label': 'PYP',
-        'subtitle': 'Previous year questions',
-        'color': const Color(0xFF00897B),
+        'icon': Icons.leaderboard_rounded,
+        'label': 'Leaderboard',
+        'subtitle': isPremium ? 'Upgrade to access' : 'See your ranking',
+        'color': const Color(0xFF6B4EFF),
         'locked': false,
         'onTap': () {
           Navigator.pop(context);
+
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => Paid_QuizListScreen(material.materialId.toString(), '6')),
+            MaterialPageRoute(
+              builder: (_) => LeaderboardPage(courseId: material.materialId, courseName: material.title),
+            ),
           );
+        },
+      },
+      {
+        'icon': Icons.history_edu_rounded,
+        'label': 'PYP',
+        'subtitle': 'Previous year questions',
+        'color': isPremium ? const Color(0xFF9E9E9E) : const Color(0xFF00897B),
+        'locked': isPremium,
+        'onTap': () {
+          Navigator.pop(context);
+          if (isPremium) {
+            _showPremiumPopup(context, material.subscription_id.toString());
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => Paid_QuizListScreen(material.materialId.toString(), '6')),
+            );
+          }
         },
       },
       {
@@ -374,31 +395,11 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
         'onTap': () {
           Navigator.pop(context);
           if (isPremium) {
-            _showPremiumPopup(context);
+            _showPremiumPopup(context, material.subscription_id.toString());
           } else {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => SubjectContentPage(material.materialId.toString())),
-            );
-          }
-        },
-      },
-      {
-        'icon': Icons.leaderboard_rounded,
-        'label': 'Leaderboard',
-        'subtitle': isPremium ? 'Upgrade to access' : 'See your ranking',
-        'color': isPremium ? const Color(0xFF9E9E9E) : const Color(0xFF6B4EFF),
-        'locked': isPremium,
-        'onTap': () {
-          Navigator.pop(context);
-          if (isPremium) {
-            _showPremiumPopup(context);
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => LeaderboardPage(courseId: material.materialId, courseName: material.title),
-              ),
             );
           }
         },
@@ -562,7 +563,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
 
   // ─── PREMIUM POPUP ────────────────────────────────────────────────────────
 
-  void _showPremiumPopup(BuildContext context) {
+  void _showPremiumPopup(BuildContext context, String SubscriptionId) {
     showDialog(
       context: context,
       builder:
@@ -608,8 +609,8 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                           alignment: WrapAlignment.center,
                           children: [
                             _featureChip(Icons.menu_book_rounded, 'Study Material'),
-                            _featureChip(Icons.leaderboard_rounded, 'Leaderboard'),
-                            _featureChip(Icons.lock_open_rounded, 'Exclusive Content'),
+                            _featureChip(Icons.leaderboard_rounded, 'PYPs'),
+                            _featureChip(Icons.lock_open_rounded, 'Previous Year Papers'),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -630,7 +631,10 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                               elevation: 0,
                             ),
                             onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage()));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => PricingPage(CourseIds: SubscriptionId)),
+                              );
                             },
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,

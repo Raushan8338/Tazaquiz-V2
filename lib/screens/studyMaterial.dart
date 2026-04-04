@@ -8,6 +8,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/models/study_category_item.dart';
 import 'package:tazaquiznew/screens/buyStudyM.dart';
+import 'package:tazaquiznew/screens/course_search_page.dart';
 import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 
 class StudyMaterialScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class StudyMaterialScreen extends StatefulWidget {
   _StudyMaterialScreenState createState() => _StudyMaterialScreenState();
 }
 
-class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
+class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTickerProviderStateMixin {
   List<CategoryItem> _categoryItems = [];
   List<StudyMaterialItem> _studyMaterials = [];
   int _selectedCategoryId = 0;
@@ -29,12 +30,25 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
   bool _hasMore = true;
   bool _isLoadingMore = false;
 
+  // ── Search ─────────────────────────────────────────────────────────
+  bool _isSearchActive = false;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  String _searchQuery = '';
+  late AnimationController _searchAnimController;
+  late Animation<double> _searchWidthAnim;
+
   final BannerAdService bannerService = BannerAdService();
   bool isBannerLoaded = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Search animation setup
+    _searchAnimController = AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
+    _searchWidthAnim = CurvedAnimation(parent: _searchAnimController, curve: Curves.easeInOut);
+
     bannerService.loadAd(() {
       if (mounted) setState(() => isBannerLoaded = true);
     });
@@ -44,7 +58,21 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
   @override
   void dispose() {
     bannerService.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _searchAnimController.dispose();
     super.dispose();
+  }
+
+  // ── Toggle Search Bar ──────────────────────────────────────────────
+
+  // ── Filtered list based on search ─────────────────────────────────
+  List<StudyMaterialItem> get _filteredMaterials {
+    if (_searchQuery.trim().isEmpty) return _studyMaterials;
+    final query = _searchQuery.toLowerCase();
+    return _studyMaterials.where((item) {
+      return item.title.toLowerCase().contains(query) || item.description.toLowerCase().contains(query);
+    }).toList();
   }
 
   // ── Initial load ───────────────────────────────────────────────────
@@ -56,6 +84,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
   // ── Load more ──────────────────────────────────────────────────────
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore) return;
+    if (_searchQuery.trim().isNotEmpty) return; // search mode mein paginate mat karo
     debugPrint("🔄 Loading more... page ${_currentPage + 1}");
     setState(() => _isLoadingMore = true);
     await fetchStudyCategory(_selectedCategoryId, page: _currentPage + 1);
@@ -147,54 +176,106 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                     child: const Icon(Icons.library_books, color: Colors.white, size: 18),
                   ),
                 ),
-        title: const Text(
-          'Exam Courses',
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
-        ),
-        actions: [
-          GestureDetector(
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()),
-                ),
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF0D6E6E).withOpacity(0.45),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text('📝', style: TextStyle(fontSize: 13)),
-                  SizedBox(width: 5),
-                  Text(
-                    'My Courses',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Poppins',
-                      letterSpacing: 0.2,
+
+        // ── Title OR Search bar ────────────────────────────────
+        title:
+            _isSearchActive
+                ? SizeTransition(
+                  sizeFactor: _searchWidthAnim,
+                  axis: Axis.horizontal,
+                  axisAlignment: -1,
+                  child: Container(
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Poppins'),
+                      cursorColor: Colors.white,
+                      decoration: InputDecoration(
+                        hintText: 'Search courses...',
+                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13, fontFamily: 'Poppins'),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.7), size: 18),
+                      ),
+                      onTap: () {
+                        // Apne StudyMaterialScreen ke search icon ke onTap mein:
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const StudyMaterialSearchScreen()));
+                      },
                     ),
                   ),
-                ],
-              ),
+                )
+                : const Text(
+                  'Exam Courses',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+
+        actions: [
+          // ── Search Icon ──────────────────────────────────────
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const StudyMaterialSearchScreen()));
+            },
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: const Icon(Icons.search, key: ValueKey('search'), color: Colors.white, size: 22),
             ),
           ),
+
+          // ── My Courses Button ────────────────────────────────
+          if (!_isSearchActive)
+            GestureDetector(
+              onTap:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => StudyMaterialPurchaseHistoryScreen()),
+                  ),
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0D6E6E), Color(0xFF0D6E6E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0D6E6E).withOpacity(0.45),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Text('📝', style: TextStyle(fontSize: 13)),
+                    SizedBox(width: 5),
+                    Text(
+                      'My Courses',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Poppins',
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -232,6 +313,11 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
           return GestureDetector(
             onTap: () async {
               if (_selectedCategoryId == cat.category_id) return;
+              // Clear search on category switch
+              if (_isSearchActive) {
+                _searchController.clear();
+                setState(() => _searchQuery = '');
+              }
               setState(() {
                 _selectedCategoryId = cat.category_id;
                 _isLoading = true;
@@ -270,9 +356,35 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
 
   // ── Body ───────────────────────────────────────────────────────────
   Widget _buildBody() {
+    final items = _filteredMaterials;
+
+    // Search active but no results
+    if (_searchQuery.trim().isNotEmpty && items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded, size: 64, color: AppColors.greyS600.withOpacity(0.4)),
+            const SizedBox(height: 16),
+            Text(
+              'No results for "$_searchQuery"',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.greyS600),
+            ),
+            const SizedBox(height: 6),
+            Text('Try a different keyword', style: TextStyle(fontSize: 12, color: AppColors.greyS600.withOpacity(0.6))),
+          ],
+        ),
+      );
+    }
+
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification scrollInfo) {
-        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 300 && !_isLoadingMore && _hasMore) {
+        final max = scrollInfo.metrics.maxScrollExtent;
+        if (max > 0 &&
+            scrollInfo.metrics.pixels >= max - 300 &&
+            !_isLoadingMore &&
+            _hasMore &&
+            _searchQuery.trim().isEmpty) {
           _loadMore();
         }
         return false;
@@ -280,7 +392,19 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // ── All items in single grid ──────────────────────────
+          // ── Search result hint ────────────────────────────────
+          if (_searchQuery.trim().isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Text(
+                  '${items.length} result${items.length == 1 ? '' : 's'} for "$_searchQuery"',
+                  style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
+
+          // ── Grid ──────────────────────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
             sliver: SliverGrid(
@@ -291,14 +415,14 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                 childAspectRatio: 0.75,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildGridCard(_studyMaterials[index]),
-                childCount: _studyMaterials.length,
+                (context, index) => _buildGridCard(items[index]),
+                childCount: items.length,
               ),
             ),
           ),
 
           // ── Banner Ad ─────────────────────────────────────────
-          if (isBannerLoaded && bannerService.bannerAd != null)
+          if (isBannerLoaded && bannerService.bannerAd != null && _searchQuery.trim().isEmpty)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -314,22 +438,23 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
             ),
 
           // ── Bottom loader / end message ───────────────────────
-          SliverToBoxAdapter(
-            child:
-                _isLoadingMore
-                    ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                    : !_hasMore
-                    ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: Text('✅ All items loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      ),
-                    )
-                    : const SizedBox(height: 80),
-          ),
+          if (_searchQuery.trim().isEmpty)
+            SliverToBoxAdapter(
+              child:
+                  _isLoadingMore
+                      ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                      : !_hasMore
+                      ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(
+                          child: Text('✅ All items loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        ),
+                      )
+                      : const SizedBox(height: 80),
+            ),
         ],
       ),
     );
@@ -380,9 +505,8 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title — fixed height: fontSize(12) * lineHeight(1.3) * maxLines(2) = 31.2
                     SizedBox(
-                      height: 32, // 31.2 ko ceil karke 32 rakha — clean aur safe
+                      height: 32,
                       child: Text(
                         material.title,
                         style: const TextStyle(
@@ -396,18 +520,13 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-
-                    // Description
                     Text(
                       material.description,
                       style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-
-                    // Spacer remaining space absorb karta hai
                     const Spacer(),
-
                     // Explore Button
                     Container(
                       width: double.infinity,

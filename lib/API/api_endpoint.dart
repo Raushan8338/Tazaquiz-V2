@@ -14,6 +14,7 @@ class BaseUrl {
   static String final_submit_quiz = "finalQuizUpdate_v1.php";
   static String get_study_levels = "studyLevelSlider.php";
   static String get_study_category = "studyCategory.php";
+  static String get_course_search_api = "course_search_api.php";
   static String get_study_subject_category = "subjectLevelSlider.php";
   static String get_paid_study_materials_details = "study_materials_details.php";
   static String get_nonpaid_study_materials_details = "study_non_paid_materials_details.php";
@@ -24,7 +25,7 @@ class BaseUrl {
   static String save_payment_status = "save_payment_status.php";
   static String fetch_checkout_details = "checkout_details.php";
   static String apply_coupon_code = "apply_coupon.php";
-  static String get_id_wise_quiz = "get_id_wise_quiz.php";
+  static String get_id_wise_quiz = "get_id_wise_quiz_v1.php";
   static String get_id_wise_studyM_Details = "get_id_wise_study.php";
   static String quizCategory = "quizCategory.php";
   static String fetch_all_quiz = "quizes_api.php";

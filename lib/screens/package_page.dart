@@ -78,8 +78,9 @@ class _Package {
 
 class PricingPage extends StatefulWidget {
   final String? activePackageSlug;
+  final String CourseIds;
 
-  const PricingPage({super.key, this.activePackageSlug});
+  PricingPage({super.key, this.activePackageSlug, required this.CourseIds});
 
   @override
   State<PricingPage> createState() => _PricingPageState();
@@ -577,7 +578,23 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                   _buildActiveFullButton(),
                 ] else ...[
                   GestureDetector(
-                    onTap: () => _showCourseBottomSheet(pkg),
+                    onTap: () {
+                      if (widget.CourseIds != '0') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => CheckoutPage(
+                                  contentType: 'Subscription',
+                                  contentId: widget.CourseIds,
+                                  package_id: pkg.id.toString(),
+                                ),
+                          ),
+                        );
+                      } else {
+                        _showCourseBottomSheet(pkg);
+                      }
+                    },
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -752,7 +769,23 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                   ),
                 ] else ...[
                   GestureDetector(
-                    onTap: () => _showPremiumBottomSheet(pkg),
+                    onTap: () {
+                      if (widget.CourseIds != '0') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => CheckoutPage(
+                                  contentType: 'Subscription',
+                                  contentId: widget.CourseIds,
+                                  package_id: pkg.id.toString(),
+                                ),
+                          ),
+                        );
+                      } else {
+                        _showPremiumBottomSheet(pkg);
+                      }
+                    },
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 10),

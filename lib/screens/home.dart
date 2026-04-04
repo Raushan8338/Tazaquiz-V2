@@ -16,6 +16,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/models/studyMaterial_modal.dart';
 import 'package:tazaquiznew/screens/blog_Page.dart';
+import 'package:tazaquiznew/screens/course_search_page.dart';
 import 'package:tazaquiznew/screens/home_daily_current_affairs.dart';
 import 'package:tazaquiznew/screens/home_streak_widget.dart';
 import 'package:tazaquiznew/screens/notificationPage.dart';
@@ -399,82 +400,87 @@ class _HomePageState extends State<HomePage> {
                 _getGreeting(),
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
               ),
-             
             ],
           ),
         ],
       ),
-     actions: [
-  // ── Telegram Join Button ──
-  GestureDetector(
-    onTap: () async {
-      final url = Uri.parse('https://t.me/tazaquizofficial'); // ← apna link lagao
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      }
-    },
-    child: Container(
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF229ED9).withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF229ED9).withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'assets/images/t_logo.png', // ← asset hai toh
-            width: 14,
-            height: 14,
+      actions: [
+        // ── Search Icon ──────────────────────────────────────
+        IconButton(
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const StudyMaterialSearchScreen()));
+          },
+          icon: const Icon(
+            Icons.search_rounded,
+            color: AppColors.darkNavy, // ← green tha, white karo
+            size: 22,
           ),
-          // ── Ya icon use karo agar asset nahi hai ──
-          // Icon(Icons.send, size: 13, color: Color(0xFF229ED9)),
-          const SizedBox(width: 5),
-          const Text(
-            'Join',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF229ED9),
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
+        ),
 
-  // ── Notification ──
-  Stack(
-    alignment: Alignment.center,
-    children: [
-      IconButton(
-        icon: Icon(Icons.notifications_outlined, color: AppColors.darkNavy, size: 24),
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage()));
-        },
-      ),
-      if (notificationCount > 0)
-        Positioned(
-          right: 6,
-          top: 6,
+        // ── Telegram Join Button ──────────────────────────────
+        GestureDetector(
+          onTap: () async {
+            final url = Uri.parse('https://t.me/tazaquizofficial');
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url, mode: LaunchMode.externalApplication);
+            }
+          },
           child: Container(
-            width: 17,
-            height: 17,
-            decoration: BoxDecoration(color: AppColors.tealGreen, shape: BoxShape.circle),
-            child: Center(
-              child: Text(
-                notificationCount > 9 ? '9+' : '$notificationCount',
-                style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w800),
-              ),
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF229ED9).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF229ED9).withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/images/t_logo.png', width: 14, height: 14),
+                const SizedBox(width: 5),
+                const Text(
+                  'Join',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF229ED9)),
+                ),
+              ],
             ),
           ),
         ),
-    ],
-  ),
-  const SizedBox(width: 4),
-],
+
+        // ── Notification ─────────────────────────────────────
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(
+                Icons.notifications_outlined,
+                color: AppColors.darkNavy, // ← darkNavy tha, white karo
+                size: 24,
+              ),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => NotificationsPage()));
+              },
+            ),
+            if (notificationCount > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  width: 17,
+                  height: 17,
+                  decoration: BoxDecoration(color: AppColors.tealGreen, shape: BoxShape.circle),
+                  child: Center(
+                    child: Text(
+                      notificationCount > 9 ? '9+' : '$notificationCount',
+                      style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 4),
+      ],
     );
   }
 }

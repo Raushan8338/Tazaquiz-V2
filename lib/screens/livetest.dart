@@ -15,8 +15,9 @@ class LiveTestScreen extends StatefulWidget {
   final String testTitle;
   final String subject;
   final String Quiz_id;
+  final int timeLimit; // minutes mein
 
-  LiveTestScreen({required this.testTitle, required this.subject, required this.Quiz_id});
+  LiveTestScreen({required this.testTitle, required this.subject, required this.Quiz_id, required this.timeLimit});
 
   @override
   _LiveTestScreenState createState() => _LiveTestScreenState();
@@ -26,7 +27,8 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   int _currentQuestion = 0;
   List<dynamic> _questions = [];
   int totalQuestions = 0;
-  int _timeLeft = 5;
+  int _timeLeft = 30; // default, baad mein calculate hoga
+  int _perQuestionTime = 30; // ✅ per question time store karo
   int _score = 0;
   int? _selectedOption;
   bool _answered = false;
@@ -36,15 +38,12 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   late Animation<double> _pulseAnimation;
 
   Map<String, dynamic> _currentQuestionData = {};
-  // ── ADDED: translated data ──────────────────
   Map<String, dynamic> _translatedQuestionData = {};
 
   UserModel? _user;
-
   @override
   void initState() {
     super.initState();
-    _startTimer();
     _animationController = AnimationController(vsync: this, duration: Duration(seconds: 2))..repeat(reverse: true);
     _pulseAnimation = Tween<double>(
       begin: 1.0,
@@ -55,30 +54,55 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
   void _getUserData() async {
     _user = await SessionManager.getUser();
-    setState(() {});
-    loadQuizData();
+    if (mounted) setState(() {});
+    await loadQuizData(); // ✅ await karo
   }
 
-  void loadQuizData() async {
-    final data = {'user_id': _user?.id, 'quiz_id': widget.Quiz_id, 'score': ''};
+  Future<void> loadQuizData() async {
+    int retryCount = 0;
+    const maxRetries = 3;
 
-    Authrepository authRepository = Authrepository(Api_Client.dio);
-    final responseFuture = await authRepository.fetchQuizQuestion(data);
+    while (retryCount < maxRetries) {
+      try {
+        final data = {'user_id': _user?.id, 'quiz_id': widget.Quiz_id, 'score': ''};
 
-    final Map<String, dynamic> apiResponse =
-        responseFuture.data is String
-            ? jsonDecode(responseFuture.data)
-            : Map<String, dynamic>.from(responseFuture.data);
+        Authrepository authRepository = Authrepository(Api_Client.dio);
+        final responseFuture = await authRepository.fetchQuizQuestion(data);
 
-    _questions = apiResponse['questions'] ?? [];
-    totalQuestions = _questions.length;
+        final Map<String, dynamic> apiResponse =
+            responseFuture.data is String
+                ? jsonDecode(responseFuture.data)
+                : Map<String, dynamic>.from(responseFuture.data);
 
-    if (_questions.isNotEmpty) {
-      setQuestionFromApi(0);
+        _questions = apiResponse['questions'] ?? [];
+        totalQuestions = _questions.length;
+
+        if (_questions.isNotEmpty) {
+          _calculatePerQuestionTime();
+          setQuestionFromApi(0);
+          _startTimer(); // ✅ sirf questions load hone ke baad
+        }
+
+        break; // ✅ success
+      } catch (e) {
+        retryCount++;
+        print('❌ Retry $retryCount/$maxRetries failed: $e');
+      }
     }
   }
 
-  // ── MODIFIED: translate karo ────────────────
+  // ✅ Per question time calculate karo
+  void _calculatePerQuestionTime() {
+    if (totalQuestions <= 0 || widget.timeLimit <= 0) {
+      _perQuestionTime = 30; // fallback
+      return;
+    }
+    int totalSeconds = widget.timeLimit * 60;
+    int calculated = (totalSeconds / totalQuestions).floor();
+    // Minimum 10 sec, Maximum 120 sec per question
+    _perQuestionTime = calculated.clamp(10, 120);
+  }
+
   void setQuestionFromApi(int index) {
     final question = _questions[index];
     final List answers = question['answers'] ?? [];
@@ -99,13 +123,12 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       _currentQuestion = index;
       _correctAnswer = correctIndex == -1 ? 0 : correctIndex;
       _currentQuestionData = raw;
-      _translatedQuestionData = raw; // pehle original
+      _translatedQuestionData = raw;
     });
 
-    _translateCurrentQuestion(raw); // background translate
+    _translateCurrentQuestion(raw);
   }
 
-  // ── ADDED: batch translate ───────────────────
   Future<void> _translateCurrentQuestion(Map<String, dynamic> raw) async {
     final lang = TranslationService.instance.currentLanguage;
     if (lang == 'en') return;
@@ -130,8 +153,11 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     super.dispose();
   }
 
+  // ✅ Fixed _startTimer — perQuestionTime use karo
   void _startTimer() {
-    _timeLeft = 30;
+    _timer?.cancel();
+    _timeLeft = _perQuestionTime;
+
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
         if (_timeLeft > 0) {
@@ -155,7 +181,9 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     setState(() {
       _answered = true;
       _timer?.cancel();
-      if (_selectedOption == _correctAnswer) _score += _currentQuestionData['points'] as int;
+      if (_selectedOption == _correctAnswer) {
+        _score += _currentQuestionData['points'] as int;
+      }
     });
 
     Authrepository authRepository = Authrepository(Api_Client.dio);
@@ -165,7 +193,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       'answer_id': _currentQuestionData['question_ans_id'].toString(),
       'score': (_selectedOption == _correctAnswer ? _currentQuestionData['points'] : 0).toString(),
       'is_correct': (_selectedOption == _correctAnswer ? '1' : '0'),
-      'time_spent': (10 - _timeLeft).toString(),
+      'time_spent': (_perQuestionTime - _timeLeft).toString(), // ✅ sahi time spent
     };
 
     try {
@@ -187,14 +215,18 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       'attempt_id': _currentQuestionData['attempt_id'].toString(),
       'question_id': _currentQuestionData['question_id'].toString(),
       'answer_id': _currentQuestionData['question_ans_id'].toString(),
-      'score': _currentQuestionData['points'].toString(),
-      'is_correct': _selectedOption == _correctAnswer ? '1' : '0'.toString(),
-      'time_spent': _timeLeft.toString(),
+      'score': '0',
+      'is_correct': '0',
+      'time_spent': _perQuestionTime.toString(), // ✅ poora time spend hua
     };
 
-    final responseData = await authRepository.submitQuizAnswers(data);
-    if (responseData.statusCode == 200) {
-      Future.delayed(Duration(milliseconds: 500), () => _nextQuestion());
+    try {
+      final responseData = await authRepository.submitQuizAnswers(data);
+      if (responseData.statusCode == 200) {
+        Future.delayed(Duration(milliseconds: 500), () => _nextQuestion());
+      }
+    } catch (e) {
+      print('Error auto submitting: $e');
     }
   }
 
@@ -206,7 +238,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
         _answered = false;
       });
       setQuestionFromApi(_currentQuestion);
-      _startTimer();
+      _startTimer(); // ✅ timer restart with perQuestionTime
     } else {
       _showResultDialog();
     }
@@ -217,10 +249,8 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     final data = {'attempt_id': _currentQuestionData['attempt_id'].toString(), 'Passingscore': '$_score'};
     final responseData = await authRepository.finalSubmitQuiz(data);
     final resultRes = jsonDecode(responseData.data);
-    int correctCount = int.tryParse(resultRes['correctCount'].toString()) ?? 0;
-    int totalQs = int.tryParse(resultRes['total_question'].toString()) ?? 0;
 
-    Navigator.push(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder:
@@ -231,6 +261,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               pageType: 0,
             ),
       ),
+      (route) => route.isFirst, // 🔥 IMPORTANT (sab clear karega)
     );
   }
 
@@ -243,7 +274,6 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       );
     }
 
-    // ── MODIFIED: Stack mein wrap + TranslationToast ──
     return Scaffold(
       backgroundColor: AppColors.greyS1,
       body: Stack(
@@ -267,15 +297,12 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               ),
             ],
           ),
-          // ── ADDED: Translation toast ──────────
-          // const TranslationToast(),
         ],
       ),
     );
   }
 
   Widget _buildHeader() {
-    // ── ADDED: language vars ──────────────────
     final langCode = TranslationService.instance.currentLanguage;
     final langNative = TranslationService.supportedLanguages[langCode]?['native'] ?? 'English';
 
@@ -285,7 +312,6 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
         gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
         boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 5))],
       ),
-      // ── MODIFIED: Column wrap for language bar ──
       child: Column(
         children: [
           Row(
@@ -306,22 +332,18 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: MediaQuery.of(context).size.width / 2,
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
-                            widget.testTitle,
-                            13,
-                            AppColors.white,
-                            FontWeight.w700,
-                            3,
-                            TextAlign.left,
-                            0.0,
-                          ),
-                        ),
-                      ],
+                    Container(
+                      width: MediaQuery.of(context).size.width / 2,
+                      child: AppRichText.setTextPoppinsStyle(
+                        context,
+                        widget.testTitle,
+                        13,
+                        AppColors.white,
+                        FontWeight.w700,
+                        3,
+                        TextAlign.left,
+                        0.0,
+                      ),
                     ),
                     SizedBox(height: 4),
                     Row(
@@ -382,10 +404,10 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
           SizedBox(height: 10),
 
-          // ── ADDED: Language change bar ────────
+          // Language bar
           GestureDetector(
             onTap: () async {
-              _timer?.cancel(); // pause timer
+              _timer?.cancel();
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -446,9 +468,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 4),
-
                   Text(
                     'Changing language may take up to 40 seconds. Please wait.',
                     style: TextStyle(color: AppColors.white.withOpacity(0.7), fontSize: 10),
@@ -463,8 +483,10 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   }
 
   Widget _buildProgressSection() {
-    double progress = _currentQuestion / totalQuestions;
-    double timeProgress = _timeLeft / 10;
+    double progress = totalQuestions > 0 ? _currentQuestion / totalQuestions : 0;
+
+    // ✅ perQuestionTime se timeProgress calculate karo
+    double timeProgress = _perQuestionTime > 0 ? _timeLeft / _perQuestionTime : 0;
 
     return Container(
       color: AppColors.white,
@@ -476,7 +498,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             children: [
               AppRichText.setTextPoppinsStyle(
                 context,
-                'Question $_currentQuestion/$totalQuestions',
+                'Question ${_currentQuestion + 1}/$totalQuestions',
                 14,
                 AppColors.darkNavy,
                 FontWeight.w600,
@@ -485,22 +507,23 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 0.0,
               ),
               ScaleTransition(
-                scale: _timeLeft <= 10 ? _pulseAnimation : AlwaysStoppedAnimation(1.0),
+                scale: _timeLeft <= (_perQuestionTime * 0.3).floor() ? _pulseAnimation : AlwaysStoppedAnimation(1.0),
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors:
-                          _timeLeft <= 5
+                          _timeLeft <= (_perQuestionTime * 0.2).floor()
                               ? [AppColors.red, AppColors.redS1]
-                              : _timeLeft <= 10
+                              : _timeLeft <= (_perQuestionTime * 0.3).floor()
                               ? [AppColors.orange, AppColors.orangeS1]
                               : [AppColors.tealGreen, AppColors.darkNavy],
                     ),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: (_timeLeft <= 10 ? AppColors.red : AppColors.tealGreen).withOpacity(0.3),
+                        color: (_timeLeft <= (_perQuestionTime * 0.3).floor() ? AppColors.red : AppColors.tealGreen)
+                            .withOpacity(0.3),
                         blurRadius: 12,
                         offset: Offset(0, 4),
                       ),
@@ -588,9 +611,9 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                         value: timeProgress,
                         backgroundColor: AppColors.greyS200,
                         valueColor: AlwaysStoppedAnimation(
-                          _timeLeft <= 5
+                          _timeLeft <= (_perQuestionTime * 0.2).floor()
                               ? AppColors.red
-                              : _timeLeft <= 10
+                              : _timeLeft <= (_perQuestionTime * 0.3).floor()
                               ? AppColors.orange
                               : AppColors.tealGreen,
                         ),
@@ -669,18 +692,19 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 ),
               ),
               Spacer(),
+              // ✅ Per question time dikhao
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.red.withOpacity(0.1),
+                  color: AppColors.tealGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: AppRichText.setTextPoppinsStyle(
                   context,
-                  widget.subject,
+                  '${_perQuestionTime}s / Q',
                   11,
-                  AppColors.red,
-                  FontWeight.normal,
+                  AppColors.tealGreen,
+                  FontWeight.w600,
                   2,
                   TextAlign.left,
                   0.0,
@@ -689,7 +713,6 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             ],
           ),
           SizedBox(height: 10),
-          // ── MODIFIED: translated question ──
           AppRichText.setTextPoppinsStyle(
             context,
             _translatedQuestionData['question'] ?? '',
@@ -706,7 +729,6 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   }
 
   Widget _buildOptionsSection() {
-    // ── MODIFIED: translated options ──
     return Container(
       margin: EdgeInsets.all(16),
       child: Column(
@@ -721,33 +743,17 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
   Widget _buildOptionCard(String letter, String text, int index) {
     bool isSelected = _selectedOption == index;
-    // ✅ Green/Red bilkul nahi — sirf selected highlight
-    bool isCorrect = false;
-    bool isWrong = false;
 
     Color backgroundColor = AppColors.white;
     Color borderColor = AppColors.greyS300;
     Color letterBgColor = AppColors.greyS1;
     Color textColor = AppColors.darkNavy;
+
     if (isSelected) {
       backgroundColor = AppColors.lightGold.withOpacity(0.2);
       borderColor = AppColors.lightGold;
       letterBgColor = AppColors.lightGold;
     }
-
-    // if (isCorrect) {
-    //   backgroundColor = AppColors.tealGreen.withOpacity(0.1);
-    //   borderColor = AppColors.tealGreen;
-    //   letterBgColor = AppColors.tealGreen;
-    // } else if (isWrong) {
-    //   backgroundColor = AppColors.red.withOpacity(0.1);
-    //   borderColor = AppColors.red;
-    //   letterBgColor = AppColors.red;
-    // } else if (isSelected) {
-    //   backgroundColor = AppColors.lightGold.withOpacity(0.2);
-    //   borderColor = AppColors.lightGold;
-    //   letterBgColor = AppColors.lightGold;
-    // }
 
     return GestureDetector(
       onTap: () => _selectOption(index),
@@ -775,7 +781,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                   context,
                   letter,
                   14,
-                  (isCorrect || isWrong || (isSelected && !_answered)) ? AppColors.white : AppColors.darkNavy,
+                  isSelected && !_answered ? AppColors.white : AppColors.darkNavy,
                   FontWeight.w900,
                   2,
                   TextAlign.left,
@@ -796,15 +802,6 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 0.0,
               ),
             ),
-            // if (_answered && (isCorrect || isWrong))
-            //   Container(
-            //     padding: EdgeInsets.all(8),
-            //     decoration: BoxDecoration(
-            //       color: isCorrect ? AppColors.tealGreen : AppColors.red,
-            //       shape: BoxShape.circle,
-            //     ),
-            //     child: Icon(isCorrect ? Icons.check : Icons.close, color: AppColors.white, size: 20),
-            //   ),
           ],
         ),
       ),
@@ -857,22 +854,6 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildResultStat(String label, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        SizedBox(height: 8),
-        TranslatedText(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-        SizedBox(height: 4),
-        TranslatedText(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
-      ],
     );
   }
 

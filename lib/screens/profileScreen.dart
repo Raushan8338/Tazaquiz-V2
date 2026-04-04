@@ -8,6 +8,7 @@ import 'package:tazaquiznew/API/Language_converter/language_selectionPage.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/attempedQuizHistory.dart';
+import 'package:tazaquiznew/screens/course_search_page.dart';
 import 'package:tazaquiznew/screens/course_selection.dart';
 import 'package:tazaquiznew/screens/help&SupportPage.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
@@ -575,14 +576,35 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             onTap:
                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen())),
           ),
+          _buildActionListItem(
+            icon: Icons.school_rounded,
+            title: 'Find Courses',
+            subtitle: 'Search your courses',
+            color: const Color(0xFF00695C),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialSearchScreen())),
+          ),
 
           _buildActionListItem(
             icon: Icons.workspace_premium_rounded,
             title: 'Buy Courses / Upgrade Plan',
             subtitle: 'View & upgrade your plan',
             color: const Color(0xFFFF9800),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage())),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage(CourseIds: '0'))),
             isFirst: true,
+          ),
+
+          _buildActionListItem(
+            icon: Icons.translate_rounded,
+            title: 'Select Language',
+            subtitle: 'Change the app language',
+            color: const Color(0xFF00695C),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
+                  ),
+                ),
           ),
           _buildActionListItem(
             icon: Icons.school_rounded,
@@ -597,19 +619,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             subtitle: 'View payment history',
             color: const Color(0xFF1565C0),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentHistoryPage())),
-          ),
-          _buildActionListItem(
-            icon: Icons.translate_rounded,
-            title: 'Select Language',
-            subtitle: 'Change the app language',
-            color: const Color(0xFF00695C),
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
-                  ),
-                ),
           ),
         ],
       ),

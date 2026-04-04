@@ -645,12 +645,12 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                           _chip(Icons.help_outline_rounded, '${quiz.totalQuestions} Qs', AppColors.greyS600),
 
                         // Attempt status for mock/full mock/pyp
-                        if (!isLiveTest) ...[
-                          if (isAttempted)
-                            _chip(Icons.check_circle_outline_rounded, 'Attempted', const Color(0xFF00897B))
-                          else
-                            _chip(Icons.radio_button_unchecked_rounded, 'Not Attempted', const Color(0xFF3949AB)),
-                        ],
+                        // if (!isLiveTest) ...[
+                        //   if (isAttempted)
+                        //     _chip(Icons.check_circle_outline_rounded, 'Attempted', const Color(0xFF00897B))
+                        //   else
+                        //     _chip(Icons.radio_button_unchecked_rounded, 'Not Attempted', const Color(0xFF3949AB)),
+                        // ],
 
                         // Live test specific
                         if (isLiveTest) ...[

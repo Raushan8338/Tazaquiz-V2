@@ -188,7 +188,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
 
   void _handleSubscribe() {
     if (_currentMaterial == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage(CourseIds: _currentMaterial!.subscription_id.toString()))).then((value) {
       if (value == true) _getUserData();
     });
   }

@@ -44,22 +44,24 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget> with Single
 
   void _getUserData() async {
     _user = await SessionManager.getUser();
-    setState(() {});
+    if (mounted) setState(() {});
     fetchData();
   }
 
   void fetchData() async {
     try {
-      final data = {'user_id': _user?.id};
+      final reqData = {'user_id': _user?.id};
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final responseFuture = await authRepository.fetchHomeWeeklyProgress(data);
+      final response = await authRepository.fetchHomeWeeklyProgress(reqData);
 
-      if (responseFuture.statusCode == 200) {
-        final data = responseFuture.data;
+      if (response.statusCode == 200) {
+        final data = response.data;
         final status = data['status'];
-        final total = int.parse(data['totalQuizzes'] ?? 0);
-        final completed = int.parse(data['completedQuizzes'] ?? 0);
-        final percent = (int.parse(data['completionPercentage']) ?? 0) / 100;
+
+        // ✅ Fixed: int.tryParse with safe null handling
+        final total = int.tryParse(data['totalQuizzes']?.toString() ?? '0') ?? 0;
+        final completed = int.tryParse(data['completedQuizzes']?.toString() ?? '0') ?? 0;
+        final percent = (int.tryParse(data['completionPercentage']?.toString() ?? '0') ?? 0) / 100.0;
 
         setState(() {
           datastatus = status;

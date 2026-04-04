@@ -10,6 +10,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
+import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
@@ -406,6 +407,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               testTitle: _currentQuiz!.title.toString(),
               subject: _currentQuiz!.difficultyLevel.toString(),
               Quiz_id: widget.quizId.toString(),
+              timeLimit: int.parse(_currentQuiz!.timeLimit.toString()),
             ),
       ),
     );
@@ -486,7 +488,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
   void _handleSubscribe() {
     if (_currentQuiz == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage())).then((value) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PricingPage(CourseIds: _currentQuiz!.subscription_id.toString())),
+    ).then((value) {
       if (value == true) _getUserData();
     });
   }
@@ -2270,7 +2275,31 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     final quiz = _currentQuiz;
     if (quiz == null) return const SizedBox.shrink();
 
-    // 1. Resume pending attempt
+    // ✅ 1. Pehle — completed attempt check (View Result)
+    if (quiz.is_attempted) {
+      return _buildActionBar(
+        label: 'View Result',
+        icon: Icons.bar_chart_rounded,
+        colors: [_DS.teal, _DS.tealDark],
+        shadowColor: _DS.teal.withOpacity(0.3),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => QuizReviewPage(
+                    attemptId: quiz.completedAttemptId ?? 0, // ✅ attempt_id
+                    userId: int.tryParse(_user!.id.toString()) ?? 0,
+                    quizTitle: quiz.title,
+                    pageType: 0,
+                  ),
+            ),
+          );
+        },
+      );
+    }
+
+    // ✅ 2. Phir — incomplete/pending attempt (Resume)
     if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
       return _buildActionBar(
         label: 'Resume Attempt',
@@ -2281,27 +2310,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       );
     }
 
-    // 2. Already attempted (ended status — user completed it)
-    if (quiz.is_attempted) {
-      return _buildActionBar(
-        label: 'Already Attempted',
-        icon: Icons.check_circle_outline_rounded,
-        colors: [Colors.grey.shade500, Colors.grey.shade700],
-        shadowColor: Colors.grey.withOpacity(0.2),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('You have already attempted this test'),
-              backgroundColor: _DS.textSec,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        },
-      );
-    }
-
-    // 3. No access — show activate plan
+    // ✅ 3. No access
     if (!_hasFullAccess) {
       return _buildActionBar(
         label: 'Activate Plan',
@@ -2312,7 +2321,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       );
     }
 
-    // 4. Has access — check quiz status
+    // ✅ 4. Has access — quiz status check
     switch (quiz.quizStatus.toLowerCase()) {
       case 'live':
         return _buildActionBar(
@@ -2326,7 +2335,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       case 'upcoming':
         return _buildRemindMeBar();
 
-      // ✅ FIXED: missed — allow attempt as assessment
       case 'missed':
         return _buildActionBar(
           label: 'Attempt Now',
@@ -2336,7 +2344,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           onTap: _handleStartQuiz,
         );
 
-      // ✅ FIXED: ended — quiz over, cannot attempt
       case 'ended':
       default:
         return _buildActionBar(

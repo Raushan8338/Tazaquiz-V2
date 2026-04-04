@@ -35,6 +35,7 @@ class QuizItem {
   final String? accessMessage;
   final String? effectivePlan;
   final int? pendingAttemptId;
+  final int? completedAttemptId; // ✅ View Result ke liye
 
   final String? passing_score;
   final String? questionCount;
@@ -74,6 +75,7 @@ class QuizItem {
     this.accessMessage,
     this.effectivePlan,
     this.pendingAttemptId,
+    this.completedAttemptId,
     this.passing_score,
     this.questionCount,
     // ✅ NEW
@@ -127,7 +129,8 @@ class QuizItem {
       accessMessage: json['access_message']?.toString(),
       effectivePlan: json['effective_plan']?.toString(),
       pendingAttemptId: _toInt(json['pending_attempt_id'] ?? json['pendingAttemptId']),
-      passing_score: json['passwing_score']?.toString(),
+      completedAttemptId: _toInt(json['completed_attempt_id'] ?? json['completed_attempt_id']),
+      passing_score: json['passing_score']?.toString(),
       questionCount: json['question_count']?.toString(),
       // ✅ NEW
       dailyLimitExceeded: _toBool(json['daily_limit_exceeded']),
@@ -167,6 +170,7 @@ class QuizItem {
       'access_message': accessMessage,
       'effectivePlan': effectivePlan,
       'pending_attempt_id': pendingAttemptId,
+      'completed_attempt_id': completedAttemptId,
       'passing_score': passing_score,
       'question_count': questionCount,
       // ✅ NEW

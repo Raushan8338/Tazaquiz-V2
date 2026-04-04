@@ -13,7 +13,7 @@ class LeaderboardPage extends StatefulWidget {
   final String? quizTitle;
   final bool isMock;
 
-  const LeaderboardPage({Key? key, this.courseId, this.courseName, this.quizId, this.quizTitle, this.isMock = false})
+  LeaderboardPage({Key? key, this.courseId, this.courseName, this.quizId, this.quizTitle, this.isMock = false})
     : super(key: key);
 
   @override
