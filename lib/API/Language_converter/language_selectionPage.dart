@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 import 'translation_service.dart';
 
@@ -23,7 +24,6 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
   static const _teal = Color(0xFF1D9E75);
   static const _tealLight = Color(0xFF25C48F);
   static const _white = Color(0xFFFFFFFF);
-  // Soft blue-grey background — navy se match karta hai, white se better
   static const _pageBg = Color(0xFFEEF2F7);
   static const _cardBg = Color(0xFFF8FAFC);
   static const _grey400 = Color(0xFF94A3B8);
@@ -48,7 +48,6 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
   void initState() {
     super.initState();
     _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..forward();
-
     TranslationService.instance.init().then((_) {
       if (mounted) setState(() => _selected = TranslationService.instance.currentLanguage);
     });
@@ -132,7 +131,6 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
       ),
       body: Column(
         children: [
-          // ── Teal-tinted info strip ──────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
@@ -151,8 +149,6 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
               ],
             ),
           ),
-
-          // ── Grid ───────────────────────────────────────────
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
@@ -173,7 +169,6 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
               ),
             ),
           ),
-
           _buildBottomPanel(context),
         ],
       ),
@@ -360,86 +355,303 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
       context: context,
       barrierDismissible: false,
       builder:
-          (ctx) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: const BoxDecoration(color: Color(0xFFE1F5EE), shape: BoxShape.circle),
-                    child: const Icon(Icons.translate_rounded, color: Color(0xFF0F6E56), size: 28),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Language Change',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'To apply the new language for First time, the app needs to restart. This process may take up to 5 Minutes. Please be patient and do not close the app .',
-                    style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.6),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(color: const Color(0xFFE1F5EE), borderRadius: BorderRadius.circular(10)),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info_outline_rounded, color: Color(0xFF0F6E56), size: 16),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Do not close the app — the restart will complete automatically.',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF085041), height: 1.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+          (ctx) => _DownloadProgressDialog(
+            languageCode: _selected,
+            onRestartTap: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(
+                context,
+              ).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => SplashScreen()), (route) => false);
+            },
+          ),
+    );
+  }
+}
 
-                  // Restart Button
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      Navigator.of(
-                        context,
-                      ).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => SplashScreen()), (route) => false);
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF1D9E75), Color(0xFF5DCAA5)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.restart_alt_rounded, color: Colors.white, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Restart App',
-                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
-                          ),
-                        ],
+// ─────────────────────────────────────────────
+//  Download Progress Dialog
+// ─────────────────────────────────────────────
+
+class _DownloadProgressDialog extends StatefulWidget {
+  final String languageCode;
+  final VoidCallback onRestartTap;
+
+  const _DownloadProgressDialog({required this.languageCode, required this.onRestartTap});
+
+  @override
+  State<_DownloadProgressDialog> createState() => _DownloadProgressDialogState();
+}
+
+class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
+  double _progress = 0.0;
+  bool _isDone = false;
+  bool _hasFailed = false;
+  String _statusText = 'Preparing download...';
+
+  static const _teal = Color(0xFF1D9E75);
+  static const _tealLight = Color(0xFF5DCAA5);
+  static const _tealBg = Color(0xFFE1F5EE);
+  static const _tealDark = Color(0xFF0F6E56);
+  static const _tealDeep = Color(0xFF085041);
+
+  @override
+  void initState() {
+    super.initState();
+    _startDownload();
+  }
+
+  TranslateLanguage _getTargetLanguage(String code) {
+    const map = {
+      'hi': TranslateLanguage.hindi,
+      'mr': TranslateLanguage.marathi,
+      'bn': TranslateLanguage.bengali,
+      'ta': TranslateLanguage.tamil,
+      'te': TranslateLanguage.telugu,
+      'gu': TranslateLanguage.gujarati,
+      'kn': TranslateLanguage.kannada,
+      'ur': TranslateLanguage.urdu,
+      'en': TranslateLanguage.english,
+    };
+    return map[code] ?? TranslateLanguage.english;
+  }
+
+  Future<void> _startDownload() async {
+    try {
+      if (mounted) setState(() => _statusText = 'Identifying language...');
+      await Future.delayed(const Duration(milliseconds: 400));
+      _updateProgress(0.05);
+
+      if (mounted) setState(() => _statusText = 'Downloading translation model...');
+
+      // Simulate progress up to 85% while real download happens
+      _simulateProgress();
+
+      final translator = OnDeviceTranslator(
+        sourceLanguage: TranslateLanguage.english,
+        targetLanguage: _getTargetLanguage(widget.languageCode),
+      );
+
+      // This call triggers the actual model download on first run
+      await translator.translateText('hello');
+      await translator.close();
+
+      if (mounted) {
+        setState(() {
+          _progress = 1.0;
+          _isDone = true;
+          _statusText = 'Download complete!';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _hasFailed = true;
+          _statusText = 'Download failed. Please check your connection.';
+        });
+      }
+    }
+  }
+
+  void _simulateProgress() {
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (!mounted || _isDone || _hasFailed) return false;
+      if (_progress < 0.85) {
+        final increment = _progress < 0.4 ? 0.045 : (_progress < 0.7 ? 0.02 : 0.008);
+        _updateProgress(_progress + increment);
+        return true;
+      }
+      return true;
+    });
+  }
+
+  void _updateProgress(double val) {
+    if (!mounted) return;
+    setState(() => _progress = val.clamp(0.0, 1.0));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (_progress * 100).round();
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon circle
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 400),
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(color: _hasFailed ? const Color(0xFFFFEBEB) : _tealBg, shape: BoxShape.circle),
+              child: Icon(
+                _hasFailed
+                    ? Icons.error_outline_rounded
+                    : _isDone
+                    ? Icons.check_circle_rounded
+                    : Icons.download_rounded,
+                color: _hasFailed ? const Color(0xFFE24B4A) : _tealDark,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Title
+            Text(
+              _hasFailed
+                  ? 'Download Failed'
+                  : _isDone
+                  ? 'Ready to Apply'
+                  : 'Downloading Language Model',
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+
+            // Subtitle
+            Text(
+              _hasFailed
+                  ? 'Could not download the translation model. Please check your internet connection and try again.'
+                  : _isDone
+                  ? 'Language model downloaded successfully. Restart the app to apply your selected language.'
+                  : 'Preparing translation model for first-time use. This may take up to 5 minutes depending on your internet speed.',
+              style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.6),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+
+            // Progress % label row
+            if (!_hasFailed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _statusText,
+                      style: const TextStyle(fontSize: 12, color: _tealDark, fontWeight: FontWeight.w500),
+                    ),
+                    Text('$pct%', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+
+            // Progress bar
+            if (!_hasFailed)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: _progress,
+                  minHeight: 8,
+                  backgroundColor: _tealBg,
+                  valueColor: const AlwaysStoppedAnimation<Color>(_teal),
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Info box
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: _hasFailed ? const Color(0xFFFFEBEB) : _tealBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: _hasFailed ? const Color(0xFFA32D2D) : _tealDark, size: 16),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _hasFailed
+                          ? 'Tap "Retry" to try downloading again.'
+                          : _isDone
+                          ? 'App will restart and apply the new language automatically.'
+                          : 'Do not close the app — download will complete automatically.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _hasFailed ? const Color(0xFF791F1F) : _tealDeep,
+                        height: 1.5,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+
+            const SizedBox(height: 20),
+
+            // Action button
+            GestureDetector(
+              onTap:
+                  _hasFailed
+                      ? () {
+                        setState(() {
+                          _hasFailed = false;
+                          _progress = 0.0;
+                          _statusText = 'Preparing download...';
+                        });
+                        _startDownload();
+                      }
+                      : _isDone
+                      ? widget.onRestartTap
+                      : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  gradient:
+                      (_isDone || _hasFailed)
+                          ? LinearGradient(
+                            colors:
+                                _hasFailed
+                                    ? [const Color(0xFFE24B4A), const Color(0xFFF09595)]
+                                    : [const Color(0xFF1D9E75), const Color(0xFF5DCAA5)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          )
+                          : null,
+                  color: (_isDone || _hasFailed) ? null : _tealBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _hasFailed ? Icons.refresh_rounded : Icons.restart_alt_rounded,
+                      color: (_isDone || _hasFailed) ? Colors.white : _tealDark.withOpacity(0.35),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _hasFailed ? 'Retry Download' : 'Restart App',
+                      style: TextStyle(
+                        color: (_isDone || _hasFailed) ? Colors.white : _tealDark.withOpacity(0.35),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Waiting hint
+            if (!_isDone && !_hasFailed)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Please wait for download to complete',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

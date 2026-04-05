@@ -16,6 +16,7 @@ class StudyMaterialDetailsItem {
   final String thumbnail;
   final String coaching_name;
   final String coaching_bio;
+  final String profile_icon;
 
   final int is_premium;
 
@@ -48,6 +49,7 @@ class StudyMaterialDetailsItem {
     required this.thumbnail,
     required this.coaching_name,
     required this.coaching_bio,
+    required this.profile_icon,
 
     // 🔥 NEW OPTIONAL FLAGS (SAFE)
     required this.is_premium,
@@ -86,6 +88,7 @@ class StudyMaterialDetailsItem {
       thumbnail: json['thumbnail']?.toString() ?? '',
       coaching_name: json['coaching_name']?.toString() ?? '**********',
       coaching_bio: json['bio_info']?.toString() ?? '',
+      profile_icon: json['profile_icon']?.toString() ?? '',
 
       // 🔥 NEW OPTIONAL FLAGS (SAFE)
       is_premium: _toInt(json['is_premium']),
@@ -121,6 +124,7 @@ class StudyMaterialDetailsItem {
       'thumbnail': thumbnail,
       'coaching_name': coaching_name,
       'coaching_bio': coaching_bio,
+      'profile_icon': profile_icon,
 
       // 🔥 NEW OPTIONAL FLAGS (SAFE)
       'is_premium': is_premium,

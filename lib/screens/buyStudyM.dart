@@ -944,6 +944,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   Widget _instructorCard() {
     final name = _currentMaterial!.coaching_name;
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'I';
+    final profileIcon = _currentMaterial!.profile_icon;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -961,15 +962,23 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
               width: 54,
               height: 54,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_green, _navy]),
                 borderRadius: BorderRadius.circular(15),
+                gradient:
+                    (profileIcon == null || profileIcon.isEmpty) ? const LinearGradient(colors: [_green, _navy]) : null,
+                image:
+                    (profileIcon != null && profileIcon.isNotEmpty)
+                        ? DecorationImage(image: NetworkImage(profileIcon), fit: BoxFit.cover)
+                        : null,
               ),
-              child: Center(
-                child: Text(
-                  initial,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
-                ),
-              ),
+              child:
+                  (profileIcon == null || profileIcon.isEmpty)
+                      ? Center(
+                        child: Text(
+                          initial,
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+                        ),
+                      )
+                      : null,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -981,7 +990,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                     style: TextStyle(fontSize: 10, color: _textMuted, fontWeight: FontWeight.w500, letterSpacing: 0.4),
                   ),
                   const SizedBox(height: 3),
-                  TranslatedText(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _navy)),
+                  Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _navy)),
                   if (_currentMaterial!.coaching_bio.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Html(data: _currentMaterial!.coaching_bio),
