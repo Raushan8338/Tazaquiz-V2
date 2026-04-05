@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
@@ -115,12 +116,12 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const TranslatedText(
             'My Courses',
             style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Poppins'),
           ),
           if (!_isLoading)
-            Text(
+            TranslatedText(
               '${_allStudyMaterials.length} course${_allStudyMaterials.length != 1 ? 's' : ''} purchased',
               style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11),
             ),
@@ -188,7 +189,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
-                  Text(
+                  TranslatedText(
                     material.title,
                     style: const TextStyle(
                       fontSize: 15,
@@ -203,7 +204,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
 
                   // Description
                   if (material.description.isNotEmpty)
-                    Text(
+                    TranslatedText(
                       material.description,
                       style: TextStyle(fontSize: 12, color: AppColors.greyS600, height: 1.4),
                       maxLines: 2,
@@ -218,7 +219,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                   const SizedBox(height: 10),
 
                   // Date
-                  Text(
+                  TranslatedText(
                     material.access_valid_until != null && material.access_valid_until.isNotEmpty
                         ? 'Valid Until: ${_formatDate(material.access_valid_until)}'
                         : 'No Expiry',
@@ -293,7 +294,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
           child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Start', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+              TranslatedText('Start', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
               SizedBox(width: 4),
               Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
             ],
@@ -478,7 +479,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                 children: [
                   Icon(isSubscription ? Icons.workspace_premium : Icons.badge_outlined, size: 11, color: Colors.white),
                   const SizedBox(width: 4),
-                  Text(
+                  TranslatedText(
                     isPackaged.toUpperCase(),
                     style: const TextStyle(
                       fontSize: 9,
@@ -507,7 +508,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                   children: [
                     Icon(Icons.check_circle, size: 11, color: AppColors.tealGreen),
                     const SizedBox(width: 4),
-                    Text(
+                    TranslatedText(
                       'PURCHASED',
                       style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.tealGreen),
                     ),
@@ -551,7 +552,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
               color: Colors.white,
             ),
             const SizedBox(width: 8),
-            Text(
+            TranslatedText(
               material.contentType.toUpperCase() == 'VIDEO' ? 'Watch Now' : 'Read Now',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
             ),
@@ -590,12 +591,15 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                           child: const Icon(Icons.workspace_premium_rounded, size: 40, color: Colors.white),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
+                        const TranslatedText(
                           'Premium Feature',
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                         const SizedBox(height: 4),
-                        const Text('Unlock the full experience', style: TextStyle(fontSize: 13, color: Colors.white70)),
+                        const TranslatedText(
+                          'Unlock the full experience',
+                          style: TextStyle(fontSize: 13, color: Colors.white70),
+                        ),
                       ],
                     ),
                   ),
@@ -614,7 +618,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        const TranslatedText(
                           'This feature is only available on the Premium Package. Upgrade now to access all features.',
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
@@ -641,7 +645,7 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                               children: [
                                 Icon(Icons.star_rounded, size: 18),
                                 SizedBox(width: 6),
-                                Text('Buy Now', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                TranslatedText('Buy Now', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
@@ -649,7 +653,10 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
                         const SizedBox(height: 8),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: Text('Maybe Later', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                          child: TranslatedText(
+                            'Maybe Later',
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                          ),
                         ),
                       ],
                     ),
@@ -674,7 +681,10 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
         children: [
           Icon(icon, size: 14, color: AppColors.tealGreen),
           const SizedBox(width: 5),
-          Text(label, style: TextStyle(fontSize: 12, color: AppColors.tealGreen, fontWeight: FontWeight.w500)),
+          TranslatedText(
+            label,
+            style: TextStyle(fontSize: 12, color: AppColors.tealGreen, fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );
@@ -714,12 +724,15 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
             child: Icon(Icons.school_outlined, size: 64, color: AppColors.greyS400),
           ),
           const SizedBox(height: 16),
-          const Text(
+          const TranslatedText(
             'No Courses Yet',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
           ),
           const SizedBox(height: 6),
-          Text('Subscribe to a course to get started', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
+          TranslatedText(
+            'Subscribe to a course to get started',
+            style: TextStyle(fontSize: 12, color: AppColors.greyS600),
+          ),
         ],
       ),
     );
@@ -800,7 +813,7 @@ class _CourseBottomSheet extends StatelessWidget {
                         children: [
                           Icon(Icons.calendar_today_rounded, size: 10, color: Colors.white.withOpacity(0.7)),
                           const SizedBox(width: 4),
-                          Text(
+                          TranslatedText(
                             material.access_valid_until != null && material.access_valid_until.isNotEmpty
                                 ? 'Valid till ${formatDate(material.access_valid_until)}'
                                 : 'No Expiry',
@@ -821,7 +834,10 @@ class _CourseBottomSheet extends StatelessWidget {
                       children: [
                         Icon(Icons.check_circle_rounded, size: 10, color: Colors.white),
                         SizedBox(width: 3),
-                        Text('Active', style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700)),
+                        TranslatedText(
+                          'Active',
+                          style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700),
+                        ),
                       ],
                     ),
                   ),
@@ -834,7 +850,7 @@ class _CourseBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
             child: Row(
               children: [
-                Text(
+                TranslatedText(
                   'What do you want to do?',
                   style: TextStyle(
                     fontSize: 13,
@@ -891,7 +907,7 @@ class _CourseBottomSheet extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            Text(
+                            TranslatedText(
                               action['subtitle'] as String,
                               style: TextStyle(
                                 fontSize: 11,

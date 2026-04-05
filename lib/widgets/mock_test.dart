@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
@@ -84,7 +85,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                             width: 1.5,
                           ),
                         ),
-                        child: Center(child: Text('📝', style: TextStyle(fontSize: 16))),
+                        child: Center(child: TranslatedText('📝', style: TextStyle(fontSize: 16))),
                       );
                     },
                   ),
@@ -101,7 +102,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                           letterSpacing: 0.2,
                         ),
                       ),
-                      Text(
+                      TranslatedText(
                         '🎯 Practice karo, exam crack karo!',
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: const Color(0xFF1a237e)),
                       ),
@@ -131,7 +132,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      TranslatedText(
                         'View All',
                         style: TextStyle(fontSize: 11, color: const Color(0xFF1a237e), fontWeight: FontWeight.w700),
                       ),
@@ -259,7 +260,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                                           size: 9,
                                         ),
                                         const SizedBox(width: 4),
-                                        Text(
+                                        TranslatedText(
                                           isAttempted ? 'DONE' : 'MOCK TEST',
                                           style: const TextStyle(
                                             color: Colors.white,
@@ -289,7 +290,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   // Title
-                                  Text(
+                                  TranslatedText(
                                     quiz.title,
                                     style: const TextStyle(
                                       fontSize: 13,
@@ -307,7 +308,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                                     children: [
                                       const Icon(Icons.help_outline_rounded, size: 10, color: Colors.white70),
                                       const SizedBox(width: 3),
-                                      Text(
+                                      TranslatedText(
                                         quiz.difficultyLevel.isNotEmpty ? quiz.difficultyLevel : 'Standard',
                                         style: const TextStyle(
                                           fontSize: 10,
@@ -319,7 +320,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                                       if (quiz.timeLimit.isNotEmpty) ...[
                                         const Icon(Icons.timer_outlined, size: 10, color: Colors.white60),
                                         const SizedBox(width: 3),
-                                        Text(
+                                        TranslatedText(
                                           '${quiz.timeLimit} min',
                                           style: const TextStyle(
                                             fontSize: 10,
@@ -351,7 +352,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                                         minimumSize: const Size(0, 32),
                                         elevation: 0,
                                       ),
-                                      child: Text(
+                                      child: TranslatedText(
                                         isAttempted ? '📊 View Result' : '✏️ Start Test',
                                         style: TextStyle(
                                           color: gradientColors[0],

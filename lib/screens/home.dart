@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:marquee_text/marquee_direction.dart';
 import 'package:marquee_text/marquee_text.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -319,7 +320,7 @@ class _HomePageState extends State<HomePage> {
                 child: const Icon(Icons.emoji_events, size: 18, color: AppColors.darkNavy),
               ),
               const SizedBox(width: 12),
-              Text(
+              TranslatedText(
                 'Recent Achievements',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
               ),
@@ -362,9 +363,15 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.darkNavy)),
+                TranslatedText(
+                  title,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
+                ),
                 const SizedBox(height: 2),
-                Text(time, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.greyS600)),
+                TranslatedText(
+                  time,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.greyS600),
+                ),
               ],
             ),
           ),
@@ -387,7 +394,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          TranslatedText(
             _user?.username ?? '👋 Hello!',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
           ),
@@ -396,7 +403,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               Icon(_getGreetingIcon(), color: Colors.orangeAccent, size: 13),
               const SizedBox(width: 5),
-              Text(
+              TranslatedText(
                 _getGreeting(),
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
               ),
@@ -438,7 +445,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Image.asset('assets/images/t_logo.png', width: 14, height: 14),
                 const SizedBox(width: 5),
-                const Text(
+                const TranslatedText(
                   'Join',
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF229ED9)),
                 ),
@@ -470,7 +477,7 @@ class _HomePageState extends State<HomePage> {
                   height: 17,
                   decoration: BoxDecoration(color: AppColors.tealGreen, shape: BoxShape.circle),
                   child: Center(
-                    child: Text(
+                    child: TranslatedText(
                       notificationCount > 9 ? '9+' : '$notificationCount',
                       style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w800),
                     ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -273,14 +274,14 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.tealGreen.withOpacity(0.25)),
                 ),
-                child: Text(
+                child: TranslatedText(
                   '${_results.length} result${_results.length == 1 ? '' : 's'}',
                   style: TextStyle(color: AppColors.tealGreen, fontSize: 11, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 8),
               Flexible(
-                child: Text(
+                child: TranslatedText(
                   'for "${_searchController.text}"',
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
@@ -320,12 +321,12 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
             child: Icon(Icons.auto_stories_rounded, size: 34, color: AppColors.tealGreen),
           ),
           const SizedBox(height: 18),
-          Text(
+          TranslatedText(
             'Find your course',
             style: TextStyle(color: AppColors.darkNavy, fontSize: 17, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
-          Text(
+          TranslatedText(
             'Type above to search from\nour complete course library',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.6),
@@ -343,12 +344,12 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
         children: [
           Icon(Icons.search_off_rounded, size: 52, color: Colors.grey.shade300),
           const SizedBox(height: 14),
-          Text(
+          TranslatedText(
             'No courses found',
             style: TextStyle(color: AppColors.darkNavy, fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
-          Text('Try a different keyword', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+          TranslatedText('Try a different keyword', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
         ],
       ),
     );
@@ -457,7 +458,7 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TranslatedText(
                         material.title,
                         style: TextStyle(
                           color: AppColors.darkNavy,
@@ -469,7 +470,7 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 5),
-                      Text(
+                      TranslatedText(
                         material.description,
                         style: TextStyle(color: Colors.grey.shade500, fontSize: 11, height: 1.4),
                         maxLines: 2,

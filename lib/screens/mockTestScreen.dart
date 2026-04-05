@@ -73,7 +73,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
   void loadQuizData() async {
     final data = {'user_id': _user?.id, 'quiz_id': widget.Quiz_id, 'score': ''};
-
+    print('Request Data: $data');
     Authrepository authRepository = Authrepository(Api_Client.dio);
     final responseFuture = await authRepository.fetchQuizQuestion(data);
 
@@ -113,6 +113,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       'attempt_id': question['attempt_id'] ?? 0,
       'question_ans_id': question['question_ans_id'] ?? 0,
       'question_id': question['question_id'] ?? 0,
+      'is_translation_allowed': question['is_translation_allowed'] ?? 0, // 0 or 1
       'answer_ids':
           answers.map((a) {
             final id =
@@ -612,7 +613,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        Text(widget.subject, style: TextStyle(fontSize: 11, color: AppColors.lightGold)),
+                        TranslatedText(widget.subject, style: TextStyle(fontSize: 11, color: AppColors.lightGold)),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -709,7 +710,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     children: [
                       Icon(Icons.translate_rounded, size: 14, color: AppColors.white.withOpacity(0.9)),
                       const SizedBox(width: 8),
-                      Text(
+                      TranslatedText(
                         'Content Language:  $langNative',
                         style: TextStyle(
                           color: AppColors.white.withOpacity(0.9),
@@ -725,7 +726,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: AppColors.white.withOpacity(0.2)),
                         ),
-                        child: Text(
+                        child: TranslatedText(
                           'Change',
                           style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.w700),
                         ),
@@ -735,7 +736,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
                   const SizedBox(height: 4),
 
-                  Text(
+                  TranslatedText(
                     'Changing language may take up to 40 seconds. Please wait.',
                     style: TextStyle(color: AppColors.white.withOpacity(0.7), fontSize: 10),
                   ),
@@ -911,31 +912,41 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ],
           ),
           const SizedBox(height: 12),
+
           // ── MODIFIED: translated question ──
-          AppRichText.setTextPoppinsStyle(
-            context,
-            _translatedQuestionData['question'] ?? '',
-            15,
-            AppColors.darkNavy,
-            FontWeight.w700,
-            10,
-            TextAlign.left,
-            0.0,
-          ),
+          (_currentQuestionData['is_translation_allowed'] == '1')
+              ? Text(
+                _currentQuestionData['question'] ?? '', // 🔥 original
+                style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700),
+                maxLines: 2,
+                textAlign: TextAlign.left,
+              )
+              : AppRichText.setTextPoppinsStyle(
+                context,
+                _translatedQuestionData['question'] ?? '', // 🔥 translated
+                15,
+                AppColors.darkNavy,
+                FontWeight.w700,
+                2,
+                TextAlign.left,
+                0.0,
+              ),
         ],
       ),
     );
   }
 
   Widget _buildOptionsSection() {
-    // ── MODIFIED: translated options ──
+    final isTranslate = _currentQuestionData['is_translation_allowed'] == '0';
+
+    final options = isTranslate ? _translatedQuestionData['options'] : _currentQuestionData['options'];
+
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      margin: EdgeInsets.all(16),
       child: Column(
         children: List.generate(
-          (_translatedQuestionData['options'] as List).length,
-          (index) =>
-              _buildOptionCard(String.fromCharCode(65 + index), _translatedQuestionData['options'][index], index),
+          options.length,
+          (index) => _buildOptionCard(String.fromCharCode(65 + index), options[index], index),
         ),
       ),
     );
@@ -1462,7 +1473,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
           ),
         ),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
+        TranslatedText(label, style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
       ],
     );
   }

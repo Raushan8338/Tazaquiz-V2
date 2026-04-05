@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -332,13 +333,13 @@ class _ContactUsPageState extends State<ContactUsPage> with TickerProviderStateM
             Tab(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [Icon(Icons.help_outline_rounded, size: 20), SizedBox(width: 8), Text('FAQs')],
+                children: [Icon(Icons.help_outline_rounded, size: 20), SizedBox(width: 8), TranslatedText('FAQs')],
               ),
             ),
             Tab(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [Icon(Icons.contact_support_outlined, size: 20), SizedBox(width: 8), Text('Contact Us')],
+                children: [Icon(Icons.contact_support_outlined, size: 20), SizedBox(width: 8), TranslatedText('Contact Us')],
               ),
             ),
           ],

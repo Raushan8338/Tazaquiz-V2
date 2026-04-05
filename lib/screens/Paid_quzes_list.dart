@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
@@ -332,7 +333,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
               fontFamily: 'Poppins',
             ),
           ),
-          Text(
+          TranslatedText(
             '${_filtered.length} ${isMockTest || isFullMockTest || isPYP ? 'tests' : 'tests'} available',
             style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
           ),
@@ -382,7 +383,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
           Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 18),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: TranslatedText(
               _errorMessage!,
               style: TextStyle(fontSize: 12, color: Colors.orange.shade900, fontWeight: FontWeight.w500),
             ),
@@ -392,7 +393,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(color: Colors.orange.shade100, borderRadius: BorderRadius.circular(8)),
-              child: Text(
+              child: TranslatedText(
                 'Retry',
                 style: TextStyle(fontSize: 11, color: Colors.orange.shade800, fontWeight: FontWeight.w700),
               ),
@@ -417,12 +418,12 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
               child: Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red.shade300),
             ),
             const SizedBox(height: 20),
-            const Text(
+            const TranslatedText(
               'Unable to Load',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
             ),
             const SizedBox(height: 8),
-            Text(
+            TranslatedText(
               _errorMessage!,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.greyS600),
@@ -444,7 +445,10 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                   children: [
                     Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
                     SizedBox(width: 8),
-                    Text('Try Again', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                    TranslatedText(
+                      'Try Again',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
                   ],
                 ),
               ),
@@ -470,7 +474,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
             ),
           ),
           const SizedBox(height: 16),
-          Text(
+          TranslatedText(
             'Loading ${pageTitle.toLowerCase()}...',
             style: TextStyle(fontSize: 13, color: AppColors.greyS600, fontWeight: FontWeight.w500),
           ),
@@ -507,7 +511,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                 borderRadius: BorderRadius.circular(20),
                 border: sel ? null : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
               ),
-              child: Text(
+              child: TranslatedText(
                 cat.name,
                 style: TextStyle(
                   fontSize: 12,
@@ -608,7 +612,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Title
-                    Text(
+                    TranslatedText(
                       quiz.title,
                       style: const TextStyle(
                         fontSize: 13,
@@ -622,7 +626,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
 
                     if (quiz.description.isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text(
+                      TranslatedText(
                         quiz.description,
                         style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1.4),
                         maxLines: 1,
@@ -691,7 +695,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                         children: [
                           Icon(_btnIcon(quiz, isLive, isAttempted), color: Colors.white, size: 14),
                           const SizedBox(width: 6),
-                          Text(
+                          TranslatedText(
                             _btnText(quiz, isLive, isMissed, isAttempted),
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
@@ -782,7 +786,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                     border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
                   ),
                   child: Center(
-                    child: Text(
+                    child: TranslatedText(
                       isLiveTest
                           ? '⚡'
                           : isMockTest
@@ -812,7 +816,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
-        child: Text(
+        child: TranslatedText(
           isAttempted ? 'DONE' : 'ATTEMPT',
           style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
         ),
@@ -851,7 +855,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
               margin: const EdgeInsets.only(right: 3),
               decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             ),
-          Text(
+          TranslatedText(
             label,
             style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
           ),
@@ -963,7 +967,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                           child: const Icon(Icons.filter_list_rounded, color: Colors.white, size: 20),
                         ),
                         const SizedBox(width: 12),
-                        Text(
+                        TranslatedText(
                           'Filter Tests',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                         ),
@@ -1006,7 +1010,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    TranslatedText(
                                       f['title'] as String,
                                       style: TextStyle(
                                         fontSize: 13,
@@ -1015,7 +1019,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    Text(
+                                    TranslatedText(
                                       f['subtitle'] as String,
                                       style: TextStyle(fontSize: 11, color: AppColors.greyS500),
                                     ),
@@ -1053,7 +1057,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
                           ],
                         ),
                         child: const Center(
-                          child: Text(
+                          child: TranslatedText(
                             'Apply Filter',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
                           ),
@@ -1100,7 +1104,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
         children: [
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 3),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+          TranslatedText(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
         ],
       ),
     );
@@ -1129,15 +1133,15 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen> with SingleTi
             Container(
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.07), shape: BoxShape.circle),
-              child: Text(data['icon'] as String, style: const TextStyle(fontSize: 48)),
+              child: TranslatedText(data['icon'] as String, style: const TextStyle(fontSize: 48)),
             ),
             const SizedBox(height: 20),
-            Text(
+            TranslatedText(
               data['title'] as String,
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
             ),
             const SizedBox(height: 8),
-            Text(
+            TranslatedText(
               data['subtitle'] as String,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.greyS600),

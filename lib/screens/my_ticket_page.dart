@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -171,7 +172,7 @@ class _All_Raised_Ticket_PageState extends State<All_Raised_Ticket_Page> {
                             ElevatedButton.icon(
                               onPressed: _refreshTickets,
                               icon: Icon(Icons.refresh, size: 20),
-                              label: Text('Retry'),
+                              label: TranslatedText('Retry'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.tealGreen,
                                 foregroundColor: AppColors.white,

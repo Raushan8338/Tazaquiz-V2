@@ -52,21 +52,34 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   }
 
   Future<void> _handleLogin(email) async {
-    //final GoogleData = await GoogleSignInApi.login();
     setState(() => _isLoading = true);
+
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    String? fcmToken = await FirebaseMessaging.instance.getToken();
+
+    String? fcmToken;
+
+    try {
+      // 🔥 SAFE TOKEN FETCH (non-blocking)
+      await Future.delayed(const Duration(seconds: 1));
+      fcmToken = await FirebaseMessaging.instance.getToken();
+      print("FCM TOKEN: $fcmToken");
+    } catch (e) {
+      print("FCM ERROR: $e");
+      fcmToken = null; // 👈 IMPORTANT
+    }
+
     try {
       final String phone = _phoneController.text.trim();
       final String? finalEmail = phone.isNotEmpty ? null : email;
 
       final data = {
         'phone': phone,
-        'email': finalEmail, // 👈 phone hai to email null
-        'device_id': fcmToken ?? '',
+        'email': finalEmail,
+        'device_id': fcmToken ?? '', // 👈 SAFE
         'androidInfo': 'android',
       };
-      print(data);
+
+      /// 👉 API CALL
       final response = await authRepository.loginUser(data);
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.data);
@@ -200,22 +213,16 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
     _handleLogin(user?.email);
   }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: AppColors.white,
-    body: SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildTopIllustration(),
-            _buildLoginForm(),
-          ],
-        ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(child: Column(children: [_buildTopIllustration(), _buildLoginForm()])),
       ),
-    ),
-  );
-}
+    );
+  }
+
   Widget _buildTopIllustration() {
     return Container(
       height: 310,
@@ -313,73 +320,72 @@ Widget build(BuildContext context) {
     );
   }
 
- Widget _buildLoginForm() {
-  return FadeTransition(
-    opacity: _fadeAnimation,
-    child: Padding(
-      padding: const EdgeInsets.all(28),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, // 🔥 IMPORTANT
-          children: [
-
-            Center(
-              child: AppRichText.setTextPoppinsStyle(
-                context,
-                'Welcome Back!',
-                23,
-                AppColors.darkNavy,
-                FontWeight.w900,
-                1,
-                TextAlign.left,
-                0.0,
+  Widget _buildLoginForm() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, // 🔥 IMPORTANT
+            children: [
+              Center(
+                child: AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Welcome Back!',
+                  23,
+                  AppColors.darkNavy,
+                  FontWeight.w900,
+                  1,
+                  TextAlign.left,
+                  0.0,
+                ),
               ),
-            ),
 
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            Center(
-              child: AppRichText.setTextPoppinsStyle(
-                context,
-                'Sign in to continue learning',
-                13,
-                AppColors.greyS600,
-                FontWeight.normal,
-                1,
-                TextAlign.left,
-                0.0,
+              Center(
+                child: AppRichText.setTextPoppinsStyle(
+                  context,
+                  'Sign in to continue learning',
+                  13,
+                  AppColors.greyS600,
+                  FontWeight.normal,
+                  1,
+                  TextAlign.left,
+                  0.0,
+                ),
               ),
-            ),
 
-            const SizedBox(height: 25),
+              const SizedBox(height: 25),
 
-            _buildPhoneFields(),
+              _buildPhoneFields(),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            _buildLoginButton(),
+              _buildLoginButton(),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            _buildOrDivider(),
+              _buildOrDivider(),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            _buildSocialButtons(),
+              _buildSocialButtons(),
 
-            const SizedBox(height: 30), // 🔥 Spacer हटाया
+              const SizedBox(height: 30), // 🔥 Spacer हटाया
 
-            _buildSignUpPrompt(),
+              _buildSignUpPrompt(),
 
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildPhoneFields() {
     return Column(

@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontWeight: FontWeight.w500,
                 fontFamily: 'Poppins',
               ),
-              child: Text(label),
+              child: TranslatedText(label),
             ),
           ],
         ),
@@ -239,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
   //           Icon(icon, color: isSelected ? Colors.white : AppColors.greyS600, size: isSelected ? 26 : 24),
   //           if (isSelected) ...[
   //             SizedBox(width: 8),
-  //             Text(
+  //             TranslatedText(
   //               label,
   //               style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
   //             ),
@@ -274,14 +274,14 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 20),
 
             // Title
-            const Text(
+            const TranslatedText(
               'Exit App',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF003161)),
             ),
             const SizedBox(height: 12),
 
             // Message
-            Text(
+            TranslatedText(
               'Are you sure you want to exit TazaQuiz?',
               style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
               textAlign: TextAlign.center,
@@ -299,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       side: BorderSide(color: Colors.grey[300]!),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: Text(
+                    child: TranslatedText(
                       'Cancel',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
                     ),
@@ -318,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       elevation: 0,
                     ),
-                    child: const Text(
+                    child: const TranslatedText(
                       'Exit',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                     ),

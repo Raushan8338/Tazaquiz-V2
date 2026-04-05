@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
@@ -257,7 +258,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               )
               : Padding(
                 padding: const EdgeInsets.all(10),
-                child: Text(isMockTest ? '📝' : '⚡', style: const TextStyle(fontSize: 20)),
+                child: TranslatedText(isMockTest ? '📝' : '⚡', style: const TextStyle(fontSize: 20)),
               ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +272,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               fontFamily: 'Poppins',
             ),
           ),
-          Text(
+          TranslatedText(
             '${_filtered.length} ${isMockTest ? 'tests' : 'quizzes'} available',
             style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
           ),
@@ -414,7 +415,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           child: const Icon(Icons.filter_list, color: Colors.white, size: 20),
                         ),
                         const SizedBox(width: 12),
-                        const Text(
+                        const TranslatedText(
                           'Filter Quizzes',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                         ),
@@ -454,7 +455,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    TranslatedText(
                                       f['title'] as String,
                                       style: TextStyle(
                                         fontSize: 14,
@@ -463,7 +464,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    Text(
+                                    TranslatedText(
                                       f['subtitle'] as String,
                                       style: TextStyle(fontSize: 11, color: AppColors.greyS600),
                                     ),
@@ -491,7 +492,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
-                          child: Text(
+                          child: TranslatedText(
                             'Apply Filter',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
@@ -553,7 +554,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 border: sel ? null : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
               ),
               child: Center(
-                child: Text(
+                child: TranslatedText(
                   cat.name,
                   style: TextStyle(
                     fontSize: 12,
@@ -612,7 +613,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                   ? const Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
                     child: Center(
-                      child: Text('✅ All quizzes loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      child: TranslatedText('✅ All quizzes loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
                     ),
                   )
                   : const SizedBox(height: 80),
@@ -664,7 +665,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        TranslatedText(
                           quiz.title,
                           style: const TextStyle(
                             fontSize: 13,
@@ -677,7 +678,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         ),
                         if (quiz.description.isNotEmpty) ...[
                           const SizedBox(height: 3),
-                          Text(
+                          TranslatedText(
                             quiz.description,
                             style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1.4),
                             maxLines: 1,
@@ -718,7 +719,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                                 size: 14,
                               ),
                               const SizedBox(width: 5),
-                              Text(
+                              TranslatedText(
                                 _btnText(quiz, isLiveAny, isJoinNow, isResume, isMissed, locked),
                                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
                               ),
@@ -744,7 +745,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           children: [
                             Icon(Icons.check_circle_outline, size: 11, color: colors[1]),
                             const SizedBox(width: 4),
-                            Text(
+                            TranslatedText(
                               'Attempted',
                               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.greyS600),
                             ),
@@ -860,7 +861,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.5),
                   ),
                   child: Center(
-                    child: Text(
+                    child: TranslatedText(
                       isMockTest
                           ? '📝'
                           : isMissed
@@ -934,7 +935,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
             ),
           if (icon != null)
             Padding(padding: const EdgeInsets.only(right: 3), child: Icon(icon, size: 7, color: Colors.white)),
-          Text(
+          TranslatedText(
             label,
             style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.3),
           ),
@@ -976,7 +977,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
         children: [
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 3),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+          TranslatedText(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
         ],
       ),
     );
@@ -993,12 +994,12 @@ class _QuizListScreenState extends State<QuizListScreen> {
             color: AppColors.greyS600.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
-          Text(
+          TranslatedText(
             isMockTest ? 'Koi Mock Test nahi mila' : 'No quizzes found',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.greyS600),
           ),
           const SizedBox(height: 6),
-          Text('Try a different category', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
+          TranslatedText('Try a different category', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
         ],
       ),
     );

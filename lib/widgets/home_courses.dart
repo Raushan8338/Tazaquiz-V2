@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/course_item_modal.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
@@ -45,7 +46,7 @@ class Home_courses extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
+                  TranslatedText(
                     '📚 Exam crack karo, aaj hi shuru karo!',
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.tealGreen),
                   ),
@@ -65,7 +66,7 @@ class Home_courses extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      TranslatedText(
                         'View All',
                         style: TextStyle(fontSize: 11, color: AppColors.tealGreen, fontWeight: FontWeight.w700),
                       ),
@@ -169,7 +170,7 @@ class Home_courses extends StatelessWidget {
                                     color: AppColors.lightGold,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Text(
+                                  child: TranslatedText(
                                     'BESTSELLER',
                                     style: TextStyle(
                                       fontSize: 7,
@@ -190,7 +191,7 @@ class Home_courses extends StatelessWidget {
                                     color: isFree ? Colors.green.shade500 : Colors.orange.shade600,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Text(
+                                  child: TranslatedText(
                                     isFree ? '🎁 FREE' : 'PAID',
                                     style: const TextStyle(
                                       fontSize: 7,
@@ -211,7 +212,7 @@ class Home_courses extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               /// Course name
-                              Text(
+                              TranslatedText(
                                 course.courseName,
                                 style: TextStyle(
                                   fontSize: 13,
@@ -225,7 +226,7 @@ class Home_courses extends StatelessWidget {
                               const SizedBox(height: 4),
 
                               /// Description
-                              Text(
+                              TranslatedText(
                                 course.description,
                                 style: TextStyle(
                                   fontSize: 10,
@@ -236,7 +237,7 @@ class Home_courses extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 6),
 
                               /// Duration + arrow
                               Row(
@@ -246,7 +247,7 @@ class Home_courses extends StatelessWidget {
                                     children: [
                                       Icon(Icons.access_time_rounded, size: 11, color: AppColors.greyS600),
                                       const SizedBox(width: 4),
-                                      Text(
+                                      TranslatedText(
                                         course.duration,
                                         style: TextStyle(
                                           fontSize: 10,
@@ -258,7 +259,7 @@ class Home_courses extends StatelessWidget {
                                   ),
                                   Row(
                                     children: [
-                                      Text(
+                                      TranslatedText(
                                         'Details',
                                         style: TextStyle(
                                           fontSize: 10,

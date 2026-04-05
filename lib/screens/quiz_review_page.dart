@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -120,7 +121,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          TranslatedText(
             widget.pageType == 0 ? 'Quiz Review' : 'Mock Test Review',
             style: const TextStyle(
               color: Colors.white,
@@ -129,7 +130,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
               fontFamily: 'Poppins',
             ),
           ),
-          Text(
+          TranslatedText(
             widget.quizTitle,
             style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10, fontWeight: FontWeight.w500),
             maxLines: 1,
@@ -191,7 +192,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      TranslatedText(
                         '${scorePercent.toStringAsFixed(0)}%', // ✅ 14% dikhega
                         style: const TextStyle(
                           fontSize: 20,
@@ -200,7 +201,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                           fontFamily: 'Poppins',
                         ),
                       ),
-                      Text('Score', style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.7))),
+                      TranslatedText('Score', style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.7))),
                     ],
                   ),
                 ),
@@ -209,7 +210,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TranslatedText(
                         passed
                             ? '✅ ${widget.pageType == 0 ? 'Test Passed' : 'Mock Test Passed'}'
                             : '❌ ${widget.pageType == 0 ? 'Test Failed' : 'Mock Test Failed'}',
@@ -221,7 +222,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      TranslatedText(
                         attempt.quizTitle,
                         style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.7)),
                         maxLines: 2,
@@ -235,7 +236,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                           color: Colors.white.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
+                        child: TranslatedText(
                           'Passing: ${passingPercent.toStringAsFixed(0)}%  •  Yours: ${scorePercent.toStringAsFixed(0)}%',
                           style: TextStyle(
                             fontSize: 10,
@@ -253,7 +254,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                             color: Colors.redAccent.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
+                          child: TranslatedText(
                             '−${attempt.negativeDeducted.toStringAsFixed(1)} marks deducted  •  ${attempt.negativeMarkRate.toStringAsFixed(2)}/wrong',
                             style: const TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.w600),
                           ),
@@ -293,11 +294,11 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
       children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(height: 4),
-        Text(
+        TranslatedText(
           val,
           style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w900, fontFamily: 'Poppins'),
         ),
-        Text(label, style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.65))),
+        TranslatedText(label, style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.65))),
       ],
     );
   }
@@ -342,7 +343,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      TranslatedText(
                         f['label'] as String,
                         style: TextStyle(
                           fontSize: 11,
@@ -359,7 +360,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                             color: sel ? Colors.white.withOpacity(0.25) : c.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Text(
+                          child: TranslatedText(
                             '$cnt',
                             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: sel ? Colors.white : c),
                           ),
@@ -427,7 +428,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   height: 28,
                   decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(8)),
                   child: Center(
-                    child: Text(
+                    child: TranslatedText(
                       '${index + 1}',
                       style: const TextStyle(
                         fontSize: 12,
@@ -442,7 +443,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
 
                 // Question text
                 Expanded(
-                  child: Text(
+                  child: TranslatedText(
                     q.questionText,
                     style: const TextStyle(
                       fontSize: 13,
@@ -468,7 +469,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                     children: [
                       Icon(statusIcon, color: statusColor, size: 12),
                       const SizedBox(width: 3),
-                      Text(
+                      TranslatedText(
                         statusLabel,
                         style: TextStyle(
                           fontSize: 10,
@@ -529,7 +530,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
+                            child: TranslatedText(
                               opt.answerText,
                               style: TextStyle(
                                 fontSize: 12,
@@ -560,13 +561,13 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('💡', style: TextStyle(fontSize: 14)),
+                  const TranslatedText('💡', style: TextStyle(fontSize: 14)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        const TranslatedText(
                           'Explanation',
                           style: TextStyle(
                             fontSize: 11,
@@ -576,7 +577,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text(
+                        TranslatedText(
                           q.explanation,
                           style: const TextStyle(
                             fontSize: 11,
@@ -602,14 +603,14 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
               children: [
                 Icon(Icons.star_outline, size: 12, color: AppColors.greyS600),
                 const SizedBox(width: 4),
-                Text(
+                TranslatedText(
                   'Marks: +${q.marks.toStringAsFixed(0)}',
                   style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
                 ),
                 // ✅ attempt level se negative rate lo
                 if (_data!.attempt.negativeMarkRate > 0) ...[
                   const SizedBox(width: 10),
-                  Text(
+                  TranslatedText(
                     '-${_data!.attempt.negativeMarkRate.toStringAsFixed(2)} negative',
                     style: const TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.w500),
                   ),
@@ -618,7 +619,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                 if (q.timeSpent > 0) ...[
                   Icon(Icons.timer_outlined, size: 12, color: AppColors.greyS600),
                   const SizedBox(width: 3),
-                  Text(
+                  TranslatedText(
                     '${q.timeSpent}s',
                     style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
                   ),
@@ -640,7 +641,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
         children: [
           Icon(Icons.quiz_outlined, size: 56, color: AppColors.greyS400),
           const SizedBox(height: 12),
-          Text(
+          TranslatedText(
             'No questions in this filter',
             style: TextStyle(fontSize: 14, color: AppColors.greyS600, fontWeight: FontWeight.w600),
           ),
@@ -656,7 +657,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
         children: [
           Icon(Icons.error_outline, size: 56, color: Colors.redAccent),
           const SizedBox(height: 12),
-          const Text(
+          const TranslatedText(
             'Failed to load review',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkNavy),
           ),
@@ -666,7 +667,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(color: AppColors.tealGreen, borderRadius: BorderRadius.circular(8)),
-              child: const Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              child: const TranslatedText('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
             ),
           ),
         ],

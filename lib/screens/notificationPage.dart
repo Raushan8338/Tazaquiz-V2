@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -130,7 +131,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           ),
         ),
         leading: AppButton.setBackIcon(context, () => Navigator.pop(context), AppColors.white),
-        title: const Text(
+        title: const TranslatedText(
           'Notifications',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: 0.3),
         ),
@@ -168,7 +169,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             ? const Padding(
                               padding: EdgeInsets.symmetric(vertical: 20),
                               child: Center(
-                                child: Text(
+                                child: TranslatedText(
                                   '✅ All notifications loaded',
                                   style: TextStyle(color: Colors.grey, fontSize: 12),
                                 ),
@@ -227,7 +228,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Expanded(
-                                              child: Text(
+                                              child: TranslatedText(
                                                 n.subject,
                                                 style: const TextStyle(
                                                   fontSize: 14,
@@ -246,7 +247,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                                 color: iconColor.withOpacity(0.1),
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
-                                              child: Text(
+                                              child: TranslatedText(
                                                 n.createdBy.toUpperCase(),
                                                 style: TextStyle(
                                                   fontSize: 9,
@@ -259,7 +260,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                           ],
                                         ),
                                         const SizedBox(height: 6),
-                                        Text(
+                                        TranslatedText(
                                           n.message,
                                           style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280), height: 1.5),
                                           maxLines: 3,
@@ -270,7 +271,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                           children: [
                                             Icon(Icons.access_time_rounded, size: 12, color: Colors.grey.shade400),
                                             const SizedBox(width: 4),
-                                            Text(
+                                            TranslatedText(
                                               _formatNotifDate(n.datetime),
                                               style: TextStyle(
                                                 fontSize: 11,
@@ -307,12 +308,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
             child: const Icon(Icons.notifications_off_outlined, size: 48, color: Color(0xFF0D6E6E)),
           ),
           const SizedBox(height: 16),
-          const Text(
+          const TranslatedText(
             'No Notifications',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF1A1A2E)),
           ),
           const SizedBox(height: 6),
-          const Text('You\'re all caught up!', style: TextStyle(fontSize: 13, color: Colors.grey)),
+          const TranslatedText('You\'re all caught up!', style: TextStyle(fontSize: 13, color: Colors.grey)),
         ],
       ),
     );

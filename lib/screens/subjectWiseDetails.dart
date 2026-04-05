@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
@@ -120,7 +121,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
   //   if (responseFuture.statusCode == 200) {
   //     final responseData = responseFuture.data;
   //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text(responseData["status"] == "success" ? "Bookmark added" : "Bookmark failed")),
+  //       SnackBar(content: TranslatedText(responseData["status"] == "success" ? "Bookmark added" : "Bookmark failed")),
   //     );
   //   } else {}
   //   if (!mounted) return;
@@ -187,7 +188,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                       ),
                       SizedBox(width: 14),
                       Expanded(
-                        child: Text(
+                        child: TranslatedText(
                           'Study Materials',
                           style: TextStyle(
                             fontSize: 17,
@@ -252,7 +253,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                 ],
               ),
               child: Center(
-                child: Text(
+                child: TranslatedText(
                   category.name,
                   style: TextStyle(
                     fontSize: 13,
@@ -274,7 +275,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
     }
 
     if (_studyMaterials_new.isEmpty) {
-      return const SliverToBoxAdapter(child: Center(child: Text('No study material found')));
+      return const SliverToBoxAdapter(child: Center(child: TranslatedText('No study material found')));
     }
 
     return SliverList(
@@ -404,7 +405,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                               children: [
                                 Icon(Icons.workspace_premium_rounded, size: 14, color: Colors.amber[700]),
                                 SizedBox(width: 4),
-                                Text(
+                                TranslatedText(
                                   'PREMIUM',
                                   style: TextStyle(
                                     fontSize: 10,
@@ -448,7 +449,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                             color: _getSubjectColor(subjectName),
                           ),
                           SizedBox(width: 4),
-                          Text(
+                          TranslatedText(
                             material.contentType.toUpperCase(),
                             style: TextStyle(
                               fontSize: 11,
@@ -472,7 +473,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
-                  Text(
+                  TranslatedText(
                     material.title,
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.darkNavy, height: 1.3),
                     maxLines: 2,
@@ -494,7 +495,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
+                        child: TranslatedText(
                           subjectName,
                           style: TextStyle(
                             fontSize: 11,
@@ -507,7 +508,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                       Icon(Icons.person_outline_rounded, size: 14, color: AppColors.greyS500),
                       SizedBox(width: 4),
                       Expanded(
-                        child: Text(
+                        child: TranslatedText(
                           material.coaching_name,
                           style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
@@ -549,7 +550,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   //         children: [
                   //           Icon(Icons.star_rounded, size: 14, color: Colors.amber[700]),
                   //           SizedBox(width: 3),
-                  //           Text(
+                  //           TranslatedText(
                   //             '${material.rating}',
                   //             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
                   //           ),
@@ -583,7 +584,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   //               Row(
                   //                 crossAxisAlignment: CrossAxisAlignment.start,
                   //                 children: [
-                  //                   Text(
+                  //                   TranslatedText(
                   //                     '₹',
                   //                     style: TextStyle(
                   //                       fontSize: 16,
@@ -593,7 +594,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   //                     ),
                   //                   ),
                   //                   SizedBox(width: 2),
-                  //                   Text(
+                  //                   TranslatedText(
                   //                     '${material.price ?? '0.0'}',
                   //                     style: TextStyle(
                   //                       fontSize: 16,
@@ -654,7 +655,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                   //               children: [
                   //                 Icon(Icons.shopping_bag_rounded, size: 18, color: AppColors.white),
                   //                 SizedBox(width: 6),
-                  //                 Text(
+                  //                 TranslatedText(
                   //                   'Enroll Now',
                   //                   style: TextStyle(
                   //                     fontSize: 14,
@@ -724,7 +725,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                           children: [
                             Icon(Icons.play_circle_rounded, size: 20, color: AppColors.white),
                             SizedBox(width: 8),
-                            Text(
+                            TranslatedText(
                               (material.isAccessible == true)
                                   ? 'Start Learning'
                                   : (material.is_premium == 0)
@@ -752,7 +753,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
                         children: [
                           Icon(Icons.access_time_rounded, size: 12, color: AppColors.greyS500),
                           SizedBox(width: 4),
-                          Text(
+                          TranslatedText(
                             'Updated ${material.createdAt}',
                             style: TextStyle(fontSize: 10, color: AppColors.greyS500, fontWeight: FontWeight.w500),
                           ),
@@ -791,7 +792,7 @@ class _SubjectContentPageState extends State<SubjectContentPage> with SingleTick
         children: [
           Icon(icon, size: 14, color: AppColors.tealGreen),
           SizedBox(width: 5),
-          Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.greyS700)),
+          TranslatedText(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.greyS700)),
         ],
       ),
     );

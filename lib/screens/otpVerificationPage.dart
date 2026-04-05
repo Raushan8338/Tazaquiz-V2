@@ -124,7 +124,17 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
 
   void _verifyOTP() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    String? fcmToken;
+
+    try {
+      // 🔥 SAFE TOKEN FETCH (non-blocking)
+      await Future.delayed(const Duration(seconds: 1));
+      fcmToken = await FirebaseMessaging.instance.getToken();
+      print("FCM TOKEN: $fcmToken");
+    } catch (e) {
+      print("FCM ERROR: $e");
+      fcmToken = null; // 👈 IMPORTANT
+    }
     String otp = _otpControllers.map((controller) => controller.text).join();
     if (otp.length == 6) {
       setState(() => _isLoading = true);

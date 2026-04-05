@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -243,9 +244,9 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('😕', style: TextStyle(fontSize: 40)),
+            const TranslatedText('😕', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 12),
-            Text(
+            TranslatedText(
               _error ?? 'Something went wrong',
               style: TextStyle(color: AppColors.greyS600, fontSize: 14),
               textAlign: TextAlign.center,
@@ -257,7 +258,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                 backgroundColor: AppColors.tealGreen,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: Text('Try Again', style: TextStyle(color: AppColors.white)),
+              child: TranslatedText('Try Again', style: TextStyle(color: AppColors.white)),
             ),
           ],
         ),
@@ -300,11 +301,11 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      const TranslatedText(
                         'Plans & Pricing',
                         style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.white),
                       ),
-                      Text(
+                      TranslatedText(
                         'Choose the best plan for your budget',
                         style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.65)),
                       ),
@@ -331,9 +332,9 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(num, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.white)),
+          TranslatedText(num, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.white)),
           const SizedBox(width: 5),
-          Text(label, style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.7))),
+          TranslatedText(label, style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.7))),
         ],
       ),
     );
@@ -364,24 +365,24 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
-                  child: const Text('🎁', style: TextStyle(fontSize: 22)),
+                  child: const TranslatedText('🎁', style: TextStyle(fontSize: 22)),
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    TranslatedText(
                       pkg.name,
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                     ),
-                    Text(pkg.billingLabel, style: TextStyle(fontSize: 11, color: AppColors.greyS500)),
+                    TranslatedText(pkg.billingLabel, style: TextStyle(fontSize: 11, color: AppColors.greyS500)),
                   ],
                 ),
                 const Spacer(),
                 if (isActive)
                   _activeBadge()
                 else
-                  Text(
+                  TranslatedText(
                     pkg.priceDisplay,
                     style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.darkNavy),
                   ),
@@ -410,7 +411,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                               children: [
                                 Icon(Icons.check_circle_rounded, color: AppColors.tealGreen, size: 16),
                                 const SizedBox(width: 6),
-                                Text(
+                                TranslatedText(
                                   '✓ Current Plan',
                                   style: TextStyle(
                                     fontSize: 12,
@@ -427,7 +428,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: AppColors.tealGreen.withOpacity(0.4)),
                               ),
-                              child: Text(
+                              child: TranslatedText(
                                 'Active ✓',
                                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.tealGreen),
                               ),
@@ -442,7 +443,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: Text(
+                        child: TranslatedText(
                           'Use Now',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.greyS600),
                         ),
@@ -504,18 +505,18 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                         color: AppColors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text('🚀', style: TextStyle(fontSize: 22)),
+                      child: const TranslatedText('🚀', style: TextStyle(fontSize: 22)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          TranslatedText(
                             pkg.name,
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
                           ),
-                          Text(
+                          TranslatedText(
                             pkg.billingLabel,
                             style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.7)),
                           ),
@@ -528,7 +529,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(20)),
-                        child: const Text(
+                        child: const TranslatedText(
                           '⭐ Most Popular',
                           style: TextStyle(
                             fontSize: 9,
@@ -557,7 +558,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                       child: child,
                     );
                   },
-                  child: Text(
+                  child: TranslatedText(
                     pkg.priceDisplay,
                     style: TextStyle(
                       fontSize: 42,
@@ -612,9 +613,9 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('🛒', style: TextStyle(fontSize: 14)),
+                          const TranslatedText('🛒', style: TextStyle(fontSize: 14)),
                           const SizedBox(width: 8),
-                          Text(
+                          TranslatedText(
                             'Buy Now — ${pkg.priceDisplay}',
                             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                           ),
@@ -672,18 +673,18 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.lightGold.withOpacity(0.25)),
                       ),
-                      child: const Text('👑', style: TextStyle(fontSize: 22)),
+                      child: const TranslatedText('👑', style: TextStyle(fontSize: 22)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          TranslatedText(
                             pkg.name,
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
                           ),
-                          Text(
+                          TranslatedText(
                             pkg.billingLabel,
                             style: TextStyle(fontSize: 11, color: AppColors.white.withOpacity(0.55)),
                           ),
@@ -699,7 +700,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                           border: Border.all(color: AppColors.lightGold.withOpacity(0.6)),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Text(
+                        child: const TranslatedText(
                           '👑 Best Value',
                           style: TextStyle(
                             fontSize: 9,
@@ -715,7 +716,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
+                    TranslatedText(
                       pkg.priceDisplay,
                       style: TextStyle(
                         fontSize: 40,
@@ -726,7 +727,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6, left: 6),
-                      child: Text(
+                      child: TranslatedText(
                         pkg.billingType == 'monthly' ? '/ month' : '/ ${pkg.validityDays} days',
                         style: TextStyle(
                           fontSize: 13,
@@ -760,7 +761,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                       children: [
                         Icon(Icons.workspace_premium, color: AppColors.lightGold, size: 16),
                         const SizedBox(width: 6),
-                        Text(
+                        TranslatedText(
                           '✓ Current Plan — Active',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.lightGold),
                         ),
@@ -803,9 +804,9 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('👑', style: TextStyle(fontSize: 16)),
+                          const TranslatedText('👑', style: TextStyle(fontSize: 16)),
                           const SizedBox(width: 8),
-                          Text(
+                          TranslatedText(
                             'Get Premium — ${pkg.priceDisplay}',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                           ),
@@ -832,7 +833,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.tealGreen.withOpacity(0.4)),
       ),
-      child: const Text(
+      child: const TranslatedText(
         '✓ Current Plan',
         style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.tealGreen, letterSpacing: 0.3),
       ),
@@ -847,7 +848,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.white.withOpacity(0.3)),
       ),
-      child: const Text(
+      child: const TranslatedText(
         '✓ Active',
         style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.white, letterSpacing: 0.3),
       ),
@@ -862,7 +863,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.lightGold.withOpacity(0.7)),
       ),
-      child: const Text(
+      child: const TranslatedText(
         '✓ Active',
         style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.lightGold, letterSpacing: 0.3),
       ),
@@ -885,7 +886,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
             children: [
               Icon(Icons.check_circle_rounded, color: AppColors.lightGold, size: 16),
               const SizedBox(width: 6),
-              Text(
+              TranslatedText(
                 '✓ Current Plan',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.white),
               ),
@@ -898,7 +899,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.lightGold.withOpacity(0.5)),
             ),
-            child: Text(
+            child: TranslatedText(
               'Active ✓',
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.lightGold),
             ),
@@ -932,7 +933,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
             children: [
               Icon(Icons.check_circle_rounded, color: AppColors.lightGold, size: 16),
               const SizedBox(width: 6),
-              Text(
+              TranslatedText(
                 course != null ? '✓ ${course.categoryName}' : '✓ Current Plan',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.white),
               ),
@@ -945,7 +946,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.lightGold.withOpacity(0.5)),
             ),
-            child: Text(
+            child: TranslatedText(
               'Active ✓',
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.lightGold),
             ),
@@ -968,18 +969,18 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('💡', style: TextStyle(fontSize: 18)),
+          const TranslatedText('💡', style: TextStyle(fontSize: 18)),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                const TranslatedText(
                   'How does the Basic Plan work?',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                TranslatedText(
                   'Pay ₹29 → Select one course (SSC/Banking/etc.) → That course unlocks forever! Get all mock tests, live quizzes and study material for that course.',
                   style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1.6),
                 ),
@@ -1017,10 +1018,10 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(icon, style: const TextStyle(fontSize: 20)),
+        TranslatedText(icon, style: const TextStyle(fontSize: 20)),
         const SizedBox(height: 4),
-        Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.darkNavy)),
-        Text(sub, style: TextStyle(fontSize: 10, color: AppColors.greyS500)),
+        TranslatedText(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.darkNavy)),
+        TranslatedText(sub, style: TextStyle(fontSize: 10, color: AppColors.greyS500)),
       ],
     );
   }
@@ -1042,7 +1043,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
               color: included ? AppColors.tealGreen.withOpacity(0.1) : AppColors.greyS200,
             ),
             child: Center(
-              child: Text(
+              child: TranslatedText(
                 included ? '✓' : '✕',
                 style: TextStyle(
                   fontSize: 10,
@@ -1053,7 +1054,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
             ),
           ),
           const SizedBox(width: 10),
-          Text(
+          TranslatedText(
             label,
             style: TextStyle(
               fontSize: 12.5,
@@ -1081,7 +1082,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
               color: included ? tickColor.withOpacity(0.18) : AppColors.white.withOpacity(0.07),
             ),
             child: Center(
-              child: Text(
+              child: TranslatedText(
                 included ? '✓' : '✕',
                 style: TextStyle(
                   fontSize: 10,
@@ -1093,7 +1094,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: TranslatedText(
               label,
               style: TextStyle(
                 fontSize: 12.5,
@@ -1168,7 +1169,7 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
+        content: TranslatedText(message, style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
         backgroundColor: AppColors.tealGreen,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1259,12 +1260,12 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TranslatedText(
                         widget.isPremium ? 'Select Your Course 👑' : 'Select Your Course 📋',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
                       ),
                       const SizedBox(height: 2),
-                      Text(
+                      TranslatedText(
                         widget.isPremium
                             ? 'All courses unlock · ${widget.pkg.validityDays} days validity'
                             : '1 course · ${widget.pkg.validityDays} days validity',
@@ -1299,7 +1300,7 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('👑', style: TextStyle(fontSize: 15)),
+                  const TranslatedText('👑', style: TextStyle(fontSize: 15)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: RichText(
@@ -1477,9 +1478,9 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(widget.isPremium ? '👑' : '✅', style: const TextStyle(fontSize: 16)),
+                        TranslatedText(widget.isPremium ? '👑' : '✅', style: const TextStyle(fontSize: 16)),
                         const SizedBox(width: 8),
-                        Text(
+                        TranslatedText(
                           _selected != null
                               ? '${_selected!.categoryName} · Pay ${widget.pkg.priceDisplay}'
                               : 'Select a Course First',
@@ -1497,7 +1498,7 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                TranslatedText(
                   widget.isPremium
                       ? '⚠️  All courses will unlock · Select your primary course'
                       : '⚠️  Cannot be changed once selected',
@@ -1507,7 +1508,7 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                 const SizedBox(height: 4),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Maybe Later', style: TextStyle(fontSize: 13, color: AppColors.greyS500)),
+                  child: TranslatedText('Maybe Later', style: TextStyle(fontSize: 13, color: AppColors.greyS500)),
                 ),
               ],
             ),
@@ -1522,14 +1523,14 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       child: Column(
         children: [
-          const Text('😕', style: TextStyle(fontSize: 40)),
+          const TranslatedText('😕', style: TextStyle(fontSize: 40)),
           const SizedBox(height: 12),
-          const Text(
+          const TranslatedText(
             'No courses selected',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
           ),
           const SizedBox(height: 6),
-          Text(
+          TranslatedText(
             'Please go to "My Courses" first and select your courses, then come back to activate.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: AppColors.greyS500, height: 1.5),
@@ -1545,7 +1546,7 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
                 children: [
                   Icon(Icons.add_circle_outline_rounded, size: 16, color: AppColors.white),
                   const SizedBox(width: 6),
-                  Text(
+                  TranslatedText(
                     'Go to My Courses',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.white),
                   ),
@@ -1563,9 +1564,9 @@ class _CourseSelectionSheetState extends State<_CourseSelectionSheet> {
       padding: const EdgeInsets.symmetric(vertical: 28),
       child: Column(
         children: [
-          const Text('🔍', style: TextStyle(fontSize: 32)),
+          const TranslatedText('🔍', style: TextStyle(fontSize: 32)),
           const SizedBox(height: 10),
-          Text(
+          TranslatedText(
             'No course found for "${_searchCtrl.text}"',
             style: TextStyle(fontSize: 13, color: AppColors.greyS500),
             textAlign: TextAlign.center,
@@ -1628,7 +1629,7 @@ class _SelectedCourseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
+                    TranslatedText(
                       course.categoryName,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -1641,7 +1642,7 @@ class _SelectedCourseCard extends StatelessWidget {
                     ),
                     if (course.description.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text(
+                      TranslatedText(
                         course.description,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/ads/rewarded_ad_service.dart';
@@ -221,7 +222,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     child: const Icon(Icons.lock_clock_rounded, color: Color(0xFFE65100), size: 38),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  const TranslatedText(
                     'Daily Limit Reached!',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0D1B3E)),
                   ),
@@ -232,7 +233,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99), height: 1.5),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  const TranslatedText(
                     'Come back tomorrow\nto attempt more! 🌅',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0D1B3E), height: 1.4),
@@ -250,7 +251,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       children: [
                         const Icon(Icons.timer_outlined, size: 15, color: Color(0xFFE65100)),
                         const SizedBox(width: 6),
-                        Text(
+                        TranslatedText(
                           'Resets in ${hoursLeft}h ${minsLeft}m',
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFE65100)),
                         ),
@@ -269,7 +270,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Okay, Got it!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                      child: const TranslatedText(
+                        'Okay, Got it!',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
                     ),
                   ),
                 ],
@@ -312,10 +316,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       builder:
           (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Access Required', style: TextStyle(fontWeight: FontWeight.w800)),
-            content: Text(message, style: const TextStyle(fontSize: 13)),
+            title: const TranslatedText('Access Required', style: TextStyle(fontWeight: FontWeight.w800)),
+            content: TranslatedText(message, style: const TextStyle(fontSize: 13)),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const TranslatedText('Cancel')),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _accent,
@@ -325,7 +329,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   Navigator.pop(ctx);
                   showResume ? _navigateToMockTest() : _handleSubscribe();
                 },
-                child: Text(buttonText),
+                child: TranslatedText(buttonText),
               ),
             ],
           ),
@@ -366,7 +370,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
             children: [
               CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_primary), strokeWidth: 3),
               const SizedBox(height: 16),
-              Text(
+              TranslatedText(
                 'Loading mock test...',
                 style: TextStyle(color: _primary.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500),
               ),
@@ -379,8 +383,8 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     if (_currentQuiz == null) {
       return Scaffold(
         backgroundColor: _bg,
-        appBar: AppBar(backgroundColor: _primary, title: const Text('Error')),
-        body: const Center(child: Text('Test not found')),
+        appBar: AppBar(backgroundColor: _primary, title: const TranslatedText('Error')),
+        body: const Center(child: TranslatedText('Test not found')),
       );
     }
 
@@ -535,7 +539,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  TranslatedText(
                     cfg.headline,
                     style: const TextStyle(
                       fontSize: _DS.fsSm,
@@ -545,7 +549,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
+                  TranslatedText(
                     cfg.locked ? _getLockedActionHint() : cfg.subLine,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -567,7 +571,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     decoration: BoxDecoration(shape: BoxShape.circle, color: cfg.statusColor),
                   ),
                   const SizedBox(width: 4),
-                  Text(
+                  TranslatedText(
                     cfg.statusLabel,
                     style: TextStyle(
                       fontSize: 9,
@@ -672,7 +676,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        TranslatedText(
                           'COURSE',
                           style: TextStyle(
                             fontSize: 9,
@@ -682,7 +686,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
+                        TranslatedText(
                           materialName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -708,7 +712,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       children: const [
                         Icon(Icons.menu_book_rounded, size: 10, color: _DS.gold),
                         SizedBox(width: 4),
-                        Text('Series', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _DS.gold)),
+                        TranslatedText(
+                          'Series',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _DS.gold),
+                        ),
                       ],
                     ),
                   ),
@@ -748,7 +755,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
+                TranslatedText(
                   _currentQuiz!.Category_name,
                   style: const TextStyle(
                     fontSize: 15,
@@ -777,7 +784,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                           children: const [
                             Icon(Icons.info_outline, size: 16, color: Color(0xFF00695C)),
                             SizedBox(width: 6),
-                            Text(
+                            TranslatedText(
                               "Notice",
                               style: TextStyle(
                                 fontSize: _DS.fsSm,
@@ -790,7 +797,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         const SizedBox(height: 6),
 
                         /// 📄 INSTRUCTION TEXT
-                        Text(
+                        TranslatedText(
                           'Test Name : ${_currentQuiz!.title}',
                           style: const TextStyle(
                             fontSize: _DS.fsSm,
@@ -803,7 +810,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         const SizedBox(height: 3),
 
                         /// 📄 INSTRUCTION TEXT
-                        Text(
+                        TranslatedText(
                           _currentQuiz!.instruction,
                           style: const TextStyle(
                             fontSize: _DS.fsSm,
@@ -831,7 +838,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       children: const [
                         Icon(Icons.check_circle_rounded, color: Color(0xFF2E7D32), size: 16),
                         SizedBox(width: 8),
-                        Text(
+                        TranslatedText(
                           'You have already attempted this test',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2E7D32)),
                         ),
@@ -944,12 +951,15 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TranslatedText(
                     value,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _primary, height: 1.1),
                   ),
                   const SizedBox(height: 3),
-                  Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w400)),
+                  TranslatedText(
+                    label,
+                    style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w400),
+                  ),
                 ],
               ),
             ),
@@ -1008,15 +1018,15 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       ),
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 18)),
+          TranslatedText(emoji, style: const TextStyle(fontSize: 18)),
           const SizedBox(height: 5),
-          Text(
+          TranslatedText(
             title,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _primary, height: 1.3),
           ),
           const SizedBox(height: 3),
-          Text(
+          TranslatedText(
             subtitle,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 8.5, color: AppColors.greyS600, fontWeight: FontWeight.w400, height: 1.3),
@@ -1067,7 +1077,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                 Icon(Icons.school_outlined, size: 14, color: _accent),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
+                  child: TranslatedText(
                     'Designed to simulate actual exam conditions — same pattern, same time pressure.',
                     style: TextStyle(fontSize: 11, color: _primary, fontWeight: FontWeight.w500, height: 1.4),
                   ),
@@ -1091,9 +1101,9 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
             child: Icon(icon, color: _primary, size: 15),
           ),
           const SizedBox(width: 11),
-          Text(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
+          TranslatedText(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
           const Spacer(),
-          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _primary)),
+          TranslatedText(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _primary)),
         ],
       ),
     );
@@ -1177,7 +1187,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                           children: [
                             Icon(badgeIcon, color: badgeColor, size: 14),
                             const SizedBox(width: 6),
-                            Text(
+                            TranslatedText(
                               badgeLabel,
                               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: badgeColor),
                             ),
@@ -1200,7 +1210,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       //       children: [
                       //         const Icon(Icons.library_books_rounded, size: 11, color: Colors.white),
                       //         const SizedBox(width: 6),
-                      //         Text(
+                      //         TranslatedText(
                       //           _currentQuiz!.Material_name,
                       //           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
                       //         ),
@@ -1211,7 +1221,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       // ],
 
                       // Headline
-                      Text(
+                      TranslatedText(
                         headline,
                         style: const TextStyle(
                           fontSize: 15,
@@ -1221,7 +1231,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
+                      TranslatedText(
                         subtitle,
                         style: TextStyle(
                           fontSize: 12,
@@ -1252,7 +1262,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                         decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2)),
                       ),
                       const SizedBox(width: 8),
-                      Text(
+                      TranslatedText(
                         'What you get with this subscription',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                       ),
@@ -1331,12 +1341,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              TranslatedText(
                                 'One subscription. Everything included.',
                                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                               ),
                               const SizedBox(height: 2),
-                              Text(
+                              TranslatedText(
                                 'Mock Tests + Full Mock Tests + PYPs + Study Material + Live Tests — all in one plan.',
                                 style: TextStyle(
                                   fontSize: 10,
@@ -1396,13 +1406,13 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                 child: Icon(item.icon, color: item.color, size: 16),
               ),
               const SizedBox(width: 6),
-              Text(item.emoji, style: const TextStyle(fontSize: 16)),
+              TranslatedText(item.emoji, style: const TextStyle(fontSize: 16)),
             ],
           ),
           const SizedBox(height: 8),
           Text(item.title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _primary, height: 1.2)),
           const SizedBox(height: 4),
-          Text(
+          TranslatedText(
             item.desc,
             style: TextStyle(fontSize: 9.5, color: AppColors.greyS600, fontWeight: FontWeight.w400, height: 1.4),
           ),
@@ -1480,7 +1490,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                       margin: const EdgeInsets.only(top: 1),
                       decoration: BoxDecoration(color: _primary, borderRadius: BorderRadius.circular(5)),
                       child: Center(
-                        child: Text(
+                        child: TranslatedText(
                           '${e.key + 1}',
                           style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
                         ),
@@ -1568,7 +1578,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
           child: Icon(icon, color: _primary, size: 15),
         ),
         const SizedBox(width: 9),
-        AppRichText.setTextPoppinsStyle(context, label, 13, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0),
+        Text(label, style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w700)),
       ],
     );
   }
@@ -1653,7 +1663,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
                   children: [
                     Icon(Icons.info_outline_rounded, size: 12, color: _primary.withOpacity(0.5)),
                     const SizedBox(width: 5),
-                    Text(
+                    TranslatedText(
                       'Timer starts as soon as the test begins',
                       style: TextStyle(fontSize: 10, color: _primary.withOpacity(0.6), fontWeight: FontWeight.w500),
                     ),

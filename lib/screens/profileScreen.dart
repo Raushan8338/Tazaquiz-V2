@@ -86,65 +86,84 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
   /// Aap yahan apni API call integrate karo.
   /// File ko multipart ya base64 mein bhejo — jo aapka backend accept kare.
   Future<void> _uploadProfileImage(File imageFile) async {
+    setState(() {
+      _isUploadingImage = true;
+      _profileImage = imageFile; // 👈 instant preview
+    });
+
     try {
-      // ── APNI API CALL YAHAN LAGAO ──────────────────────────
-      String user_ids = _user?.id.toString() ?? '';
+      String userId = _user?.id.toString() ?? '';
 
       final request = http.MultipartRequest('POST', Uri.parse('https://tazaquiz.com/profile_pic_update.php'));
-      request.fields['user_id'] = user_ids;
+
+      request.fields['user_id'] = userId;
       request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
       final response = await request.send();
-      print('Sending file path: ${imageFile.path}');
-      print('User ID: $user_ids');
-      print('Upload response status: ${response.statusCode}');
-      print('Upload response headers: ${response.headers}');
 
       if (response.statusCode == 200) {
         final body = await response.stream.bytesToString();
         final json = jsonDecode(body);
 
-        // existing user lo
-        final user = await SessionManager.getUser();
+        print("API RESPONSE: $json");
 
-        if (user != null) {
-          final Map<String, dynamic> userData = user.toJson();
+        /// ✅ Correct key
+        String newImage = json['file'] ?? '';
 
-          // update image
-          userData['profile_image'] = json['imageUrl'];
+        if (newImage.isNotEmpty) {
+          final user = await SessionManager.getUser();
 
-          // dobara save karo
-          await SessionManager.saveUser(UserModel.fromJson(userData));
+          if (user != null) {
+            final userData = user.toJson();
+
+            /// ✅ Only filename store
+            userData['profile_image'] = newImage;
+
+            final updatedUser = UserModel.fromJson(userData);
+
+            /// ✅ Save session
+            await SessionManager.saveUser(updatedUser);
+
+            /// ✅ Re-fetch (safe)
+            final refreshedUser = await SessionManager.getUser();
+            print("AFTER SAVE USER IMAGE: ${refreshedUser?.profileImage}");
+
+            /// ✅ SINGLE setState (IMPORTANT)
+            if (mounted) {
+              setState(() {
+                _user = refreshedUser ?? updatedUser;
+                _profileImage = null; // 👈 remove local → show network
+              });
+            }
+          }
         }
 
         if (mounted) {
-          setState(() {});
-
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Profile photo updated!'), backgroundColor: Color(0xFF00695C)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: TranslatedText('Profile photo updated!'), backgroundColor: Color(0xFF00695C)),
+          );
         }
+      } else {
+        throw Exception("Upload failed with status ${response.statusCode}");
       }
-      // ────────────────────────────────────────────────────────
-
-      // Simulate kiya hai — API lagane ke baad ye line hata do:
-      // await Future.delayed(const Duration(seconds: 1));
-      // if (mounted) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     const SnackBar(
-      //       content: Text('Profile photo updated! (API yahan connect karo)'),
-      //       backgroundColor: Color(0xFF00695C),
-      //     ),
-      //   );
-      // }
     } catch (e) {
+      print("UPLOAD ERROR: $e");
+
       if (mounted) {
+        setState(() {
+          _profileImage = null;
+        });
+
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red));
-        setState(() => _profileImage = null);
+        ).showSnackBar(SnackBar(content: TranslatedText('Upload failed: $e'), backgroundColor: Colors.red));
       }
     } finally {
-      if (mounted) setState(() => _isUploadingImage = false);
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
     }
   }
 
@@ -165,7 +184,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 ),
                 const Padding(
                   padding: EdgeInsets.only(bottom: 8),
-                  child: Text('Update Profile Photo', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: TranslatedText(
+                    'Update Profile Photo',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
                 ),
                 ListTile(
                   leading: Container(
@@ -176,7 +198,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                     ),
                     child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF00695C)),
                   ),
-                  title: const Text('Take Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: const TranslatedText('Take Photo', style: TextStyle(fontWeight: FontWeight.w600)),
                   onTap: () => Navigator.pop(context, ImageSource.camera),
                 ),
                 ListTile(
@@ -188,7 +210,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                     ),
                     child: const Icon(Icons.photo_library_rounded, color: Color(0xFF003161)),
                   ),
-                  title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: const TranslatedText('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
                   onTap: () => Navigator.pop(context, ImageSource.gallery),
                 ),
                 if (_profileImage != null)
@@ -201,7 +223,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       ),
                       child: const Icon(Icons.delete_rounded, color: Colors.red),
                     ),
-                    title: const Text('Remove Photo', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red)),
+                    title: const TranslatedText(
+                      'Remove Photo',
+                      style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red),
+                    ),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() => _profileImage = null);
@@ -270,12 +295,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
+                            TranslatedText(
                               _user?.username ?? 'Student',
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
                               overflow: TextOverflow.ellipsis,
                             ),
-                            Text(
+                            TranslatedText(
                               'Joined • ${formatMemberSince(_user?.createdAt)}',
                               style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
                             ),
@@ -299,6 +324,15 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInitials() {
+    return Center(
+      child: TranslatedText(
+        _getInitials(_user?.username),
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15),
       ),
     );
   }
@@ -334,44 +368,38 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       : null,
             ),
             child: ClipOval(
-              child:
-                  _isUploadingImage
-                      /// 🔄 LOADING
-                      ? Center(
-                        child: SizedBox(
-                          width: size * 0.4,
-                          height: size * 0.4,
-                          child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        ),
-                      )
-                      /// 📷 LOCAL IMAGE (just picked)
-                      : _profileImage != null
-                      ? Image.file(_profileImage!, fit: BoxFit.cover, width: size, height: size)
-                      /// 🌐 NETWORK IMAGE (session / DB)
-                      : (_user?.profileImage != null && _user!.profileImage!.isNotEmpty)
-                      ? Image.network(
-                        "https://tazaquiz.com/uploads/profile/${_user!.profileImage}?t=${DateTime.now().millisecondsSinceEpoch}",
-                        fit: BoxFit.cover,
-                        width: size,
-                        height: size,
+              child: SizedBox(
+                width: size,
+                height: size,
+                child:
+                    _isUploadingImage
+                        /// 🔄 LOADING
+                        ? const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        /// 📷 LOCAL IMAGE (instant preview)
+                        : _profileImage != null
+                        ? Image.file(_profileImage!, fit: BoxFit.cover, width: size, height: size)
+                        /// 🌐 NETWORK IMAGE
+                        : (_user?.profileImage != null && _user!.profileImage!.isNotEmpty)
+                        ? Image.network(
+                          "https://tazaquiz.com/uploads/profile/${_user!.profileImage}?t=${DateTime.now().millisecondsSinceEpoch}",
+                          fit: BoxFit.cover,
+                          width: size,
+                          height: size,
 
-                        /// ❌ ERROR fallback
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Text(
-                              _getInitials(_user?.username),
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: fontSize),
-                            ),
-                          );
-                        },
-                      )
-                      /// 👤 DEFAULT INITIALS
-                      : Center(
-                        child: Text(
-                          _getInitials(_user?.username),
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: fontSize),
-                        ),
-                      ),
+                          /// 🔄 Loading
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                          },
+
+                          /// ❌ ERROR fallback
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildInitials();
+                          },
+                        )
+                        /// 👤 DEFAULT INITIALS
+                        : _buildInitials(),
+              ),
             ),
           ),
 
@@ -419,7 +447,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
+                TranslatedText(
                   _user?.username ?? 'Student',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
                 ),
@@ -428,7 +456,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                   children: [
                     Icon(Icons.calendar_today_outlined, size: 11, color: Colors.white.withOpacity(0.7)),
                     const SizedBox(width: 4),
-                    Text(
+                    TranslatedText(
                       'Joined • ${formatMemberSince(_user?.createdAt)}',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.75),
@@ -466,7 +494,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                           style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(width: 3),
-                        Text(
+                        TranslatedText(
                           TranslationService.supportedLanguages[TranslationService
                                   .instance
                                   .currentLanguage]?['native'] ??
@@ -540,9 +568,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+              TranslatedText(
+                label,
+                style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+              ),
               const SizedBox(height: 2),
-              Text(
+              TranslatedText(
                 value,
                 maxLines: 2,
                 overflow: TextOverflow.visible,
@@ -722,7 +753,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF003161)),
                       ),
                       const SizedBox(height: 2),
-                      Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                      TranslatedText(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                     ],
                   ),
                 ),
@@ -758,7 +789,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               child: Icon(action.icon, color: action.color, size: 20),
             ),
             const SizedBox(height: 8),
-            Text(
+            TranslatedText(
               action.title,
               style: TextStyle(fontSize: 11, color: action.color, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
@@ -766,7 +797,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 3),
-            Text(
+            TranslatedText(
               action.subtitle,
               style: TextStyle(fontSize: 9, color: action.color.withOpacity(0.8), fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
@@ -848,7 +879,10 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           decoration: BoxDecoration(color: const Color(0xFF00695C), borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
-        Text(title, style: const TextStyle(fontSize: 17, color: Color(0xFF003161), fontWeight: FontWeight.w800)),
+        TranslatedText(
+          title,
+          style: const TextStyle(fontSize: 17, color: Color(0xFF003161), fontWeight: FontWeight.w800),
+        ),
       ],
     );
   }
@@ -881,7 +915,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TranslatedText(
                     title,
                     style: TextStyle(
                       fontSize: 14,
@@ -889,7 +923,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  TranslatedText(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                 ],
               ),
             ),
@@ -927,12 +961,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                     child: const Icon(Icons.logout_rounded, size: 40, color: Color(0xFFE53935)),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  const TranslatedText(
                     'Logout',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF003161)),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  TranslatedText(
                     'Are you sure you want to logout from your account?',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
                     textAlign: TextAlign.center,
@@ -948,7 +982,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                             side: BorderSide(color: Colors.grey.shade300),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          child: Text(
+                          child: TranslatedText(
                             'Cancel',
                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey.shade700),
                           ),
@@ -964,7 +998,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             elevation: 0,
                           ),
-                          child: const Text(
+                          child: const TranslatedText(
                             'Logout',
                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
                           ),

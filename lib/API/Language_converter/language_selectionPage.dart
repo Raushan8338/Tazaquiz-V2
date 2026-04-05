@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tazaquiznew/screens/splash.dart';
 import 'translation_service.dart';
 
 class LanguageSelectionPage extends StatefulWidget {
@@ -321,7 +322,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
           ),
           const SizedBox(height: 14),
           GestureDetector(
-            onTap: widget.onDone,
+            onTap: () => _showRestartDialog(context),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 15),
@@ -351,6 +352,94 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
           ),
         ],
       ),
+    );
+  }
+
+  void _showRestartDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (ctx) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(color: Color(0xFFE1F5EE), shape: BoxShape.circle),
+                    child: const Icon(Icons.translate_rounded, color: Color(0xFF0F6E56), size: 28),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Language Change',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'To apply the new language for First time, the app needs to restart. This process may take up to 5 Minutes. Please be patient and do not close the app .',
+                    style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.6),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(color: const Color(0xFFE1F5EE), borderRadius: BorderRadius.circular(10)),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: Color(0xFF0F6E56), size: 16),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Do not close the app — the restart will complete automatically.',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF085041), height: 1.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Restart Button
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.of(
+                        context,
+                      ).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => SplashScreen()), (route) => false);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF1D9E75), Color(0xFF5DCAA5)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.restart_alt_rounded, color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Restart App',
+                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
     );
   }
 }

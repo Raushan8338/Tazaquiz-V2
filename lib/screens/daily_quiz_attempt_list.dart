@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/models/daily_quiz_attempt_modal.dart';
@@ -149,7 +150,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             ),
           ),
         ),
-        title: const Text(
+        title: const TranslatedText(
           'Daily Quiz Result',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18, letterSpacing: 0.3),
         ),
@@ -189,7 +190,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             children: [
                               Container(width: 40, height: 1, color: Colors.grey.shade300),
                               const SizedBox(width: 10),
-                              Text(
+                              TranslatedText(
                                 'All caught up!',
                                 style: TextStyle(
                                   color: Colors.grey.shade400,
@@ -261,7 +262,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                           valueColor: AlwaysStoppedAnimation(gradeColor),
                                         ),
                                       ),
-                                      Text(
+                                      TranslatedText(
                                         '$pct%',
                                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: gradeColor),
                                       ),
@@ -282,7 +283,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                               color: Color(0xFF0D6E6E),
                                             ),
                                             const SizedBox(width: 5),
-                                            Text(
+                                            TranslatedText(
                                               _formatDate(a.quizDate),
                                               style: const TextStyle(
                                                 fontSize: 15,
@@ -311,7 +312,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                             color: _gradeBg(a.score, a.total),
                                             borderRadius: BorderRadius.circular(20),
                                           ),
-                                          child: Text(
+                                          child: TranslatedText(
                                             _grade(a.score, a.total),
                                             style: TextStyle(
                                               fontSize: 11,
@@ -358,7 +359,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
         children: [
           Icon(icon, size: 11, color: color),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+          TranslatedText(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -375,12 +376,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
             child: const Icon(Icons.quiz_outlined, size: 48, color: Color(0xFF0D6E6E)),
           ),
           const SizedBox(height: 20),
-          const Text(
+          const TranslatedText(
             'No Attempts Yet',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF1A1A2E)),
           ),
           const SizedBox(height: 8),
-          const Text(
+          const TranslatedText(
             'Complete a daily quiz to see\nyour results here.',
             style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
             textAlign: TextAlign.center,
@@ -403,7 +404,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
               child: const Icon(Icons.wifi_off_rounded, size: 40, color: Colors.red),
             ),
             const SizedBox(height: 16),
-            Text(
+            TranslatedText(
               _error ?? 'Something went wrong',
               style: const TextStyle(color: Colors.grey, fontSize: 14),
               textAlign: TextAlign.center,
@@ -416,7 +417,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
-              label: const Text('Try Again', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              label: const TranslatedText(
+                'Try Again',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
               onPressed: _onRefresh,
             ),
           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
@@ -403,13 +404,13 @@ class _TestSeriesDetailPageState extends State<TestSeriesDetailPage> with Single
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [Icon(Icons.quiz, size: 18), SizedBox(width: 8), Text('Quiz List')],
+              children: [Icon(Icons.quiz, size: 18), SizedBox(width: 8), TranslatedText('Quiz List')],
             ),
           ),
           Tab(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [Icon(Icons.library_books, size: 18), SizedBox(width: 8), Text('Materials')],
+              children: [Icon(Icons.library_books, size: 18), SizedBox(width: 8), TranslatedText('Materials')],
             ),
           ),
         ],

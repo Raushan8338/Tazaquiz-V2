@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/referal_list.dart' show ReferralListPage;
 import 'package:tazaquiznew/utils/richText.dart';
@@ -59,7 +60,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
           children: [
             const Icon(Icons.check_circle_rounded, color: AppColors.white, size: 20),
             const SizedBox(width: 10),
-            const Text(
+            const TranslatedText(
               'Code copied!',
               style: TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w600),
             ),
@@ -195,7 +196,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
                       backgroundColor: AppColors.white.withOpacity(0.2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: const Text(
+                    child: const TranslatedText(
                       'Check Referral List',
                       style: TextStyle(
                         fontFamily: 'Poppins',
@@ -273,7 +274,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
               children: [
                 Icon(Icons.tag_rounded, size: 14, color: AppColors.greyS700),
                 const SizedBox(width: 4),
-                Text(
+                TranslatedText(
                   'Your Referral Code',
                   style: TextStyle(
                     fontFamily: 'Poppins',
@@ -302,7 +303,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
                   // Decorative dots
                   _dotSep(),
                   const SizedBox(width: 12),
-                  Text(
+                  TranslatedText(
                     userId,
                     style: const TextStyle(
                       fontFamily: 'Poppins',
@@ -319,7 +320,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
             ),
 
             const SizedBox(height: 6),
-            Text(
+            TranslatedText(
               'Tap to copy and share with friends',
               style: TextStyle(fontFamily: 'Poppins', fontSize: 11, color: AppColors.greyS700.withOpacity(0.7)),
             ),
@@ -341,7 +342,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
                   children: const [
                     Icon(Icons.copy_rounded, color: AppColors.white, size: 18),
                     SizedBox(width: 8),
-                    Text(
+                    TranslatedText(
                       'Copy Code',
                       style: TextStyle(
                         fontFamily: 'Poppins',
@@ -382,7 +383,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const TranslatedText(
             'Share via',
             style: TextStyle(
               fontFamily: 'Poppins',
@@ -451,7 +452,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
               children: [
                 Icon(icon, size: 26, color: color),
                 const SizedBox(height: 6),
-                Text(
+                TranslatedText(
                   label,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
@@ -485,7 +486,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
               children: const [
                 Icon(Icons.info_outline_rounded, size: 18, color: AppColors.tealGreen),
                 SizedBox(width: 8),
-                Text(
+                TranslatedText(
                   'How It Works',
                   style: TextStyle(
                     fontFamily: 'Poppins',
@@ -529,7 +530,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
               height: 36,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               child: Center(
-                child: Text(
+                child: TranslatedText(
                   number,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
@@ -556,7 +557,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TranslatedText(
                   title,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
@@ -566,7 +567,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
+                TranslatedText(
                   subtitle,
                   style: TextStyle(
                     fontFamily: 'Poppins',

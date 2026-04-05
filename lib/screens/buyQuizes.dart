@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/ads/rewarded_ad_service.dart';
@@ -340,18 +341,18 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     child: const Icon(Icons.lock_clock_rounded, color: Color(0xFFE65100), size: 38),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  const TranslatedText(
                     'Daily Limit Reached!',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0D1B3E)),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
+                  const TranslatedText(
                     "You've already attempted 2 Quizzes today.",
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99), height: 1.5),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  const TranslatedText(
                     'Come back tomorrow\nto attempt more! 🌅',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0D1B3E), height: 1.4),
@@ -369,7 +370,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       children: [
                         const Icon(Icons.timer_outlined, size: 15, color: Color(0xFFE65100)),
                         const SizedBox(width: 6),
-                        Text(
+                        TranslatedText(
                           'Resets in ${hoursLeft}h ${minsLeft}m',
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFE65100)),
                         ),
@@ -388,7 +389,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Okay, Got it!', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                      child: const TranslatedText(
+                        'Okay, Got it!',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
                     ),
                   ),
                 ],
@@ -455,17 +459,17 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   child: Icon(Icons.lock_outline_rounded, color: _DS.red, size: 18),
                 ),
                 const SizedBox(width: 10),
-                const Text(
+                const TranslatedText(
                   'Access Required',
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: _DS.textPri),
                 ),
               ],
             ),
-            content: Text(message, style: const TextStyle(fontSize: 13.5, color: _DS.textSec, height: 1.5)),
+            content: TranslatedText(message, style: const TextStyle(fontSize: 13.5, color: _DS.textSec, height: 1.5)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel', style: TextStyle(color: _DS.textSec, fontSize: 13)),
+                child: TranslatedText('Cancel', style: TextStyle(color: _DS.textSec, fontSize: 13)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -479,7 +483,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   Navigator.pop(ctx);
                   showResume ? _navigateToQuiz() : _handleSubscribe();
                 },
-                child: Text(buttonText, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                child: TranslatedText(buttonText, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
               ),
             ],
           ),
@@ -572,7 +576,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             ),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
+          title: const TranslatedText(
             'Test Details',
             style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
           ),
@@ -587,7 +591,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(_DS.teal), strokeWidth: 2.5),
               ),
               const SizedBox(height: 14),
-              const Text(
+              const TranslatedText(
                 'Loading test details...',
                 style: TextStyle(color: _DS.textSec, fontSize: _DS.fsMd, fontWeight: FontWeight.w500),
               ),
@@ -708,7 +712,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: const TranslatedText(
           'Test Details',
           style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
         ),
@@ -726,7 +730,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 child: Icon(errorIcon, size: 40, color: iconColor),
               ),
               const SizedBox(height: 24),
-              Text(
+              TranslatedText(
                 headline,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
@@ -737,7 +741,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
+              TranslatedText(
                 subtext,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
@@ -761,7 +765,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   ),
                   onPressed: _getUserData,
                   icon: const Icon(Icons.refresh_rounded, size: 20),
-                  label: const Text(
+                  label: const TranslatedText(
                     'Try Again',
                     style: TextStyle(fontSize: _DS.fsLg, fontWeight: FontWeight.w800, letterSpacing: 0.2),
                   ),
@@ -779,7 +783,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     ),
                   ),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
+                  child: const TranslatedText(
                     'Go Back',
                     style: TextStyle(fontSize: _DS.fsMd, color: _DS.textSec, fontWeight: FontWeight.w600),
                   ),
@@ -809,7 +813,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         ),
         onPressed: () => Navigator.pop(context),
       ),
-      title: Text(
+      title: TranslatedText(
         _currentQuiz?.title ?? '',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -964,7 +968,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  TranslatedText(
                     cfg.headline,
                     style: const TextStyle(
                       fontSize: _DS.fsSm,
@@ -974,7 +978,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
+                  TranslatedText(
                     cfg.locked ? _getLockedActionHint() : cfg.subLine,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -996,7 +1000,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     decoration: BoxDecoration(shape: BoxShape.circle, color: cfg.statusColor),
                   ),
                   const SizedBox(width: 4),
-                  Text(
+                  TranslatedText(
                     cfg.statusLabel,
                     style: TextStyle(
                       fontSize: 9,
@@ -1054,7 +1058,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           ),
           const SizedBox(width: 10),
           const Expanded(
-            child: Text(
+            child: TranslatedText(
               'LIVE NOW — Join immediately, test has started!',
               style: TextStyle(color: Colors.white, fontSize: _DS.fsMd, fontWeight: FontWeight.w700),
             ),
@@ -1062,7 +1066,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.22), borderRadius: BorderRadius.circular(8)),
-            child: const Text(
+            child: const TranslatedText(
               'JOIN',
               style: TextStyle(
                 color: Colors.white,
@@ -1096,7 +1100,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           const Icon(Icons.assignment_late_outlined, color: Colors.white, size: 20),
           const SizedBox(width: 10),
           const Expanded(
-            child: Text(
+            child: TranslatedText(
               'Quiz expired — attempt it now as an Assessment!',
               style: TextStyle(color: Colors.white, fontSize: _DS.fsMd, fontWeight: FontWeight.w700),
             ),
@@ -1104,7 +1108,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.22), borderRadius: BorderRadius.circular(8)),
-            child: const Text(
+            child: const TranslatedText(
               'ATTEMPT',
               style: TextStyle(
                 color: Colors.white,
@@ -1157,7 +1161,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        TranslatedText(
                           'COURSE',
                           style: TextStyle(
                             fontSize: 9,
@@ -1167,7 +1171,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
+                        TranslatedText(
                           materialName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1193,7 +1197,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       children: [
                         const Icon(Icons.menu_book_rounded, size: 10, color: _DS.gold),
                         const SizedBox(width: 4),
-                        const Text(
+                        const TranslatedText(
                           'Series',
                           style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _DS.gold),
                         ),
@@ -1234,7 +1238,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 ),
                 const SizedBox(height: 12),
 
-                Text(
+                TranslatedText(
                   _currentQuiz!.Category_name,
                   style: const TextStyle(
                     fontSize: 15,
@@ -1264,7 +1268,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                           children: const [
                             Icon(Icons.info_outline, size: 16, color: Color(0xFF00695C)),
                             SizedBox(width: 6),
-                            Text(
+                            TranslatedText(
                               "Notice",
                               style: TextStyle(
                                 fontSize: _DS.fsSm,
@@ -1277,7 +1281,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                         const SizedBox(height: 6),
 
                         /// 📄 INSTRUCTION TEXT
-                        Text(
+                        TranslatedText(
                           'Test Name : ${_currentQuiz!.title}',
                           style: const TextStyle(
                             fontSize: _DS.fsSm,
@@ -1290,7 +1294,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                         const SizedBox(height: 3),
 
                         /// 📄 INSTRUCTION TEXT
-                        Text(
+                        TranslatedText(
                           _currentQuiz!.instruction,
                           style: const TextStyle(
                             fontSize: _DS.fsSm,
@@ -1321,7 +1325,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                           children: [
                             const Icon(Icons.schedule_rounded, color: Color(0xFFB45309), size: 14),
                             const SizedBox(width: 7),
-                            Text(
+                            TranslatedText(
                               _getCountdownLabel(),
                               style: const TextStyle(
                                 fontSize: _DS.fsMd,
@@ -1331,7 +1335,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                             ),
                           ],
                         ),
-                        Text(
+                        TranslatedText(
                           _getCountdownText(),
                           style: const TextStyle(
                             fontSize: _DS.fsLg,
@@ -1365,7 +1369,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         children: [
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.3)),
+          TranslatedText(
+            label,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.3),
+          ),
         ],
       ),
     );
@@ -1452,12 +1459,15 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TranslatedText(
                     value,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _primary, height: 1.1),
                   ),
                   const SizedBox(height: 3),
-                  Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w400)),
+                  TranslatedText(
+                    label,
+                    style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontWeight: FontWeight.w400),
+                  ),
                 ],
               ),
             ),
@@ -1559,7 +1569,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                           children: [
                             Icon(badgeIcon, color: badgeColor, size: 14),
                             const SizedBox(width: 6),
-                            Text(
+                            TranslatedText(
                               badgeLabel,
                               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: badgeColor),
                             ),
@@ -1582,7 +1592,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       //       children: [
                       //         const Icon(Icons.library_books_rounded, size: 11, color: Colors.white),
                       //         const SizedBox(width: 6),
-                      //         Text(
+                      //         TranslatedText(
                       //           _currentQuiz!.Material_name,
                       //           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
                       //         ),
@@ -1593,7 +1603,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       // ],
 
                       // Headline
-                      Text(
+                      TranslatedText(
                         headline,
                         style: const TextStyle(
                           fontSize: 15,
@@ -1603,7 +1613,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
+                      TranslatedText(
                         subtitle,
                         style: TextStyle(
                           fontSize: 12,
@@ -1634,7 +1644,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                         decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2)),
                       ),
                       const SizedBox(width: 8),
-                      Text(
+                      TranslatedText(
                         'What you get with this subscription',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                       ),
@@ -1643,7 +1653,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   const SizedBox(height: 14),
 
                   // Benefits grid
-                  _buildBenefitGrid([
+                  _buildBenefitGrid(
+                    [
                     _BenefitItem(
                       emoji: '📝',
                       icon: Icons.assignment_rounded,
@@ -1713,12 +1724,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              TranslatedText(
                                 'One subscription. Everything included.',
                                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _primary),
                               ),
                               const SizedBox(height: 2),
-                              Text(
+                              TranslatedText(
                                 'Mock Tests + Full Mock Tests + PYPs + Study Material + Live Tests — all in one plan.',
                                 style: TextStyle(
                                   fontSize: 10,
@@ -1778,13 +1789,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 child: Icon(item.icon, color: item.color, size: 16),
               ),
               const SizedBox(width: 6),
-              Text(item.emoji, style: const TextStyle(fontSize: 16)),
+              TranslatedText(item.emoji, style: const TextStyle(fontSize: 16)),
             ],
           ),
           const SizedBox(height: 8),
           Text(item.title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _primary, height: 1.2)),
           const SizedBox(height: 4),
-          Text(
+          TranslatedText(
             item.desc,
             style: TextStyle(fontSize: 9.5, color: AppColors.greyS600, fontWeight: FontWeight.w400, height: 1.4),
           ),
@@ -1802,7 +1813,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           decoration: BoxDecoration(color: _DS.teal, borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
-        Text(label, style: _labelStyle.copyWith(fontSize: 10, color: _DS.textSec, letterSpacing: 0.6)),
+        TranslatedText(label, style: _labelStyle.copyWith(fontSize: 10, color: _DS.textSec, letterSpacing: 0.6)),
       ],
     );
   }
@@ -1829,11 +1840,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  TranslatedText(
                     label,
                     style: const TextStyle(fontSize: _DS.fsMd, color: _DS.textPri, fontWeight: FontWeight.w600),
                   ),
-                  Text(
+                  TranslatedText(
                     '$used / $total',
                     style: TextStyle(fontSize: _DS.fsMd, color: color, fontWeight: FontWeight.w700),
                   ),
@@ -1903,7 +1914,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       children: [
                         Icon(Icons.workspace_premium_rounded, color: _DS.gold, size: 13),
                         const SizedBox(width: 6),
-                        Text(
+                        TranslatedText(
                           'Upgrade Required',
                           style: TextStyle(fontSize: _DS.fsXs, fontWeight: FontWeight.w700, color: _DS.gold),
                         ),
@@ -1911,7 +1922,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
+                  TranslatedText(
                     message,
                     style: const TextStyle(
                       fontSize: _DS.fsXl,
@@ -1921,7 +1932,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Text(subtitle, style: TextStyle(fontSize: _DS.fsSm, color: Colors.white.withOpacity(0.7))),
+                  TranslatedText(subtitle, style: TextStyle(fontSize: _DS.fsSm, color: Colors.white.withOpacity(0.7))),
                 ],
               ),
             ),
@@ -1981,12 +1992,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TranslatedText(
                   title,
                   style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w700, color: _DS.textPri),
                 ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: _DS.fsXs, color: _DS.textSec, height: 1.35)),
+                TranslatedText(subtitle, style: const TextStyle(fontSize: _DS.fsXs, color: _DS.textSec, height: 1.35)),
               ],
             ),
           ),
@@ -2045,7 +2056,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 const Icon(Icons.school_outlined, size: 14, color: _DS.teal),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
+                  child: TranslatedText(
                     'Designed to simulate actual exam conditions — same pattern, same time pressure.',
                     style: TextStyle(fontSize: _DS.fsSm, color: _DS.textPri, fontWeight: FontWeight.w500, height: 1.4),
                   ),
@@ -2092,13 +2103,16 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             child: Icon(icon, color: color, size: 14),
           ),
           const SizedBox(width: 10),
-          Text(label, style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w600, color: _DS.textSec)),
+          TranslatedText(
+            label,
+            style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w600, color: _DS.textSec),
+          ),
           const Spacer(),
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
+              TranslatedText(
                 dateText,
                 style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w800, color: _DS.textPri),
               ),
@@ -2107,7 +2121,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: color.withOpacity(0.14), borderRadius: BorderRadius.circular(6)),
-                  child: Text(
+                  child: TranslatedText(
                     timeText,
                     style: TextStyle(fontSize: _DS.fsXs, fontWeight: FontWeight.w800, color: color),
                   ),
@@ -2129,7 +2143,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           child: Icon(icon, color: _DS.navy, size: 14),
         ),
         const SizedBox(width: 9),
-        Text(label, style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w700, color: _DS.textPri)),
+        TranslatedText(
+          label,
+          style: const TextStyle(fontSize: _DS.fsMd, fontWeight: FontWeight.w700, color: _DS.textPri),
+        ),
       ],
     );
   }
@@ -2144,7 +2161,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         children: [
           _buildSectionHead(Icons.description_outlined, 'About This Test'),
           const SizedBox(height: 12),
-          Text(
+          TranslatedText(
             _currentQuiz!.description,
             style: const TextStyle(fontSize: _DS.fsMd, color: _DS.textSec, fontWeight: FontWeight.w400, height: 1.65),
           ),
@@ -2175,7 +2192,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     final matches = liRegex.allMatches(text);
 
     if (matches.isEmpty) {
-      return Text(
+      return TranslatedText(
         _removeHtmlTags(text),
         style: const TextStyle(fontSize: _DS.fsMd, color: _DS.textSec, fontWeight: FontWeight.w400, height: 1.6),
       );
@@ -2201,7 +2218,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
+                    child: TranslatedText(
                       clean,
                       style: const TextStyle(
                         fontSize: _DS.fsMd,
@@ -2258,7 +2275,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           Icon(icon, size: 14, color: _DS.teal),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: TranslatedText(
               text,
               style: const TextStyle(fontSize: _DS.fsSm, color: _DS.textSec, fontWeight: FontWeight.w500, height: 1.4),
             ),
@@ -2351,7 +2368,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           icon: Icons.lock_clock_rounded,
           colors: [Colors.grey.shade500, Colors.grey.shade700],
           shadowColor: Colors.grey.withOpacity(0.2),
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This test has ended'))),
+          onTap:
+              () => ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: TranslatedText('This test has ended'))),
         );
     }
   }
@@ -2390,7 +2410,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   children: [
                     Icon(icon, color: Colors.white, size: 20),
                     const SizedBox(width: 9),
-                    Text(
+                    TranslatedText(
                       label,
                       style: const TextStyle(
                         fontSize: _DS.fsLg,
@@ -2434,11 +2454,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 children: [
                   const Icon(Icons.schedule_rounded, color: Color(0xFFB45309), size: 14),
                   const SizedBox(width: 7),
-                  Text(
+                  TranslatedText(
                     _getCountdownLabel(),
                     style: const TextStyle(fontSize: _DS.fsMd, color: Color(0xFFB45309), fontWeight: FontWeight.w500),
                   ),
-                  Text(
+                  TranslatedText(
                     _getCountdownText(),
                     style: const TextStyle(
                       fontSize: _DS.fsLg,
@@ -2465,7 +2485,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text("Reminder set! We'll notify you before the test starts."),
+                        content: const TranslatedText("Reminder set! We'll notify you before the test starts."),
                         backgroundColor: _DS.teal,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -2479,7 +2499,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       children: [
                         Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
                         SizedBox(width: 9),
-                        Text(
+                        TranslatedText(
                           'Remind Me',
                           style: TextStyle(
                             fontSize: _DS.fsLg,

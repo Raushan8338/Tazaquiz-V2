@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/models/daily_quiz_attempt_modal.dart';
@@ -108,7 +109,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
             ),
           ),
         ),
-        title: Text(
+        title: TranslatedText(
           'Daily Quiz Result - ' + _formatDate(widget.quizDate), // ✅ "Quiz – 2026-03-11" → "11 Mar 2026"
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
         ),
@@ -121,7 +122,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           isLoading
               ? const Center(child: CircularProgressIndicator(color: Color(0xFF0D6E6E)))
               : error != null
-              ? Center(child: Text(error!))
+              ? Center(child: TranslatedText(error!))
               : Column(
                 children: [
                   /// Score Summary Banner
@@ -185,7 +186,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                                       color: const Color(0xFF0D6E6E),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Text(
+                                    child: TranslatedText(
                                       'Q${index + 1}',
                                       style: const TextStyle(
                                         color: Colors.white,
@@ -196,7 +197,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
-                                    child: Text(
+                                    child: TranslatedText(
                                       d.question,
                                       style: const TextStyle(
                                         fontSize: 13,
@@ -264,7 +265,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                                                   : (isSelected ? Colors.red : Colors.grey.shade300),
                                         ),
                                         child: Center(
-                                          child: Text(
+                                          child: TranslatedText(
                                             key,
                                             style: TextStyle(
                                               fontSize: 11,
@@ -276,7 +277,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
-                                        child: Text(
+                                        child: TranslatedText(
                                           _optionText(d, key),
                                           style: TextStyle(
                                             fontSize: 12,
@@ -358,8 +359,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
       children: [
         Icon(icon, color: Colors.white, size: 20),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500)),
+        TranslatedText(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+        TranslatedText(label, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500)),
       ],
     );
   }

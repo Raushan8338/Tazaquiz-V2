@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -265,7 +266,7 @@ class _ReferralListPageState extends State<ReferralListPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      TranslatedText(
                         'Referred To',
                         style: TextStyle(
                           fontFamily: 'Poppins',
@@ -275,7 +276,7 @@ class _ReferralListPageState extends State<ReferralListPage> {
                         ),
                       ),
                       SizedBox(height: 2),
-                      Text(
+                      TranslatedText(
                         referral.name,
                         style: TextStyle(
                           fontFamily: 'Poppins',
@@ -297,7 +298,7 @@ class _ReferralListPageState extends State<ReferralListPage> {
               children: [
                 Icon(Icons.calendar_today, size: 14, color: AppColors.greyS700),
                 SizedBox(width: 8),
-                Text(
+                TranslatedText(
                   'Date: ',
                   style: TextStyle(
                     fontFamily: 'Poppins',
@@ -307,7 +308,7 @@ class _ReferralListPageState extends State<ReferralListPage> {
                   ),
                 ),
                 Expanded(
-                  child: Text(
+                  child: TranslatedText(
                     referral.datetime as String,
                     style: TextStyle(
                       fontFamily: 'Poppins',
@@ -330,7 +331,7 @@ class _ReferralListPageState extends State<ReferralListPage> {
                   children: [
                     Icon(statusIcon, size: 16, color: statusColor),
                     SizedBox(width: 8),
-                    Text(
+                    TranslatedText(
                       'Status: ',
                       style: TextStyle(
                         fontFamily: 'Poppins',
@@ -339,7 +340,7 @@ class _ReferralListPageState extends State<ReferralListPage> {
                         color: AppColors.greyS700,
                       ),
                     ),
-                    Text(
+                    TranslatedText(
                       statusText,
                       style: TextStyle(
                         fontFamily: 'Poppins',
@@ -357,7 +358,7 @@ class _ReferralListPageState extends State<ReferralListPage> {
                       color: AppColors.tealGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(
+                    child: TranslatedText(
                       '₹ 10',
                       style: TextStyle(
                         fontFamily: 'Poppins',

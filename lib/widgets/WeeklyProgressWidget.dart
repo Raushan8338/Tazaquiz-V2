@@ -161,7 +161,7 @@ class _WeeklyProgressWidgetState extends State<WeeklyProgressWidget> with Single
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(
+      child: TranslatedText(
         label,
         style: TextStyle(fontSize: 10, color: textColor, fontWeight: bold ? FontWeight.w800 : FontWeight.w600),
       ),

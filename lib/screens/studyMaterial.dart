@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
@@ -209,7 +210,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                     ),
                   ),
                 )
-                : const Text(
+                : const TranslatedText(
                   'Exam Courses',
                   style: TextStyle(
                     color: Colors.white,
@@ -260,9 +261,9 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: const [
-                    Text('📝', style: TextStyle(fontSize: 13)),
+                    TranslatedText('📝', style: TextStyle(fontSize: 13)),
                     SizedBox(width: 5),
-                    Text(
+                    TranslatedText(
                       'My Courses',
                       style: TextStyle(
                         color: Colors.white,
@@ -338,7 +339,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                 border: isSelected ? null : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
               ),
               child: Center(
-                child: Text(
+                child: TranslatedText(
                   cat.name,
                   style: TextStyle(
                     fontSize: 12,
@@ -366,12 +367,15 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
           children: [
             Icon(Icons.search_off_rounded, size: 64, color: AppColors.greyS600.withOpacity(0.4)),
             const SizedBox(height: 16),
-            Text(
+            TranslatedText(
               'No results for "$_searchQuery"',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.greyS600),
             ),
             const SizedBox(height: 6),
-            Text('Try a different keyword', style: TextStyle(fontSize: 12, color: AppColors.greyS600.withOpacity(0.6))),
+            TranslatedText(
+              'Try a different keyword',
+              style: TextStyle(fontSize: 12, color: AppColors.greyS600.withOpacity(0.6)),
+            ),
           ],
         ),
       );
@@ -397,7 +401,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Text(
+                child: TranslatedText(
                   '${items.length} result${items.length == 1 ? '' : 's'} for "$_searchQuery"',
                   style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontWeight: FontWeight.w500),
                 ),
@@ -450,7 +454,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                       ? const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Center(
-                          child: Text('✅ All items loaded', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          child: TranslatedText(
+                            '✅ All items loaded',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
                         ),
                       )
                       : const SizedBox(height: 80),
@@ -507,7 +514,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                   children: [
                     SizedBox(
                       height: 32,
-                      child: Text(
+                      child: TranslatedText(
                         material.title,
                         style: const TextStyle(
                           fontSize: 12,
@@ -520,7 +527,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    TranslatedText(
                       material.description,
                       style: TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1),
                       maxLines: 3,
@@ -538,7 +545,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
+                          TranslatedText(
                             'Explore',
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
@@ -592,7 +599,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
         children: [
           Icon(Icons.library_books_outlined, size: 64, color: AppColors.greyS600.withOpacity(0.4)),
           const SizedBox(height: 16),
-          Text(
+          TranslatedText(
             'No study material found',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.greyS600),
           ),

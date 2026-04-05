@@ -117,7 +117,9 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
       'attempt_id': question['attempt_id'] ?? 0,
       'question_ans_id': question['question_ans_id'] ?? 0,
       'question_id': question['question_id'] ?? 0,
+      'is_translation_allowed': question['is_translation_allowed'] ?? 0, // 0 or 1
     };
+    print('Current Question Data: $raw'); // ✅ Debug log
 
     setState(() {
       _currentQuestion = index;
@@ -230,6 +232,12 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     }
   }
 
+  /*************  ✨ Windsurf Command ⭐  *************/
+  /// Increment the current question index and reset the selected option and answered state.
+  /// If the current question index is less than the total number of questions - 1, then
+  /// set the next question from the list of questions and start the timer with the
+  /// per question time. Otherwise, show the result dialog.
+  /*******  28b4a011-fce8-46a7-8602-04ed9f363e0a  *******/
   void _nextQuestion() {
     if (_currentQuestion < totalQuestions - 1) {
       setState(() {
@@ -445,7 +453,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                     children: [
                       Icon(Icons.translate_rounded, size: 14, color: AppColors.white.withOpacity(0.9)),
                       const SizedBox(width: 8),
-                      Text(
+                      TranslatedText(
                         'Content Language:  $langNative',
                         style: TextStyle(
                           color: AppColors.white.withOpacity(0.9),
@@ -461,7 +469,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: AppColors.white.withOpacity(0.2)),
                         ),
-                        child: Text(
+                        child: TranslatedText(
                           'Change',
                           style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.w700),
                         ),
@@ -469,7 +477,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  TranslatedText(
                     'Changing language may take up to 40 seconds. Please wait.',
                     style: TextStyle(color: AppColors.white.withOpacity(0.7), fontSize: 10),
                   ),
@@ -713,29 +721,43 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             ],
           ),
           SizedBox(height: 10),
-          AppRichText.setTextPoppinsStyle(
-            context,
-            _translatedQuestionData['question'] ?? '',
-            15,
-            AppColors.darkNavy,
-            FontWeight.w700,
-            2,
-            TextAlign.left,
-            0.0,
-          ),
+          (_currentQuestionData['is_translation_allowed'] == '1')
+              ? AppRichText.setTextPoppinsStyle(
+                context,
+                _currentQuestionData['question'] ?? '', // 🔥 original
+                15,
+                AppColors.darkNavy,
+                FontWeight.w700,
+                2,
+                TextAlign.left,
+                0.0,
+              )
+              : AppRichText.setTextPoppinsStyle(
+                context,
+                _translatedQuestionData['question'] ?? '', // 🔥 translated
+                15,
+                AppColors.darkNavy,
+                FontWeight.w700,
+                2,
+                TextAlign.left,
+                0.0,
+              ),
         ],
       ),
     );
   }
 
   Widget _buildOptionsSection() {
+    final isTranslate = _currentQuestionData['is_translation_allowed'] == '0';
+
+    final options = isTranslate ? _translatedQuestionData['options'] : _currentQuestionData['options'];
+
     return Container(
       margin: EdgeInsets.all(16),
       child: Column(
         children: List.generate(
-          _translatedQuestionData['options'].length,
-          (index) =>
-              _buildOptionCard(String.fromCharCode(65 + index), _translatedQuestionData['options'][index], index),
+          options.length,
+          (index) => _buildOptionCard(String.fromCharCode(65 + index), options[index], index),
         ),
       ),
     );

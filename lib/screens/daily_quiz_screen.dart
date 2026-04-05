@@ -601,7 +601,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
                     children: [
                       Icon(Icons.translate_rounded, size: 14, color: AppColors.white.withOpacity(0.9)),
                       const SizedBox(width: 8),
-                      Text(
+                      TranslatedText(
                         'Content Language:  $langNative',
                         style: TextStyle(
                           color: AppColors.white.withOpacity(0.9),
@@ -617,7 +617,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: AppColors.white.withOpacity(0.2)),
                         ),
-                        child: Text(
+                        child: TranslatedText(
                           'Change',
                           style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.w700),
                         ),
@@ -627,7 +627,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
 
                   const SizedBox(height: 4),
 
-                  Text(
+                  TranslatedText(
                     'Changing language may take up to 40 seconds. Please wait.',
                     style: TextStyle(color: AppColors.white.withOpacity(0.7), fontSize: 10),
                   ),
@@ -1306,6 +1306,6 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
   }
 
   void _showSnackbar(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.red));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: TranslatedText(msg), backgroundColor: AppColors.red));
   }
 }

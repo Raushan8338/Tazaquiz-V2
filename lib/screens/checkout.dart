@@ -9,6 +9,7 @@ import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfupipayment.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
@@ -157,14 +158,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _showErrorSnackbar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: TranslatedText(message), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+    );
   }
 
   void _showSuccessSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.tealGreen, behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: TranslatedText(message),
+        backgroundColor: AppColors.tealGreen,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -361,7 +366,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       0.0,
                     ),
                     SizedBox(height: 16),
-                    ElevatedButton(onPressed: fetchCheckoutDetails, child: Text('Retry')),
+                    ElevatedButton(onPressed: fetchCheckoutDetails, child: TranslatedText('Retry')),
                   ],
                 ),
               )

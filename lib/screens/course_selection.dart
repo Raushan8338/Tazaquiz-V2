@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/API/api_endpoint.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
@@ -117,7 +118,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Courses updated successfully!'),
+            content: const TranslatedText('Courses updated successfully!'),
             backgroundColor: primaryTeal,
             behavior: SnackBarBehavior.floating,
           ),
@@ -128,7 +129,9 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: TranslatedText('Error: $e'), backgroundColor: Colors.red));
       }
     } finally {
       if (mounted) setState(() => _isUpdating = false);
@@ -148,7 +151,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
           icon: Icon(widget.pageId == 0 ? Icons.arrow_back : Icons.check, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: const TranslatedText(
           "Select Courses",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
         ),
@@ -206,7 +209,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                           child: Icon(Icons.school, color: primaryTeal, size: 18),
                         ),
                         const SizedBox(width: 10),
-                        Text(
+                        TranslatedText(
                           '$selectedCount Course${selectedCount != 1 ? 's' : ''} Selected',
                           style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.w600, fontSize: 14),
                         ),
@@ -224,7 +227,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                                 children: [
                                   Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
                                   const SizedBox(height: 16),
-                                  Text(
+                                  TranslatedText(
                                     _searchController.text.isEmpty ? 'No courses found' : 'No matching courses',
                                     style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
                                   ),
@@ -309,7 +312,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                                               children: [
                                                 // Course name
                                                 Expanded(
-                                                  child: Text(
+                                                  child: TranslatedText(
                                                     course.categoryName,
                                                     maxLines: 2,
                                                     overflow: TextOverflow.ellipsis,
@@ -389,7 +392,7 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                       children: [
                         const Icon(Icons.check_circle_outline, size: 20),
                         const SizedBox(width: 8),
-                        Text(
+                        TranslatedText(
                           selectedCount == 0
                               ? 'Select Courses to Update'
                               : 'Update $selectedCount Course${selectedCount > 1 ? 's' : ''}',

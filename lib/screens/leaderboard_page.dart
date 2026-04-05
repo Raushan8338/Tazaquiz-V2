@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -189,11 +190,11 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Trophy — smaller
-                        const Text('🏆', style: TextStyle(fontSize: 30)),
+                        const TranslatedText('🏆', style: TextStyle(fontSize: 30)),
                         const SizedBox(height: 6),
 
                         // Title
-                        Text(
+                        TranslatedText(
                           _pageTitle,
                           style: const TextStyle(
                             fontSize: 16,
@@ -216,7 +217,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(color: Colors.white.withOpacity(0.2)),
                             ),
-                            child: Text(
+                            child: TranslatedText(
                               'Your Rank: #${_data!.myRank}',
                               style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700),
                             ),
@@ -324,9 +325,9 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const [
-              Text('🏅', style: TextStyle(fontSize: 13)),
+              TranslatedText('🏅', style: TextStyle(fontSize: 13)),
               SizedBox(width: 6),
-              Text(
+              TranslatedText(
                 'Top Performers',
                 style: TextStyle(
                   fontSize: 13,
@@ -397,13 +398,13 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 1.5),
                 ),
-                child: Text(item.badge.icon, style: TextStyle(fontSize: isFirst ? 10 : 8)),
+                child: TranslatedText(item.badge.icon, style: TextStyle(fontSize: isFirst ? 10 : 8)),
               ),
             ),
           ],
         ),
         const SizedBox(height: 6),
-        Text(
+        TranslatedText(
           _short(item.username),
           style: TextStyle(
             fontSize: isFirst ? 11 : 10,
@@ -416,7 +417,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 2),
-        Text(_scoreStr(item), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: pc)),
+        TranslatedText(_scoreStr(item), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: pc)),
         const SizedBox(height: 6),
         Container(
           height: blockH,
@@ -430,7 +431,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
             border: Border.all(color: pc.withOpacity(0.2), width: 1.5),
           ),
           child: Center(
-            child: Text(
+            child: TranslatedText(
               '#${item.rank}',
               style: TextStyle(
                 fontSize: isFirst ? 20 : 15,
@@ -471,7 +472,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
               border: Border.all(color: AppColors.lightGold.withOpacity(0.4), width: 2),
             ),
             child: Center(
-              child: Text(
+              child: TranslatedText(
                 '#${item.rank}',
                 style: const TextStyle(
                   fontSize: 11,
@@ -503,7 +504,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TranslatedText(
                   item.username,
                   style: const TextStyle(
                     fontSize: 13,
@@ -514,14 +515,14 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text('Your Position', style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.6))),
+                TranslatedText('Your Position', style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.6))),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
+              TranslatedText(
                 _scoreStr(item),
                 style: const TextStyle(
                   fontSize: 18,
@@ -530,7 +531,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                   fontFamily: 'Poppins',
                 ),
               ),
-              Text(
+              TranslatedText(
                 _currentType == 'course' ? 'Avg Score' : 'Score',
                 style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.55)),
               ),
@@ -556,7 +557,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
         children: [
           Icon(Icons.people_outline, size: 14, color: AppColors.greyS600),
           const SizedBox(width: 5),
-          Text(
+          TranslatedText(
             '${_data?.total ?? 0} Players',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
           ),
@@ -564,7 +565,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
             const SizedBox(width: 14),
             Icon(Icons.emoji_events_outlined, size: 14, color: AppColors.tealGreen),
             const SizedBox(width: 4),
-            Text(
+            TranslatedText(
               'Rank: #${_data!.myRank}',
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.tealGreen),
             ),
@@ -592,7 +593,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
         children: [
           SizedBox(
             width: 34,
-            child: Text(
+            child: TranslatedText(
               '#${item.rank}',
               style: TextStyle(
                 fontSize: 12,
@@ -639,7 +640,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.grey.withOpacity(0.15)),
                   ),
-                  child: Text(item.badge.icon, style: const TextStyle(fontSize: 9)),
+                  child: TranslatedText(item.badge.icon, style: const TextStyle(fontSize: 9)),
                 ),
               ),
             ],
@@ -650,7 +651,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TranslatedText(
                   item.username + (isMe ? ' 👈' : ''),
                   style: TextStyle(
                     fontSize: 12,
@@ -662,7 +663,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(
+                TranslatedText(
                   'Correct: ${item.correctAnswers}/${item.totalAnswered}  •  ${item.timeTaken}',
                   style: TextStyle(fontSize: 10, color: AppColors.greyS600),
                 ),
@@ -673,7 +674,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
+              TranslatedText(
                 _scoreStr(item),
                 style: TextStyle(
                   fontSize: 15,
@@ -682,7 +683,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                   fontFamily: 'Poppins',
                 ),
               ),
-              Text(
+              TranslatedText(
                 _currentType == 'course' ? 'Avg' : 'Score',
                 style: TextStyle(fontSize: 9, color: AppColors.greyS600),
               ),
@@ -715,7 +716,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
       height: size,
       decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
       child: Center(
-        child: Text(
+        child: TranslatedText(
           ch,
           style: TextStyle(fontSize: size * 0.35, fontWeight: FontWeight.w800, color: color, fontFamily: 'Poppins'),
         ),
@@ -733,9 +734,9 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🏆', style: TextStyle(fontSize: 52)),
+          const TranslatedText('🏆', style: TextStyle(fontSize: 52)),
           const SizedBox(height: 14),
-          const Text(
+          const TranslatedText(
             'No rankings yet',
             style: TextStyle(
               fontSize: 15,
@@ -745,7 +746,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
             ),
           ),
           const SizedBox(height: 6),
-          Text('Complete quizzes to appear here!', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
+          TranslatedText('Complete quizzes to appear here!', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
         ],
       ),
     );
@@ -758,7 +759,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
         children: [
           const Icon(Icons.error_outline, size: 52, color: Colors.redAccent),
           const SizedBox(height: 12),
-          const Text(
+          const TranslatedText(
             'Failed to load',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.darkNavy),
           ),
@@ -768,7 +769,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(color: AppColors.tealGreen, borderRadius: BorderRadius.circular(8)),
-              child: const Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              child: const TranslatedText('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
             ),
           ),
         ],

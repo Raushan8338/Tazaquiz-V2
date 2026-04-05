@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
@@ -358,7 +359,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
               Clipboard.setData(ClipboardData(text: value));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Order ID copied to clipboard'),
+                  content: TranslatedText('Order ID copied to clipboard'),
                   backgroundColor: AppColors.tealGreen,
                   behavior: SnackBarBehavior.floating,
                   duration: Duration(seconds: 2),

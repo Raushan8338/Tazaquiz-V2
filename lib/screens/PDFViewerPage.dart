@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 
 class PDFViewerPage extends StatefulWidget {
@@ -82,7 +83,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
+        title: TranslatedText(
           widget.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -99,7 +100,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
                 border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
               ),
               child: Center(
-                child: Text(
+                child: TranslatedText(
                   '${(currentPage ?? 0) + 1}/${pages ?? 0}',
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
@@ -211,12 +212,12 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
             ),
           ),
           const SizedBox(height: 24),
-          Text(
+          TranslatedText(
             'Loading PDF...',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.darkNavy, letterSpacing: 0.5),
           ),
           const SizedBox(height: 8),
-          Text('Please wait', style: TextStyle(fontSize: 14, color: AppColors.darkNavy.withOpacity(0.6))),
+          TranslatedText('Please wait', style: TextStyle(fontSize: 14, color: AppColors.darkNavy.withOpacity(0.6))),
         ],
       ),
     );
@@ -250,9 +251,12 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
               child: const Icon(Icons.error_outline_rounded, size: 48, color: Colors.white),
             ),
             const SizedBox(height: 24),
-            Text('Oops!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.darkNavy)),
+            TranslatedText(
+              'Oops!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.darkNavy),
+            ),
             const SizedBox(height: 12),
-            Text(
+            TranslatedText(
               errorMessage,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: AppColors.darkNavy.withOpacity(0.7), height: 1.5),
@@ -268,7 +272,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
                 _loadPdfFromUrl();
               },
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try Again'),
+              label: const TranslatedText('Try Again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.white,
                 foregroundColor: Colors.white,

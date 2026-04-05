@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
@@ -97,7 +98,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                           letterSpacing: 0.2,
                         ),
                       ),
-                      Text(
+                      TranslatedText(
                         '⚡ Abhi join karo, rank badhao!',
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.tealGreen),
                       ),
@@ -121,7 +122,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      TranslatedText(
                         'View All',
                         style: TextStyle(fontSize: 11, color: AppColors.tealGreen, fontWeight: FontWeight.w700),
                       ),
@@ -247,7 +248,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                           ),
                                           const SizedBox(width: 4),
                                         ],
-                                        Text(
+                                        TranslatedText(
                                           isLive ? 'LIVE' : 'Unlock Now',
                                           style: const TextStyle(
                                             color: Colors.white,
@@ -274,7 +275,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
+                                  TranslatedText(
                                     quiz.title,
                                     style: const TextStyle(
                                       fontSize: 13,
@@ -290,7 +291,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                     children: [
                                       const Icon(Icons.bar_chart_rounded, size: 11, color: Colors.white70),
                                       const SizedBox(width: 3),
-                                      Text(
+                                      TranslatedText(
                                         quiz.difficultyLevel,
                                         style: const TextStyle(
                                           fontSize: 10,
@@ -320,7 +321,7 @@ class _Home_live_testState extends State<Home_live_test> with SingleTickerProvid
                                         minimumSize: const Size(0, 32),
                                         elevation: 0,
                                       ),
-                                      child: Text(
+                                      child: TranslatedText(
                                         isLive ? '⚡ Join Now' : '⚡ View Details',
                                         style: TextStyle(
                                           color: gradientColors[0],
