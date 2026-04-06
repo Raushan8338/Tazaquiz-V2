@@ -177,7 +177,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       _showDailyLimitModal();
       return;
     }
-    if (_isFree) {
+    if (!_isPurchased && _isFree) {
       rewardedAdService.showAd(() => _navigateToMockTest());
     } else {
       _navigateToMockTest();
@@ -195,6 +195,11 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
               Quiz_id: widget.quizId.toString(),
               timeLimit: int.parse(_currentQuiz!.timeLimit.toString()),
               pageType: 'mock_test',
+              total_questions: _currentQuiz!.totalQuestions ?? 0,
+              totalMarks: _currentQuiz!.totalMarks ?? 0,
+              passingMarks: int.parse(_currentQuiz!.passing_score ?? '0'),
+              instruction: _currentQuiz!.instruction.toString(),
+              negativeMark: _currentQuiz!.negative_mark.toString(),
             ),
       ),
     );

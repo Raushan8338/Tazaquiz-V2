@@ -415,6 +415,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               Quiz_id: widget.quizId.toString(),
               timeLimit: int.parse(_currentQuiz!.timeLimit.toString()),
               pageType: 'live_test',
+              total_questions: _currentQuiz!.totalQuestions ?? 0,
+              totalMarks: _currentQuiz!.totalMarks ?? 0,
+              passingMarks: int.parse(_currentQuiz!.passing_score ?? '0'),
+              instruction: _currentQuiz!.instruction.toString(),
+              negativeMark: _currentQuiz!.negative_mark.toString(),
             ),
       ),
     );

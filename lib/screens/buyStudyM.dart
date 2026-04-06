@@ -360,7 +360,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                   Text(
                     _currentMaterial!.subscription_description,
                     style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.58), height: 1.5),
-                    maxLines: 3,
+                    maxLines: 6,
                     overflow: TextOverflow.ellipsis,
                   ),
                 const SizedBox(height: 20),

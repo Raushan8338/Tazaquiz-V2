@@ -625,19 +625,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           ),
 
           _buildActionListItem(
-            icon: Icons.translate_rounded,
-            title: 'Change App Language',
-            subtitle: 'Change the app language',
-            color: const Color(0xFF00695C),
-            onTap:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
-                  ),
-                ),
-          ),
-          _buildActionListItem(
             icon: Icons.school_rounded,
             title: 'Selected Courses',
             subtitle: 'Manage your enrolled courses',
@@ -823,6 +810,19 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         children: [
           _buildSectionTitle('Settings'),
           const SizedBox(height: 12),
+          _buildSettingItem(
+            Icons.translate_rounded,
+            'Change App Language',
+            'Change the app language',
+            const Color(0xFF00695C),
+
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
+              ),
+            ),
+          ),
 
           _buildSettingItem(
             Icons.support_agent_rounded,

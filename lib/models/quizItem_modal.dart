@@ -42,6 +42,7 @@ class QuizItem {
 
   // ✅ NEW
   final bool dailyLimitExceeded;
+  final String negative_mark;
 
   QuizItem({
     required this.quizId,
@@ -80,6 +81,7 @@ class QuizItem {
     this.questionCount,
     // ✅ NEW
     this.dailyLimitExceeded = false,
+    this.negative_mark = '0',
   });
 
   factory QuizItem.fromJson(Map<String, dynamic> json) {
@@ -134,6 +136,7 @@ class QuizItem {
       questionCount: json['question_count']?.toString(),
       // ✅ NEW
       dailyLimitExceeded: _toBool(json['daily_limit_exceeded']),
+      negative_mark: json['negative_mark']?.toString() ?? '0',
     );
   }
 
@@ -175,6 +178,7 @@ class QuizItem {
       'question_count': questionCount,
       // ✅ NEW
       'daily_limit_exceeded': dailyLimitExceeded,
+      'negative_mark': negative_mark,
     };
   }
 }

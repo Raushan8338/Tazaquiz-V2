@@ -242,9 +242,17 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
       {'icon': Icons.bolt_rounded, 'label': 'Live Test', 'color': AppColors.tealGreen},
       {'icon': Icons.assignment_rounded, 'label': 'Mock Test', 'color': const Color(0xFF3949AB)},
       {'icon': Icons.quiz_rounded, 'label': 'Full Mock', 'color': const Color(0xFFE65100)},
-      {'icon': Icons.history_edu_rounded, 'label': 'PYPs', 'color': const Color(0xFF00897B)},
-      {'icon': Icons.menu_book_rounded, 'label': 'Notes', 'color': const Color(0xFF00897B)},
-      {'icon': Icons.leaderboard_rounded, 'label': 'Leader Board', 'color': const Color(0xFF00897B)},
+      {
+        'icon': Icons.history_edu_rounded,
+        'label': 'PYPs',
+        'color': isPackaged == 'PREMIUM' ? AppColors.tealGreen : const Color.fromARGB(255, 114, 121, 120),
+      },
+      {
+        'icon': Icons.menu_book_rounded,
+        'label': 'Notes',
+        'color': isPackaged == 'PREMIUM' ? AppColors.tealGreen : const Color.fromARGB(255, 114, 121, 120),
+      },
+      {'icon': Icons.leaderboard_rounded, 'label': 'Leader Board', 'color': AppColors.tealGreen},
     ];
 
     return Row(

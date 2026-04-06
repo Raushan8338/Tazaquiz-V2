@@ -12,6 +12,7 @@ import 'package:tazaquiznew/models/study_category_item.dart';
 import 'package:tazaquiznew/screens/buyQuizes.dart';
 import 'package:tazaquiznew/screens/mockTestScreen.dart';
 import 'package:tazaquiznew/screens/mock_test_detail_page.dart';
+import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 class QuizListScreen extends StatefulWidget {
@@ -985,22 +986,46 @@ class _QuizListScreenState extends State<QuizListScreen> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isMockTest ? Icons.assignment_outlined : Icons.quiz_outlined,
-            size: 64,
-            color: AppColors.greyS600.withOpacity(0.3),
-          ),
-          const SizedBox(height: 16),
-          TranslatedText(
-            isMockTest ? 'Koi Mock Test nahi mila' : 'No quizzes found',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.greyS600),
-          ),
-          const SizedBox(height: 6),
-          TranslatedText('Try a different category', style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: AppColors.green.withOpacity(0.08), shape: BoxShape.circle),
+              child: Icon(Icons.lock_outline_rounded, size: 40, color: AppColors.green),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Content Locked',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.greyS600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Purchase a plan to get instant access\nto all ',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, height: 1.5, color: AppColors.greyS600.withOpacity(0.7)),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => PricingPage(CourseIds: '0')));
+                  // Navigator.pushNamed(context, '/plans');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('View Plans', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
