@@ -110,6 +110,33 @@ class TranslationService {
     return Future.wait(texts.map((t) => translate(t)));
   }
 
+  // ─────────────────────────────────────────────────────────────
+  //  warmUp — translator ko pehle se memory mein load karo
+  //  Call karo: screen open hone pe ya language change hone pe
+  //  Isse pehli baar translate fast lagti hai (cold start nahi hota)
+  // ─────────────────────────────────────────────────────────────
+  Future<void> warmUp() async {
+    if (!_initialized) await init();
+    if (_targetLang == 'en') return; // English ke liye kuch nahi karna
+
+    try {
+      final source = _mlKitLang('en');
+      final target = _mlKitLang(_targetLang);
+      if (source == null || target == null) return;
+
+      await _ensureModel(source);
+      await _ensureModel(target);
+
+      final key = 'en_$_targetLang';
+      final translator = _translators.putIfAbsent(
+        key,
+        () => OnDeviceTranslator(sourceLanguage: source, targetLanguage: target),
+      );
+      // Ek dummy call — translator ko memory mein warm karta hai
+      await translator.translateText('hello');
+    } catch (_) {}
+  }
+
   Future<void> _ensureModel(TranslateLanguage lang) async {
     final isDownloaded = await _modelManager.isModelDownloaded(lang.bcpCode);
     if (!isDownloaded) await _modelManager.downloadModel(lang.bcpCode);
@@ -169,7 +196,6 @@ class TranslatedText extends StatefulWidget {
 }
 
 class _TranslatedTextState extends State<TranslatedText> {
-  // ✅ Future ek baar — rebuild pe recreate nahi hoga
   late Future<String> _future;
 
   @override
@@ -181,7 +207,6 @@ class _TranslatedTextState extends State<TranslatedText> {
   @override
   void didUpdateWidget(TranslatedText old) {
     super.didUpdateWidget(old);
-    // Sirf tab naya future banao jab text badla ho
     if (old.text != widget.text) {
       _future = TranslationService.instance.translate(widget.text);
     }
@@ -192,7 +217,6 @@ class _TranslatedTextState extends State<TranslatedText> {
     return FutureBuilder<String>(
       future: _future,
       builder: (context, snapshot) {
-        // ✅ No shimmer — original text dikhao jab tak translate ho
         return Text(
           snapshot.data ?? widget.text,
           style: widget.style,
@@ -253,7 +277,6 @@ class TranslatedRichText extends StatefulWidget {
 }
 
 class _TranslatedRichTextState extends State<TranslatedRichText> {
-  // ✅ Future ek baar — rebuild pe recreate nahi hoga
   late Future<List<String>> _future;
 
   String _spansKey(List<TranslatedSpan> spans) => spans.map((s) => s.text).join('||');
@@ -267,7 +290,6 @@ class _TranslatedRichTextState extends State<TranslatedRichText> {
   @override
   void didUpdateWidget(TranslatedRichText old) {
     super.didUpdateWidget(old);
-    // Sirf tab naya future banao jab spans ka text badla ho
     if (_spansKey(old.spans) != _spansKey(widget.spans)) {
       _future = TranslationService.instance.translateSpans(widget.spans.map((s) => s.text).toList());
     }
@@ -279,8 +301,6 @@ class _TranslatedRichTextState extends State<TranslatedRichText> {
       future: _future,
       builder: (context, snapshot) {
         final translatedTexts = snapshot.data;
-
-        // ✅ No shimmer — original spans dikhao jab tak translate ho
         return RichText(
           textAlign: widget.textAlign ?? TextAlign.start,
           softWrap: widget.softWrap,

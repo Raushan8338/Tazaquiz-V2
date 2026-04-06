@@ -28,10 +28,74 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
   QuizReviewResponse? _data;
   String _filter = 'all'; // all / correct / wrong / skipped
 
+  // ── Page-local language override ──────────────────────────────────────────
+  String? _localLang;
+  late final String _globalLang;
+
+  static const _languages = [
+    {'code': 'en', 'native': 'English', 'label': 'English'},
+    {'code': 'hi', 'native': 'हिंदी', 'label': 'Hindi'},
+    {'code': 'mr', 'native': 'मराठी', 'label': 'Marathi'},
+    {'code': 'bn', 'native': 'বাংলা', 'label': 'Bengali'},
+    {'code': 'ta', 'native': 'தமிழ்', 'label': 'Tamil'},
+    {'code': 'te', 'native': 'తెలుగు', 'label': 'Telugu'},
+    {'code': 'gu', 'native': 'ગુજરાતી', 'label': 'Gujarati'},
+    {'code': 'kn', 'native': 'ಕನ್ನಡ', 'label': 'Kannada'},
+    {'code': 'ml', 'native': 'മലയാളം', 'label': 'Malayalam'},
+    {'code': 'pa', 'native': 'ਪੰਜਾਬੀ', 'label': 'Punjabi'},
+    {'code': 'ur', 'native': 'اردو', 'label': 'Urdu'},
+  ];
+
+  String get _effectiveLang => _localLang ?? _globalLang;
+  bool get _isLocalOverrideActive => _localLang != null && _localLang != _globalLang;
+
   @override
   void initState() {
     super.initState();
+    _globalLang = TranslationService.instance.currentLanguage;
     _fetch();
+  }
+
+  @override
+  void dispose() {
+    if (_isLocalOverrideActive) {
+      TranslationService.instance.setLanguage(_globalLang);
+    }
+    super.dispose();
+  }
+
+  // ── Apply local language override ─────────────────────────────────────────
+  Future<void> _applyLocalLang(String code) async {
+    if (code == _effectiveLang) return;
+    await TranslationService.instance.setLanguage(code);
+    setState(() => _localLang = code == _globalLang ? null : code);
+  }
+
+  Future<void> _resetToGlobal() async {
+    await TranslationService.instance.setLanguage(_globalLang);
+    setState(() => _localLang = null);
+  }
+
+  void _showLangSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder:
+          (_) => _LangPickerSheet(
+            languages: _languages,
+            activeLang: _effectiveLang,
+            globalLang: _globalLang,
+            onSelect: (code) async {
+              Navigator.pop(context);
+              await _applyLocalLang(code);
+            },
+            onReset: () async {
+              Navigator.pop(context);
+              await _resetToGlobal();
+            },
+          ),
+    );
   }
 
   Future<void> _fetch() async {
@@ -42,9 +106,6 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
         'attempt_id': widget.attemptId.toString(),
         'user_id': widget.userId.toString(),
       });
-      print('Review response: ${res.data}');
-      print('Review status: ${widget.attemptId.toString()}');
-      print('Review status: ${widget.userId.toString()}');
       if (res.statusCode == 200) {
         setState(() {
           _data = QuizReviewResponse.fromJson(res.data);
@@ -75,6 +136,11 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
 
   @override
   Widget build(BuildContext context) {
+    final activeLangMap = _languages.firstWhere(
+      (l) => l['code'] == _effectiveLang,
+      orElse: () => {'code': 'en', 'native': 'English', 'label': 'English'},
+    );
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F8),
       appBar: _buildAppBar(),
@@ -91,7 +157,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   _filtered.isEmpty
                       ? SliverFillRemaining(child: _buildEmptyState())
                       : SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                         sliver: SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (ctx, i) => _buildQuestionCard(_filtered[i], i),
@@ -101,6 +167,14 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                       ),
                 ],
               ),
+
+      // ── Bottom Language Bar ────────────────────────────────────────────────
+      bottomNavigationBar: _BottomLangBar(
+        activeLang: activeLangMap,
+        isOverrideActive: _isLocalOverrideActive,
+        onTap: _showLangSheet,
+        onReset: _isLocalOverrideActive ? _resetToGlobal : null,
+      ),
     );
   }
 
@@ -116,12 +190,17 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
           decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
           child: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
         ),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () {
+          if (_isLocalOverrideActive) {
+            TranslationService.instance.setLanguage(_globalLang);
+          }
+          Navigator.pop(context);
+        },
       ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TranslatedText(
+          Text(
             widget.pageType == 0 ? 'Quiz Review' : 'Mock Test Review',
             style: const TextStyle(
               color: Colors.white,
@@ -130,7 +209,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
               fontFamily: 'Poppins',
             ),
           ),
-          TranslatedText(
+          Text(
             widget.quizTitle,
             style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10, fontWeight: FontWeight.w500),
             maxLines: 1,
@@ -157,8 +236,6 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
     final s = _data!.summary;
     final attempt = _data!.attempt;
     final passed = attempt.passed;
-
-    // ✅ Score % use karo — 14.0% (not raw 7)
     final scorePercent = attempt.scorePercent;
     final passingPercent = attempt.passingPercent;
 
@@ -180,7 +257,6 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
             padding: const EdgeInsets.all(18),
             child: Row(
               children: [
-                // ✅ Score circle — % dikhao
                 Container(
                   width: 80,
                   height: 80,
@@ -192,8 +268,8 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TranslatedText(
-                        '${scorePercent.toStringAsFixed(0)}%', // ✅ 14% dikhega
+                      Text(
+                        '${scorePercent.toStringAsFixed(0)}%',
                         style: const TextStyle(
                           fontSize: 20,
                           color: Colors.white,
@@ -201,7 +277,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                           fontFamily: 'Poppins',
                         ),
                       ),
-                      TranslatedText('Score', style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.7))),
+                      Text('Score', style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.7))),
                     ],
                   ),
                 ),
@@ -210,7 +286,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TranslatedText(
+                      Text(
                         passed
                             ? '✅ ${widget.pageType == 0 ? 'Test Passed' : 'Mock Test Passed'}'
                             : '❌ ${widget.pageType == 0 ? 'Test Failed' : 'Mock Test Failed'}',
@@ -222,21 +298,20 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      TranslatedText(
+                      Text(
                         attempt.quizTitle,
                         style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.7)),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
-                      // ✅ Passing % vs Your %
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: TranslatedText(
+                        child: Text(
                           'Passing: ${passingPercent.toStringAsFixed(0)}%  •  Yours: ${scorePercent.toStringAsFixed(0)}%',
                           style: TextStyle(
                             fontSize: 10,
@@ -245,7 +320,6 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                           ),
                         ),
                       ),
-                      // ✅ Negative marking info — sirf tab dikhao jab ho
                       if (attempt.negativeMarkRate > 0) ...[
                         const SizedBox(height: 6),
                         Container(
@@ -254,7 +328,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                             color: Colors.redAccent.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: TranslatedText(
+                          child: Text(
                             '−${attempt.negativeDeducted.toStringAsFixed(1)} marks deducted  •  ${attempt.negativeMarkRate.toStringAsFixed(2)}/wrong',
                             style: const TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.w600),
                           ),
@@ -266,10 +340,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
               ],
             ),
           ),
-
           Divider(color: Colors.white.withOpacity(0.1), height: 1),
-
-          // Bottom stats
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
             child: Row(
@@ -294,11 +365,11 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
       children: [
         Icon(icon, color: color, size: 16),
         const SizedBox(height: 4),
-        TranslatedText(
+        Text(
           val,
           style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w900, fontFamily: 'Poppins'),
         ),
-        TranslatedText(label, style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.65))),
+        Text(label, style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.65))),
       ],
     );
   }
@@ -343,7 +414,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      TranslatedText(
+                      Text(
                         f['label'] as String,
                         style: TextStyle(
                           fontSize: 11,
@@ -360,7 +431,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                             color: sel ? Colors.white.withOpacity(0.25) : c.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: TranslatedText(
+                          child: Text(
                             '$cnt',
                             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: sel ? Colors.white : c),
                           ),
@@ -422,13 +493,13 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
             ),
             child: Row(
               children: [
-                // Q number
+                // Q number — plain text, no translation
                 Container(
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(8)),
                   child: Center(
-                    child: TranslatedText(
+                    child: Text(
                       '${index + 1}',
                       style: const TextStyle(
                         fontSize: 12,
@@ -441,10 +512,11 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                 ),
                 const SizedBox(width: 10),
 
-                // Question text
+                // ── Question text — TRANSLATED with ValueKey ──
                 Expanded(
                   child: TranslatedText(
                     q.questionText,
+                    key: ValueKey('review_q_${_effectiveLang}_${q.questionText.hashCode}'),
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -457,7 +529,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
 
                 const SizedBox(width: 8),
 
-                // Status badge
+                // Status badge — plain text, no translation needed
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -469,7 +541,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                     children: [
                       Icon(statusIcon, color: statusColor, size: 12),
                       const SizedBox(width: 3),
-                      TranslatedText(
+                      Text(
                         statusLabel,
                         style: TextStyle(
                           fontSize: 10,
@@ -500,19 +572,16 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                     Widget? trailingIcon;
 
                     if (isCorrectAnswer) {
-                      // Correct answer — always green
                       optBg = AppColors.tealGreen.withOpacity(0.1);
                       optBorder = AppColors.tealGreen;
                       optText = AppColors.darkNavy;
                       trailingIcon = Icon(Icons.check_circle, color: AppColors.tealGreen, size: 18);
                     } else if (isUserAnswer && !isCorrectAnswer) {
-                      // User selected wrong
                       optBg = Colors.redAccent.withOpacity(0.08);
                       optBorder = Colors.redAccent;
                       optText = AppColors.darkNavy;
                       trailingIcon = Icon(Icons.cancel, color: Colors.redAccent, size: 18);
                     } else {
-                      // Normal option
                       optBg = const Color(0xFFF8F9FF);
                       optBorder = Colors.grey.withOpacity(0.2);
                       optText = AppColors.greyS700;
@@ -530,8 +599,10 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                       child: Row(
                         children: [
                           Expanded(
+                            // ── Option text — TRANSLATED with ValueKey ──
                             child: TranslatedText(
                               opt.answerText,
+                              key: ValueKey('review_opt_${_effectiveLang}_${opt.answerId}'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: optText,
@@ -548,7 +619,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
             ),
           ),
 
-          // ── Explanation ──
+          // ── Explanation — TRANSLATED ──
           if (q.explanation.isNotEmpty)
             Container(
               margin: const EdgeInsets.fromLTRB(14, 8, 14, 14),
@@ -561,13 +632,14 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const TranslatedText('💡', style: TextStyle(fontSize: 14)),
+                  const Text('💡', style: TextStyle(fontSize: 14)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const TranslatedText(
+                        // "Explanation" label — plain text
+                        const Text(
                           'Explanation',
                           style: TextStyle(
                             fontSize: 11,
@@ -577,8 +649,10 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                           ),
                         ),
                         const SizedBox(height: 3),
+                        // Explanation content — TRANSLATED
                         TranslatedText(
                           q.explanation,
+                          key: ValueKey('review_exp_${_effectiveLang}_${q.questionText.hashCode}'),
                           style: const TextStyle(
                             fontSize: 11,
                             color: Color(0xFF5D4037),
@@ -595,7 +669,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
           else
             const SizedBox(height: 14),
 
-          // ── Marks + Time ──
+          // ── Marks + Time — plain text, no translation ──
           Container(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
             decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.08)))),
@@ -603,14 +677,13 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
               children: [
                 Icon(Icons.star_outline, size: 12, color: AppColors.greyS600),
                 const SizedBox(width: 4),
-                TranslatedText(
+                Text(
                   'Marks: +${q.marks.toStringAsFixed(0)}',
                   style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
                 ),
-                // ✅ attempt level se negative rate lo
                 if (_data!.attempt.negativeMarkRate > 0) ...[
                   const SizedBox(width: 10),
-                  TranslatedText(
+                  Text(
                     '-${_data!.attempt.negativeMarkRate.toStringAsFixed(2)} negative',
                     style: const TextStyle(fontSize: 10, color: Colors.redAccent, fontWeight: FontWeight.w500),
                   ),
@@ -619,7 +692,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                 if (q.timeSpent > 0) ...[
                   Icon(Icons.timer_outlined, size: 12, color: AppColors.greyS600),
                   const SizedBox(width: 3),
-                  TranslatedText(
+                  Text(
                     '${q.timeSpent}s',
                     style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500),
                   ),
@@ -641,7 +714,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
         children: [
           Icon(Icons.quiz_outlined, size: 56, color: AppColors.greyS400),
           const SizedBox(height: 12),
-          TranslatedText(
+          Text(
             'No questions in this filter',
             style: TextStyle(fontSize: 14, color: AppColors.greyS600, fontWeight: FontWeight.w600),
           ),
@@ -657,7 +730,7 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
         children: [
           Icon(Icons.error_outline, size: 56, color: Colors.redAccent),
           const SizedBox(height: 12),
-          const TranslatedText(
+          const Text(
             'Failed to load review',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.darkNavy),
           ),
@@ -667,11 +740,358 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(color: AppColors.tealGreen, borderRadius: BorderRadius.circular(8)),
-              child: const TranslatedText('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              child: const Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Bottom Language Bar
+// ─────────────────────────────────────────────────────────────────────────────
+class _BottomLangBar extends StatelessWidget {
+  final Map<String, String> activeLang;
+  final bool isOverrideActive;
+  final VoidCallback onTap;
+  final VoidCallback? onReset;
+
+  const _BottomLangBar({required this.activeLang, required this.isOverrideActive, required this.onTap, this.onReset});
+
+  static const _teal = Color(0xFF0D6E6E);
+  static const _tealBg = Color(0xFFE1F5EE);
+  static const _tealDark = Color(0xFF0A4A4A);
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 10, 16, bottomPad + 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, -3))],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Row(
+        children: [
+          // Language icon
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: isOverrideActive ? _teal.withOpacity(0.12) : Colors.grey.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: isOverrideActive ? _teal.withOpacity(0.4) : Colors.grey.withOpacity(0.2)),
+            ),
+            child: Icon(Icons.translate_rounded, size: 18, color: isOverrideActive ? _teal : Colors.grey),
+          ),
+          const SizedBox(width: 10),
+
+          // Label area
+          Expanded(
+            child: GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isOverrideActive ? 'Page language (tap to change)' : 'View questions in… (tap to change)',
+                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 1),
+                  Row(
+                    children: [
+                      Text(
+                        activeLang['native'] ?? '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isOverrideActive ? _tealDark : const Color(0xFF1A1A2E),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      if (isOverrideActive)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(color: _tealBg, borderRadius: BorderRadius.circular(20)),
+                          child: const Text(
+                            'Page only',
+                            style: TextStyle(fontSize: 9, color: _teal, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Change button
+          GestureDetector(
+            onTap: onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: _teal,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: _teal.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 3))],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.language_rounded, size: 14, color: Colors.white),
+                  const SizedBox(width: 5),
+                  Text(
+                    isOverrideActive ? 'Change' : 'Select',
+                    style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Reset button
+          if (isOverrideActive) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: onReset,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.withOpacity(0.25)),
+                ),
+                child: const Icon(Icons.refresh_rounded, size: 16, color: Colors.grey),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Language Picker Bottom Sheet
+// ─────────────────────────────────────────────────────────────────────────────
+class _LangPickerSheet extends StatelessWidget {
+  final List<Map<String, String>> languages;
+  final String activeLang;
+  final String globalLang;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onReset;
+
+  const _LangPickerSheet({
+    required this.languages,
+    required this.activeLang,
+    required this.globalLang,
+    required this.onSelect,
+    required this.onReset,
+  });
+
+  static const _teal = Color(0xFF0D6E6E);
+  static const _tealBg = Color(0xFFE1F5EE);
+  static const _tealLight = Color(0xFF14A3A3);
+  static const _darkNavy = Color(0xFF0A4A4A);
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 3,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)),
+          ),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: _teal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _teal.withOpacity(0.3)),
+                ),
+                child: const Icon(Icons.translate_rounded, size: 18, color: _teal),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Page Language',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1A1A2E)),
+                  ),
+                  Text('Only questions & answers will translate', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (activeLang != globalLang) ...[
+            GestureDetector(
+              onTap: onReset,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.07),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.withOpacity(0.35)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.refresh_rounded, size: 15, color: Colors.amber),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Reset to app language (${_nativeOf(globalLang)})',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF7D5200), fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.amber),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 9,
+              crossAxisSpacing: 9,
+              childAspectRatio: 1.35,
+            ),
+            itemCount: languages.length,
+            itemBuilder: (_, i) {
+              final lang = languages[i];
+              final code = lang['code']!;
+              final isActive = code == activeLang;
+              final isGlobal = code == globalLang;
+
+              return GestureDetector(
+                onTap: () => onSelect(code),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  decoration: BoxDecoration(
+                    color: isActive ? _darkNavy : Colors.grey.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isActive ? _teal : Colors.grey.withOpacity(0.2),
+                      width: isActive ? 1.8 : 1,
+                    ),
+                    boxShadow:
+                        isActive
+                            ? [BoxShadow(color: _teal.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 3))]
+                            : [],
+                  ),
+                  child: Stack(
+                    children: [
+                      if (isGlobal && !isActive)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            width: 7,
+                            height: 7,
+                            decoration: const BoxDecoration(color: _tealLight, shape: BoxShape.circle),
+                          ),
+                        ),
+                      if (isActive)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: const BoxDecoration(color: _teal, shape: BoxShape.circle),
+                            child: const Icon(Icons.check_rounded, size: 11, color: Colors.white),
+                          ),
+                        ),
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                lang['native']!,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: isActive ? Colors.white : const Color(0xFF1A1A2E),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 3),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isActive ? _teal.withOpacity(0.2) : _tealBg.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  lang['label']!,
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: isActive ? const Color(0xFF5DCAA5) : Colors.grey.shade600,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(color: _tealBg.withOpacity(0.5), borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline_rounded, size: 13, color: _teal),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Only questions & answers translate. Scores, stats and UI stay in original language.',
+                    style: TextStyle(fontSize: 11, color: _darkNavy, height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _nativeOf(String code) {
+    return languages.firstWhere((l) => l['code'] == code, orElse: () => {'native': code})['native'] ?? code;
   }
 }

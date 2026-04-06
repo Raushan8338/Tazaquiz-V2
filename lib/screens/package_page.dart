@@ -618,7 +618,9 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                   isActive
                       ? _activeRowButton(color: _teal)
                       : OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: _grey300),
                           padding: const EdgeInsets.symmetric(vertical: 11),

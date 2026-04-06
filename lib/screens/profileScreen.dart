@@ -626,7 +626,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
           _buildActionListItem(
             icon: Icons.translate_rounded,
-            title: 'Select Language',
+            title: 'Change App Language',
             subtitle: 'Change the app language',
             color: const Color(0xFF00695C),
             onTap:

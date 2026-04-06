@@ -123,7 +123,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
         ),
         onPressed: () => Navigator.pop(context),
       ),
-      title: TranslatedText(
+      title: Text(
         pagetitle,
         style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Poppins'),
       ),
@@ -168,7 +168,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TranslatedText(
+                    Text(
                       'Overall Score',
                       style: TextStyle(
                         fontSize: 11,
@@ -231,7 +231,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                         fontFamily: 'Poppins',
                       ),
                     ),
-                    TranslatedText(
+                    Text(
                       'Pass Rate',
                       style: TextStyle(
                         fontSize: 9,
@@ -302,7 +302,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
           style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w900, fontFamily: 'Poppins'),
         ),
         const SizedBox(height: 2),
-        TranslatedText(
+        Text(
           label,
           style: TextStyle(
             fontSize: 10,
@@ -344,7 +344,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TranslatedText(
+          Text(
             'Score Distribution',
             style: const TextStyle(
               fontSize: 13,
@@ -365,7 +365,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 12),
-            TranslatedText(
+            Text(
               'Top Categories',
               style: const TextStyle(
                 fontSize: 13,
@@ -391,7 +391,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Category name — user data, translate karo
-                          TranslatedText(
+                          Text(
                             e.key,
                             style: const TextStyle(
                               fontSize: 11,
@@ -436,7 +436,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            TranslatedText(
+            Text(
               label,
               style: TextStyle(
                 fontSize: 11,
@@ -531,7 +531,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                     children: [
                       Icon(f['icon'] as IconData, size: 12, color: sel ? Colors.white : AppColors.greyS600),
                       const SizedBox(width: 5),
-                      TranslatedText(
+                      Text(
                         f['label'] as String,
                         style: TextStyle(
                           fontSize: 11,
@@ -787,7 +787,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                             children: [
                               const Icon(Icons.leaderboard_rounded, size: 12, color: Color(0xFF6B4EFF)),
                               const SizedBox(width: 3),
-                              TranslatedText(
+                              Text(
                                 'Rank',
                                 style: const TextStyle(
                                   fontSize: 10,
@@ -820,7 +820,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            TranslatedText(
+                            Text(
                               'Details',
                               style: TextStyle(
                                 fontSize: 10,
@@ -876,7 +876,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
         // ⚠️ Number/score — plain Text
         Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color, fontFamily: 'Poppins')),
         const SizedBox(height: 2),
-        TranslatedText(
+        Text(
           label,
           style: TextStyle(fontSize: 9, color: AppColors.greyS600, fontWeight: FontWeight.w500, fontFamily: 'Poppins'),
         ),
@@ -1128,7 +1128,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
       children: [
         // ⚠️ Number — plain Text
         Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color, fontFamily: 'Poppins')),
-        TranslatedText(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontFamily: 'Poppins')),
+        Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontFamily: 'Poppins')),
       ],
     );
   }

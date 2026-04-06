@@ -9,6 +9,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'dart:async';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
+import 'package:tazaquiznew/screens/first_instructionPage.dart' hide AppColors;
 import 'package:tazaquiznew/screens/mockTestScreen.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quiz_review_page.dart';
@@ -188,11 +189,12 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
       context,
       MaterialPageRoute(
         builder:
-            (context) => MockTestScreen(
+            (context) => QuizInstructionPage(
               testTitle: _currentQuiz!.title.toString(),
               subject: _currentQuiz!.difficultyLevel.toString(),
               Quiz_id: widget.quizId.toString(),
               timeLimit: int.parse(_currentQuiz!.timeLimit.toString()),
+              pageType: 'mock_test',
             ),
       ),
     );

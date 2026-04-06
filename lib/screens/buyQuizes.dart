@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
+import 'package:tazaquiznew/screens/first_instructionPage.dart' hide AppColors;
 import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quiz_review_page.dart';
@@ -403,15 +404,17 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   }
 
   void _navigateToQuiz() {
+    //  QuizInstructionPage
     Navigator.push(
       context,
       MaterialPageRoute(
         builder:
-            (context) => LiveTestScreen(
+            (context) => QuizInstructionPage(
               testTitle: _currentQuiz!.title.toString(),
               subject: _currentQuiz!.difficultyLevel.toString(),
               Quiz_id: widget.quizId.toString(),
               timeLimit: int.parse(_currentQuiz!.timeLimit.toString()),
+              pageType: 'live_test',
             ),
       ),
     );
@@ -1653,8 +1656,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   const SizedBox(height: 14),
 
                   // Benefits grid
-                  _buildBenefitGrid(
-                    [
+                  _buildBenefitGrid([
                     _BenefitItem(
                       emoji: '📝',
                       icon: Icons.assignment_rounded,

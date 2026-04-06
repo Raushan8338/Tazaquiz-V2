@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:tazaquiznew/API/Language_converter/language_selectionPage.dart';
+import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
@@ -28,8 +28,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   List<dynamic> _questions = [];
   int totalQuestions = 0;
   Map<String, dynamic> _currentQuestionData = {};
-  // ── ADDED ──────────────────────────────────
-  Map<String, dynamic> _translatedQuestionData = {};
 
   Map<int, int> _savedAnswers = {};
   Map<int, bool> _markedForReview = {};
@@ -52,9 +50,31 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
   UserModel? _user;
 
+  // ── Page-local language override ──────────────────────────────────────────
+  String? _localLang;
+  late final String _globalLang;
+
+  static const _languages = [
+    {'code': 'en', 'native': 'English', 'label': 'English'},
+    {'code': 'hi', 'native': 'हिंदी', 'label': 'Hindi'},
+    {'code': 'mr', 'native': 'मराठी', 'label': 'Marathi'},
+    {'code': 'bn', 'native': 'বাংলা', 'label': 'Bengali'},
+    {'code': 'ta', 'native': 'தமிழ்', 'label': 'Tamil'},
+    {'code': 'te', 'native': 'తెలుగు', 'label': 'Telugu'},
+    {'code': 'gu', 'native': 'ગુજરાતી', 'label': 'Gujarati'},
+    {'code': 'kn', 'native': 'ಕನ್ನಡ', 'label': 'Kannada'},
+    {'code': 'ml', 'native': 'മലയാളം', 'label': 'Malayalam'},
+    {'code': 'pa', 'native': 'ਪੰਜਾਬੀ', 'label': 'Punjabi'},
+    {'code': 'ur', 'native': 'اردو', 'label': 'Urdu'},
+  ];
+
+  String get _effectiveLang => _localLang ?? _globalLang;
+  bool get _isLocalOverrideActive => _localLang != null && _localLang != _globalLang;
+
   @override
   void initState() {
     super.initState();
+    _globalLang = TranslationService.instance.currentLanguage;
     _animationController = AnimationController(vsync: this, duration: const Duration(seconds: 2))
       ..repeat(reverse: true);
     _pulseAnimation = Tween<double>(
@@ -62,6 +82,14 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       end: 1.05,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
     _getUserData();
+  }
+
+  @override
+  void dispose() {
+    _testTimer?.cancel();
+    _animationController.dispose();
+    if (_isLocalOverrideActive) TranslationService.instance.setLanguage(_globalLang);
+    super.dispose();
   }
 
   void _getUserData() async {
@@ -73,81 +101,130 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
   void loadQuizData() async {
     final data = {'user_id': _user?.id, 'quiz_id': widget.Quiz_id, 'score': ''};
-    print('Request Data: $data');
-    Authrepository authRepository = Authrepository(Api_Client.dio);
-    final responseFuture = await authRepository.fetchQuizQuestion(data);
-
+    final responseFuture = await Authrepository(Api_Client.dio).fetchQuizQuestion(data);
     final Map<String, dynamic> apiResponse =
         responseFuture.data is String
             ? jsonDecode(responseFuture.data)
             : Map<String, dynamic>.from(responseFuture.data);
-
     _questions = apiResponse['questions'] ?? [];
     totalQuestions = _questions.length;
-
-    // int timeLimitMinutes = int.tryParse(apiResponse['time_limit']?.toString() ?? '30') ?? 30;
-    // _totalSeconds = timeLimitMinutes * 60;
-
     if (_questions.isNotEmpty) {
       setQuestionFromApi(0);
       _startTestTimer();
     }
-
     setState(() => _isLoading = false);
   }
 
-  // ── MODIFIED: translate karo ────────────────
   void setQuestionFromApi(int index) {
     final question = _questions[index];
     final List answers = question['answers'] ?? [];
     int correctIndex = answers.indexWhere((ans) => ans['is_correct'] == true);
-
     _visitedQuestions.add(index);
-
-    final raw = {
-      'question': question['question_text'],
-      'options': answers.map((a) => a['answer_text']).toList(),
-      'correctAnswer': correctIndex == -1 ? 0 : correctIndex,
-      'difficulty': question['difficulty_level'] ?? 'Medium',
-      'points': question['points'] ?? 0,
-      'attempt_id': question['attempt_id'] ?? 0,
-      'question_ans_id': question['question_ans_id'] ?? 0,
-      'question_id': question['question_id'] ?? 0,
-      'is_translation_allowed': question['is_translation_allowed'] ?? 0, // 0 or 1
-      'answer_ids':
-          answers.map((a) {
-            final id =
-                a['id'] ?? a['answer_id'] ?? a['ans_id'] ?? a['ID'] ?? a['answerId'] ?? a['optionId'] ?? a['option_id'];
-            return id?.toString() ?? '0';
-          }).toList(),
-    };
 
     setState(() {
       _currentQuestion = index;
-      _currentQuestionData = raw;
-      _translatedQuestionData = raw; // pehle original
       _selectedOption = _savedAnswers[index];
+      _currentQuestionData = {
+        'question': question['question_text'],
+        'options': answers.map((a) => a['answer_text']).toList(),
+        'correctAnswer': correctIndex == -1 ? 0 : correctIndex,
+        'difficulty': question['difficulty_level'] ?? 'Medium',
+        'points': question['points'] ?? 0,
+        'attempt_id': question['attempt_id'] ?? 0,
+        'question_ans_id': question['question_ans_id'] ?? 0,
+        'question_id': question['question_id'] ?? 0,
+        'is_translation_allowed': (question['is_translation_allowed'] ?? 0).toString(),
+        'answer_ids':
+            answers.map((a) {
+              final id =
+                  a['id'] ??
+                  a['answer_id'] ??
+                  a['ans_id'] ??
+                  a['ID'] ??
+                  a['answerId'] ??
+                  a['optionId'] ??
+                  a['option_id'];
+              return id?.toString() ?? '0';
+            }).toList(),
+      };
     });
-
-    _translateCurrentQuestion(raw); // background translate
   }
 
-  // ── ADDED ──────────────────────────────────
-  Future<void> _translateCurrentQuestion(Map<String, dynamic> raw) async {
-    final lang = TranslationService.instance.currentLanguage;
-    if (lang == 'en') return;
+  // ── Check model downloaded, show popup if not ─────────────────────────────
+  Future<void> _applyLocalLang(String code) async {
+    if (code == _effectiveLang) return;
 
-    try {
-      final List<String> optionTexts = (raw['options'] as List).map((o) => o.toString()).toList();
-      final toTranslate = [raw['question'] ?? '', ...optionTexts];
-      final results = await TranslationService.instance.translateBatch(toTranslate.cast<String>());
-
-      if (mounted) {
-        setState(() {
-          _translatedQuestionData = {...raw, 'question': results[0], 'options': results.sublist(1)};
-        });
+    if (code != 'en') {
+      final modelManager = OnDeviceTranslatorModelManager();
+      final mlCodeMap = {
+        'hi': 'hi',
+        'mr': 'mr',
+        'bn': 'bn',
+        'ta': 'ta',
+        'te': 'te',
+        'gu': 'gu',
+        'kn': 'kn',
+        'ml': 'ml',
+        'pa': 'pa',
+        'ur': 'ur',
+      };
+      final mlCode = mlCodeMap[code];
+      if (mlCode != null) {
+        final isDownloaded = await modelManager.isModelDownloaded(mlCode);
+        if (!isDownloaded && mounted) {
+          final langName =
+              _languages.firstWhere((l) => l['code'] == code, orElse: () => {'native': code})['native'] ?? code;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => _ModelDownloadPopup(langName: langName),
+          );
+          await TranslationService.instance.setLanguage(code);
+          if (mounted) Navigator.of(context, rootNavigator: true).pop();
+        } else {
+          await TranslationService.instance.setLanguage(code);
+        }
+      } else {
+        await TranslationService.instance.setLanguage(code);
       }
-    } catch (_) {}
+    } else {
+      await TranslationService.instance.setLanguage(code);
+    }
+
+    if (mounted) setState(() => _localLang = code == _globalLang ? null : code);
+  }
+
+  Future<void> _resetToGlobal() async {
+    await TranslationService.instance.setLanguage(_globalLang);
+    setState(() => _localLang = null);
+  }
+
+  void _showLangSheet() {
+    final wasRunning = !_isPaused;
+    if (wasRunning) setState(() => _isPaused = true);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder:
+          (_) => _LangPickerSheet(
+            languages: _languages,
+            activeLang: _effectiveLang,
+            globalLang: _globalLang,
+            onSelect: (code) async {
+              Navigator.pop(context);
+              await _applyLocalLang(code);
+              if (wasRunning && mounted) setState(() => _isPaused = false);
+            },
+            onReset: () async {
+              Navigator.pop(context);
+              await _resetToGlobal();
+              if (wasRunning && mounted) setState(() => _isPaused = false);
+            },
+          ),
+    ).then((_) {
+      if (wasRunning && mounted) setState(() => _isPaused = false);
+    });
   }
 
   void _startTestTimer() {
@@ -165,9 +242,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   String _getTimerText() {
-    int h = _totalSeconds ~/ 3600;
-    int m = (_totalSeconds % 3600) ~/ 60;
-    int s = _totalSeconds % 60;
+    int h = _totalSeconds ~/ 3600, m = (_totalSeconds % 3600) ~/ 60, s = _totalSeconds % 60;
     if (h > 0) return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
@@ -179,15 +254,13 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   void _selectOption(int index) => setState(() => _selectedOption = index);
-
   void _saveAndNext() {
     if (_selectedOption != null) _savedAnswers[_currentQuestion] = _selectedOption!;
     if (_currentQuestion == totalQuestions - 1) {
       setState(() {});
       _showFinalSubmitDialog();
-    } else {
+    } else
       _goToQuestion(_currentQuestion + 1);
-    }
   }
 
   void _saveCurrent() {
@@ -213,9 +286,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   int _questionStatus(int index) {
-    bool answered = _savedAnswers.containsKey(index);
-    bool marked = _markedForReview[index] == true;
-    bool visited = _visitedQuestions.contains(index);
+    bool answered = _savedAnswers.containsKey(index),
+        marked = _markedForReview[index] == true,
+        visited = _visitedQuestions.contains(index);
     if (answered && marked) return 3;
     if (answered) return 1;
     if (marked) return 2;
@@ -246,8 +319,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       _submittedCount = 0;
       _submitStatusText = 'Preparing submission...';
     });
-
-    Authrepository authRepository = Authrepository(Api_Client.dio);
     await Future.delayed(const Duration(milliseconds: 400));
 
     for (int i = 0; i < totalQuestions; i++) {
@@ -256,8 +327,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       final int savedAnswer = _savedAnswers[i] ?? -1;
       final int correctIndex = answers.indexWhere((ans) => ans['is_correct'] == true);
       final bool isCorrect = savedAnswer != -1 && savedAnswer == correctIndex;
-      final int points = question['points'] ?? 0;
-
       String answerId = '0';
       if (savedAnswer != -1 && savedAnswer < answers.length) {
         final ans = answers[savedAnswer] as Map;
@@ -271,23 +340,18 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ans['option_id'];
         answerId = (ansId != null) ? ansId.toString() : '0';
       }
-
-      final data = {
-        'attempt_id': (question['attempt_id'] ?? 0).toString(),
-        'question_id': (question['question_id'] ?? 0).toString(),
-        'answer_id': answerId,
-        'score': (isCorrect ? points : 0).toString(),
-        'is_correct': isCorrect ? '1' : '0',
-        'time_spent': '1',
-      };
-
       try {
-        var response = await authRepository.submitQuizAnswers(data);
-        print('Response Q$i: ${response.data}');
+        await Authrepository(Api_Client.dio).submitQuizAnswers({
+          'attempt_id': (question['attempt_id'] ?? 0).toString(),
+          'question_id': (question['question_id'] ?? 0).toString(),
+          'answer_id': answerId,
+          'score': (isCorrect ? (question['points'] ?? 0) : 0).toString(),
+          'is_correct': isCorrect ? '1' : '0',
+          'time_spent': '1',
+        });
       } catch (e) {
         print('Error Q$i: $e');
       }
-
       setState(() {
         _submittedCount = i + 1;
         _submitProgress = (i + 1) / totalQuestions;
@@ -300,31 +364,26 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       _submitProgress = 0.95;
       _submitStatusText = 'Finalizing your result...';
     });
-
     final lastQuestion = _questions[totalQuestions - 1];
     int totalScore = 0;
     _savedAnswers.forEach((qIndex, aIndex) {
       final q = _questions[qIndex];
       final List ans = q['answers'] ?? [];
-      final int correct = ans.indexWhere((a) => a['is_correct'] == true);
-      if (aIndex == correct) totalScore += (q['points'] ?? 0) as int;
+      if (aIndex == ans.indexWhere((a) => a['is_correct'] == true)) totalScore += (q['points'] ?? 0) as int;
     });
 
-    final finalData = {'attempt_id': (lastQuestion['attempt_id'] ?? 0).toString(), 'Passingscore': '$totalScore'};
-
     try {
-      final responseData = await authRepository.finalSubmitQuiz(finalData);
-      final resultRes = jsonDecode(responseData.data);
-
+      await Authrepository(
+        Api_Client.dio,
+      ).finalSubmitQuiz({'attempt_id': (lastQuestion['attempt_id'] ?? 0).toString(), 'Passingscore': '$totalScore'});
       setState(() {
         _submitProgress = 1.0;
         _submitStatusText = 'Test submitted successfully!';
       });
       await Future.delayed(const Duration(milliseconds: 700));
-
+      if (_isLocalOverrideActive) await TranslationService.instance.setLanguage(_globalLang);
       if (mounted) {
         setState(() => _isSubmitting = false);
-
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -336,25 +395,18 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   pageType: 4,
                 ),
           ),
-          (route) => route.isFirst, // 🔥 IMPORTANT (sab clear karega)
+          (route) => route.isFirst,
         );
       }
     } catch (e) {
-      print('Error in final submit: $e');
+      print('Error final submit: $e');
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: TranslatedText('Submission failed. Please try again.'), backgroundColor: AppColors.red),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Submission failed. Please try again.'), backgroundColor: AppColors.red));
       }
     }
-  }
-
-  @override
-  void dispose() {
-    _testTimer?.cancel();
-    _animationController.dispose();
-    super.dispose();
   }
 
   @override
@@ -368,7 +420,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             children: [
               CircularProgressIndicator(color: AppColors.tealGreen),
               const SizedBox(height: 16),
-              TranslatedText(
+              Text(
                 'Loading test...',
                 style: TextStyle(color: AppColors.greyS600, fontSize: 13, fontWeight: FontWeight.w500),
               ),
@@ -377,35 +429,28 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         ),
       );
     }
-
     return Stack(
       children: [
         Scaffold(
           backgroundColor: AppColors.greyS1,
-          body: Stack(
+          body: Column(
             children: [
-              Column(
-                children: [
-                  _buildHeader(),
-                  _buildProgressBar(),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 10),
-                          _buildQuestionCard(),
-                          _buildOptionsSection(),
-                          _buildActionButtons(),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
-                    ),
+              _buildHeader(),
+              _buildProgressBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      _buildQuestionCard(),
+                      _buildOptionsSection(),
+                      _buildActionButtons(),
+                      const SizedBox(height: 20),
+                    ],
                   ),
-                  _buildBottomNav(),
-                ],
+                ),
               ),
-              // ── ADDED: Translation toast ──
-              // const TranslationToast(),
+              _buildBottomNav(),
             ],
           ),
         ),
@@ -449,12 +494,12 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                           ),
                 ),
                 const SizedBox(height: 16),
-                TranslatedText(
+                Text(
                   _submitProgress >= 1.0 ? 'Test Submitted!' : 'Submitting Test',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
                 ),
                 const SizedBox(height: 6),
-                TranslatedText(
+                Text(
                   _submitStatusText,
                   style: TextStyle(fontSize: 12, color: AppColors.white.withOpacity(0.55)),
                   textAlign: TextAlign.center,
@@ -463,11 +508,11 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TranslatedText(
+                    Text(
                       'Questions submitted',
                       style: TextStyle(fontSize: 12, color: AppColors.white.withOpacity(0.55)),
                     ),
-                    TranslatedText(
+                    Text(
                       '$_submittedCount / $totalQuestions',
                       style: TextStyle(fontSize: 13, color: AppColors.tealGreen, fontWeight: FontWeight.w800),
                     ),
@@ -476,12 +521,11 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 const SizedBox(height: 10),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final barWidth = constraints.maxWidth;
                     return Stack(
                       children: [
                         Container(
                           height: 10,
-                          width: barWidth,
+                          width: constraints.maxWidth,
                           decoration: BoxDecoration(
                             color: AppColors.white.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -491,7 +535,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOut,
                           height: 10,
-                          width: barWidth * _submitProgress.clamp(0.0, 1.0),
+                          width: constraints.maxWidth * _submitProgress.clamp(0.0, 1.0),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(colors: [AppColors.tealGreen, const Color(0xFF00E5CC)]),
                             borderRadius: BorderRadius.circular(8),
@@ -503,7 +547,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   },
                 ),
                 const SizedBox(height: 12),
-                TranslatedText(
+                Text(
                   '${(_submitProgress * 100).toInt()}% complete',
                   style: TextStyle(
                     fontSize: 20,
@@ -522,14 +566,14 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                       Icons.check_circle_outline,
                       AppColors.tealGreen,
                     ),
-                    _buildOverlayDivider(),
+                    Container(height: 36, width: 1, color: AppColors.white.withOpacity(0.1)),
                     _buildOverlayStat(
                       '${totalQuestions - _savedAnswers.length}',
                       'Skipped',
                       Icons.radio_button_unchecked,
                       AppColors.orange,
                     ),
-                    _buildOverlayDivider(),
+                    Container(height: 36, width: 1, color: AppColors.white.withOpacity(0.1)),
                     _buildOverlayStat(
                       '${_markedForReview.values.where((v) => v).length}',
                       'Marked',
@@ -539,7 +583,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   ],
                 ),
                 const SizedBox(height: 16),
-                TranslatedText(
+                Text(
                   'Please do not close the app',
                   style: TextStyle(fontSize: 10, color: AppColors.white.withOpacity(0.3)),
                 ),
@@ -556,9 +600,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       children: [
         Icon(icon, color: color, size: 18),
         const SizedBox(height: 5),
-        TranslatedText(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.white)),
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.white)),
         const SizedBox(height: 2),
-        TranslatedText(
+        Text(
           label,
           style: TextStyle(fontSize: 10, color: AppColors.white.withOpacity(0.5), fontWeight: FontWeight.w500),
         ),
@@ -566,20 +610,17 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildOverlayDivider() => Container(height: 36, width: 1, color: AppColors.white.withOpacity(0.1));
-
   Widget _buildHeader() {
-    // ── ADDED: language vars ──────────────────
-    final langCode = TranslationService.instance.currentLanguage;
-    final langNative = TranslationService.supportedLanguages[langCode]?['native'] ?? 'English';
-
+    final activeLangMap = _languages.firstWhere(
+      (l) => l['code'] == _effectiveLang,
+      orElse: () => {'code': 'en', 'native': 'English', 'label': 'English'},
+    );
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
         boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 5))],
       ),
-      // ── MODIFIED: Column wrap for language bar ──
       child: Column(
         children: [
           Row(
@@ -613,7 +654,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        TranslatedText(widget.subject, style: TextStyle(fontSize: 11, color: AppColors.lightGold)),
+                        Text(widget.subject, style: TextStyle(fontSize: 11, color: AppColors.lightGold)),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -626,15 +667,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                             children: [
                               Icon(Icons.assignment_outlined, color: AppColors.lightGold, size: 10),
                               const SizedBox(width: 3),
-                              AppRichText.setTextPoppinsStyle(
-                                context,
+                              Text(
                                 'MOCK TEST',
-                                9,
-                                AppColors.lightGold,
-                                FontWeight.w900,
-                                1,
-                                TextAlign.left,
-                                0.0,
+                                style: TextStyle(fontSize: 9, color: AppColors.lightGold, fontWeight: FontWeight.w900),
                               ),
                             ],
                           ),
@@ -662,7 +697,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                       const SizedBox(width: 6),
                       Icon(Icons.timer, color: AppColors.white, size: 14),
                       const SizedBox(width: 4),
-                      TranslatedText(
+                      Text(
                         _getTimerText(),
                         style: TextStyle(
                           fontSize: 14,
@@ -677,68 +712,74 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
-          // ── ADDED: Language change bar ────────
+          // Language bar
           GestureDetector(
-            onTap: () async {
-              _isPaused = true; // pause timer
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
-                ),
-              );
-              if (mounted) {
-                _isPaused = false;
-                _translateCurrentQuestion(_currentQuestionData);
-                setState(() {});
-              }
-            },
+            onTap: _showLangSheet,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.1),
+                color: _isLocalOverrideActive ? AppColors.white.withOpacity(0.15) : AppColors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.white.withOpacity(0.15)),
+                border: Border.all(
+                  color: _isLocalOverrideActive ? AppColors.white.withOpacity(0.4) : AppColors.white.withOpacity(0.15),
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.translate_rounded, size: 14, color: AppColors.white.withOpacity(0.9)),
-                      const SizedBox(width: 8),
-                      TranslatedText(
-                        'Content Language:  $langNative',
-                        style: TextStyle(
-                          color: AppColors.white.withOpacity(0.9),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                  Icon(Icons.translate_rounded, size: 14, color: AppColors.white.withOpacity(0.9)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _isLocalOverrideActive
+                              ? 'Page language (tap to change)'
+                              : 'View questions in… (tap to change)',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.white.withOpacity(0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppColors.tealGreen.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.white.withOpacity(0.2)),
+                        const SizedBox(height: 1),
+                        Row(
+                          children: [
+                            Text(
+                              activeLangMap['native'] ?? 'English',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                            if (_isLocalOverrideActive) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: AppColors.tealGreen.withOpacity(0.35),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'Page only',
+                                  style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        child: TranslatedText(
-                          'Change',
-                          style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-
-                  const SizedBox(height: 4),
-
-                  TranslatedText(
-                    'Changing language may take up to 40 seconds. Please wait.',
-                    style: TextStyle(color: AppColors.white.withOpacity(0.7), fontSize: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.tealGreen.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.white.withOpacity(0.2)),
+                    ),
+                    child: Text(
+                      _isLocalOverrideActive ? 'Change' : 'Select',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ],
               ),
@@ -750,9 +791,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   Widget _buildProgressBar() {
-    int answered = _savedAnswers.length;
-    double progress = totalQuestions > 0 ? answered / totalQuestions : 0;
-
+    double progress = totalQuestions > 0 ? _savedAnswers.length / totalQuestions : 0;
     return Container(
       color: AppColors.white,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
@@ -761,15 +800,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              AppRichText.setTextPoppinsStyle(
-                context,
+              Text(
                 'Q ${_currentQuestion + 1} of $totalQuestions',
-                13,
-                AppColors.darkNavy,
-                FontWeight.w700,
-                1,
-                TextAlign.left,
-                0.0,
+                style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w700),
               ),
               Row(
                 children: [
@@ -820,7 +853,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         children: [
           Icon(icon, color: color, size: 11),
           const SizedBox(width: 3),
-          TranslatedText(count, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
+          Text(count, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );
@@ -828,7 +861,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
 
   Widget _buildQuestionCard() {
     bool isMarked = _markedForReview[_currentQuestion] == true;
-
+    final isTranslationAllowed = _currentQuestionData['is_translation_allowed'] == '1';
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(15),
@@ -853,15 +886,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   children: [
                     Icon(Icons.category, color: AppColors.tealGreen, size: 12),
                     const SizedBox(width: 5),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
+                    Text(
                       widget.subject,
-                      11,
-                      AppColors.tealGreen,
-                      FontWeight.w700,
-                      1,
-                      TextAlign.left,
-                      0.0,
+                      style: TextStyle(fontSize: 11, color: AppColors.tealGreen, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -877,15 +904,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   children: [
                     Icon(Icons.stars, color: AppColors.darkNavy, size: 12),
                     const SizedBox(width: 5),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
+                    Text(
                       '${_currentQuestionData['points']} Pts',
-                      11,
-                      AppColors.darkNavy,
-                      FontWeight.w700,
-                      1,
-                      TextAlign.left,
-                      0.0,
+                      style: TextStyle(fontSize: 11, color: AppColors.darkNavy, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -902,7 +923,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     children: [
                       Icon(Icons.bookmark, color: AppColors.orange, size: 12),
                       const SizedBox(width: 3),
-                      TranslatedText(
+                      Text(
                         'Review',
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.orange),
                       ),
@@ -912,24 +933,16 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ],
           ),
           const SizedBox(height: 12),
-
-          // ── MODIFIED: translated question ──
-          (_currentQuestionData['is_translation_allowed'] == '1')
+          // ── ONLY question text translates ──────────────────────────────────
+          isTranslationAllowed
               ? Text(
-                _currentQuestionData['question'] ?? '', // 🔥 original
-                style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700),
-                maxLines: 2,
-                textAlign: TextAlign.left,
+                _currentQuestionData['question'] ?? '',
+                style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700, height: 1.4),
               )
-              : AppRichText.setTextPoppinsStyle(
-                context,
-                _translatedQuestionData['question'] ?? '', // 🔥 translated
-                15,
-                AppColors.darkNavy,
-                FontWeight.w700,
-                2,
-                TextAlign.left,
-                0.0,
+              : TranslatedText(
+                _currentQuestionData['question'] ?? '',
+                key: ValueKey('mock_q_${_effectiveLang}_$_currentQuestion'),
+                style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700, height: 1.4),
               ),
         ],
       ),
@@ -937,29 +950,23 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   Widget _buildOptionsSection() {
-    final isTranslate = _currentQuestionData['is_translation_allowed'] == '0';
-
-    final options = isTranslate ? _translatedQuestionData['options'] : _currentQuestionData['options'];
-
+    final options = _currentQuestionData['options'] as List? ?? [];
+    final isTranslationAllowed = _currentQuestionData['is_translation_allowed'] == '1';
     return Container(
       margin: EdgeInsets.all(16),
       child: Column(
         children: List.generate(
           options.length,
-          (index) => _buildOptionCard(String.fromCharCode(65 + index), options[index], index),
+          (i) => _buildOptionCard(String.fromCharCode(65 + i), options[i].toString(), i, isTranslationAllowed),
         ),
       ),
     );
   }
 
-  Widget _buildOptionCard(String letter, String text, int index) {
+  Widget _buildOptionCard(String letter, String text, int index, bool isTranslationAllowed) {
     bool isSelected = _selectedOption == index;
     bool isSaved = _savedAnswers[_currentQuestion] == index;
-
-    Color backgroundColor = AppColors.white;
-    Color borderColor = AppColors.greyS200;
-    Color letterBgColor = AppColors.greyS1;
-
+    Color backgroundColor = AppColors.white, borderColor = AppColors.greyS200, letterBgColor = AppColors.greyS1;
     if (isSelected && !isSaved) {
       backgroundColor = AppColors.lightGold.withOpacity(0.12);
       borderColor = AppColors.lightGold;
@@ -978,8 +985,8 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: backgroundColor,
-          border: Border.all(color: borderColor, width: 1.5),
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor, width: 1.5),
           boxShadow:
               isSaved
                   ? [
@@ -996,30 +1003,30 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
               height: 34,
               decoration: BoxDecoration(color: letterBgColor, borderRadius: BorderRadius.circular(10)),
               child: Center(
-                child: AppRichText.setTextPoppinsStyle(
-                  context,
+                child: Text(
                   letter,
-                  13,
-                  (isSelected || isSaved) ? AppColors.white : AppColors.darkNavy,
-                  FontWeight.w900,
-                  1,
-                  TextAlign.left,
-                  0.0,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: (isSelected || isSaved) ? AppColors.white : AppColors.darkNavy,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: AppRichText.setTextPoppinsStyle(
-                context,
-                text,
-                13,
-                AppColors.darkNavy,
-                FontWeight.w500,
-                3,
-                TextAlign.left,
-                0.0,
-              ),
+              // ── ONLY option text translates ──────────────────────────────
+              child:
+                  isTranslationAllowed
+                      ? Text(
+                        text,
+                        style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w500),
+                      )
+                      : TranslatedText(
+                        text,
+                        key: ValueKey('mock_opt_${_effectiveLang}_${_currentQuestion}_$index'),
+                        style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w500),
+                      ),
             ),
             if (isSaved)
               Container(
@@ -1034,10 +1041,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   Widget _buildActionButtons() {
-    bool hasSelection = _selectedOption != null;
-    bool isSaved = _savedAnswers.containsKey(_currentQuestion);
-    bool isMarked = _markedForReview[_currentQuestion] == true;
-
+    bool hasSelection = _selectedOption != null,
+        isSaved = _savedAnswers.containsKey(_currentQuestion),
+        isMarked = _markedForReview[_currentQuestion] == true;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
@@ -1063,7 +1069,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                           size: 16,
                         ),
                         const SizedBox(width: 6),
-                        TranslatedText(
+                        Text(
                           isMarked ? 'Marked' : 'Mark Review',
                           style: TextStyle(
                             fontSize: 12,
@@ -1097,7 +1103,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                         size: 16,
                       ),
                       const SizedBox(width: 5),
-                      TranslatedText(
+                      Text(
                         'Clear',
                         style: TextStyle(
                           fontSize: 12,
@@ -1144,15 +1150,13 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     size: 20,
                   ),
                   const SizedBox(width: 8),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
+                  Text(
                     _currentQuestion == totalQuestions - 1 ? 'Save & Submit' : 'Save & Next',
-                    14,
-                    (hasSelection || isSaved) ? AppColors.white : AppColors.greyS500,
-                    FontWeight.w700,
-                    1,
-                    TextAlign.left,
-                    0.0,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: (hasSelection || isSaved) ? AppColors.white : AppColors.greyS500,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -1164,9 +1168,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   Widget _buildBottomNav() {
-    bool canGoPrev = _currentQuestion > 0;
-    bool canGoNext = _currentQuestion < totalQuestions - 1;
-
+    bool canGoPrev = _currentQuestion > 0, canGoNext = _currentQuestion < totalQuestions - 1;
     return Container(
       padding: EdgeInsets.fromLTRB(16, 10, 16, MediaQuery.of(context).padding.bottom + 10),
       decoration: BoxDecoration(
@@ -1200,15 +1202,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   children: [
                     Icon(Icons.grid_view_rounded, color: AppColors.darkNavy, size: 16),
                     const SizedBox(width: 6),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
+                    Text(
                       'Questions',
-                      12,
-                      AppColors.darkNavy,
-                      FontWeight.w700,
-                      1,
-                      TextAlign.left,
-                      0.0,
+                      style: TextStyle(fontSize: 12, color: AppColors.darkNavy, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -1216,23 +1212,22 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ),
           ),
           const SizedBox(width: 10),
-          if (canGoNext)
-            _buildNavButton(
-              icon: Icons.arrow_forward_ios_rounded,
-              label: 'Next',
-              enabled: true,
-              onTap: () => _goToQuestion(_currentQuestion + 1),
-              isOutline: false,
-            )
-          else
-            _buildNavButton(
-              icon: Icons.send_rounded,
-              label: 'Submit',
-              enabled: true,
-              onTap: _showFinalSubmitDialog,
-              isOutline: false,
-              isSubmit: true,
-            ),
+          canGoNext
+              ? _buildNavButton(
+                icon: Icons.arrow_forward_ios_rounded,
+                label: 'Next',
+                enabled: true,
+                onTap: () => _goToQuestion(_currentQuestion + 1),
+                isOutline: false,
+              )
+              : _buildNavButton(
+                icon: Icons.send_rounded,
+                label: 'Submit',
+                enabled: true,
+                onTap: _showFinalSubmitDialog,
+                isOutline: false,
+                isSubmit: true,
+              ),
         ],
       ),
     );
@@ -1277,7 +1272,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
               Icon(icon, color: enabled ? AppColors.white : AppColors.greyS400, size: 14),
               const SizedBox(width: 5),
             ],
-            TranslatedText(
+            Text(
               label,
               style: TextStyle(
                 fontSize: 12,
@@ -1324,15 +1319,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          AppRichText.setTextPoppinsStyle(
-                            context,
+                          Text(
                             'Question Palette',
-                            15,
-                            AppColors.darkNavy,
-                            FontWeight.w800,
-                            1,
-                            TextAlign.left,
-                            0.0,
+                            style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w800),
                           ),
                           GestureDetector(
                             onTap: () => Navigator.pop(context),
@@ -1397,7 +1386,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                                         : [],
                               ),
                               child: Center(
-                                child: TranslatedText(
+                                child: Text(
                                   '${index + 1}',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -1438,15 +1427,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                             children: [
                               Icon(Icons.send_rounded, color: AppColors.white, size: 18),
                               const SizedBox(width: 8),
-                              AppRichText.setTextPoppinsStyle(
-                                context,
+                              Text(
                                 'Submit Test',
-                                14,
-                                AppColors.white,
-                                FontWeight.w800,
-                                1,
-                                TextAlign.left,
-                                0.0,
+                                style: TextStyle(fontSize: 14, color: AppColors.white, fontWeight: FontWeight.w800),
                               ),
                             ],
                           ),
@@ -1473,15 +1456,13 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
           ),
         ),
         const SizedBox(width: 4),
-        TranslatedText(label, style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontWeight: FontWeight.w500)),
       ],
     );
   }
 
   void _showFinalSubmitDialog() {
-    int answered = _savedAnswers.length;
-    int unanswered = totalQuestions - answered;
-
+    int answered = _savedAnswers.length, unanswered = totalQuestions - answered;
     showDialog(
       context: context,
       builder:
@@ -1498,15 +1479,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     child: Icon(Icons.send_rounded, color: AppColors.tealGreen, size: 36),
                   ),
                   const SizedBox(height: 16),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
+                  Text(
                     'Submit Test?',
-                    16,
-                    AppColors.darkNavy,
-                    FontWeight.w800,
-                    1,
-                    TextAlign.center,
-                    0.0,
+                    style: TextStyle(fontSize: 16, color: AppColors.darkNavy, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -1540,15 +1515,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                             padding: const EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
+                          child: Text(
                             'Review',
-                            13,
-                            AppColors.greyS700,
-                            FontWeight.w600,
-                            1,
-                            TextAlign.left,
-                            0.0,
+                            style: TextStyle(fontSize: 13, color: AppColors.greyS700, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
@@ -1566,15 +1535,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Center(
-                              child: AppRichText.setTextPoppinsStyle(
-                                context,
+                              child: Text(
                                 'Submit',
-                                13,
-                                AppColors.white,
-                                FontWeight.w800,
-                                1,
-                                TextAlign.left,
-                                0.0,
+                                style: TextStyle(fontSize: 13, color: AppColors.white, fontWeight: FontWeight.w800),
                               ),
                             ),
                           ),
@@ -1595,26 +1558,10 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          TranslatedText(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
-          TranslatedText(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+          Text(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
         ],
       ),
-    );
-  }
-
-  Widget _buildResultStat(String label, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(icon, color: color, size: 22),
-        ),
-        const SizedBox(height: 6),
-        TranslatedText(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 3),
-        TranslatedText(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
-      ],
     );
   }
 
@@ -1635,26 +1582,15 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     child: Icon(Icons.warning_amber_rounded, color: AppColors.red, size: 38),
                   ),
                   const SizedBox(height: 16),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
+                  Text(
                     'Test Chhod dein?',
-                    16,
-                    AppColors.darkNavy,
-                    FontWeight.w700,
-                    2,
-                    TextAlign.center,
-                    0.0,
+                    style: TextStyle(fontSize: 16, color: AppColors.darkNavy, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
-                  AppRichText.setTextPoppinsStyle(
-                    context,
+                  Text(
                     'Timer chalta rahega. Aapka progress save nahi hoga.',
-                    11,
-                    AppColors.greyS600,
-                    FontWeight.normal,
-                    3,
-                    TextAlign.center,
-                    0.0,
+                    style: TextStyle(fontSize: 11, color: AppColors.greyS600),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -1667,15 +1603,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                             padding: const EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
+                          child: Text(
                             'Wapas Jao',
-                            13,
-                            AppColors.greyS700,
-                            FontWeight.w600,
-                            1,
-                            TextAlign.left,
-                            0.0,
+                            style: TextStyle(fontSize: 13, color: AppColors.greyS700, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
@@ -1692,15 +1622,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
-                          child: AppRichText.setTextPoppinsStyle(
-                            context,
+                          child: Text(
                             'Exit',
-                            13,
-                            AppColors.white,
-                            FontWeight.w700,
-                            1,
-                            TextAlign.left,
-                            0.0,
+                            style: TextStyle(fontSize: 13, color: AppColors.white, fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -1712,4 +1636,317 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
           ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Model Download Popup  (shared by Live & Mock)
+// ─────────────────────────────────────────────────────────────────────────────
+class _ModelDownloadPopup extends StatefulWidget {
+  final String langName;
+  const _ModelDownloadPopup({required this.langName});
+  @override
+  State<_ModelDownloadPopup> createState() => _ModelDownloadPopupState();
+}
+
+class _ModelDownloadPopupState extends State<_ModelDownloadPopup> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.4, end: 1.0).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A4A4A),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 24, offset: const Offset(0, 8))],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FadeTransition(
+              opacity: _anim,
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF0D6E6E).withOpacity(0.2),
+                  border: Border.all(color: const Color(0xFF0D6E6E), width: 2),
+                ),
+                child: const Icon(Icons.download_rounded, color: Color(0xFF14A3A3), size: 30),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Downloading Language Model',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${widget.langName} is being downloaded for the first time. Please wait…',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7), height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: const LinearProgressIndicator(
+                backgroundColor: Color(0x33FFFFFF),
+                valueColor: AlwaysStoppedAnimation(Color(0xFF14A3A3)),
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFF14A3A3)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'One-time download (~10MB). Future use will be instant.',
+                      style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.6), height: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Language Picker Bottom Sheet
+// ─────────────────────────────────────────────────────────────────────────────
+class _LangPickerSheet extends StatelessWidget {
+  final List<Map<String, String>> languages;
+  final String activeLang;
+  final String globalLang;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onReset;
+
+  const _LangPickerSheet({
+    required this.languages,
+    required this.activeLang,
+    required this.globalLang,
+    required this.onSelect,
+    required this.onReset,
+  });
+
+  static const _teal = Color(0xFF0D6E6E);
+  static const _tealBg = Color(0xFFE1F5EE);
+  static const _tealLight = Color(0xFF14A3A3);
+  static const _darkNavy = Color(0xFF0A4A4A);
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 3,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)),
+          ),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: _teal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _teal.withOpacity(0.3)),
+                ),
+                child: const Icon(Icons.translate_rounded, size: 18, color: _teal),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Page Language',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1A1A2E)),
+                  ),
+                  Text('Only questions & answers will translate', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (activeLang != globalLang) ...[
+            GestureDetector(
+              onTap: onReset,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.07),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.withOpacity(0.35)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.refresh_rounded, size: 15, color: Colors.amber),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Reset to app language (${_nativeOf(globalLang)})',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF7D5200), fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.amber),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 9,
+              crossAxisSpacing: 9,
+              childAspectRatio: 1.35,
+            ),
+            itemCount: languages.length,
+            itemBuilder: (_, i) {
+              final lang = languages[i];
+              final code = lang['code']!;
+              final isActive = code == activeLang;
+              final isGlobal = code == globalLang;
+              return GestureDetector(
+                onTap: () => onSelect(code),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  decoration: BoxDecoration(
+                    color: isActive ? _darkNavy : Colors.grey.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isActive ? _teal : Colors.grey.withOpacity(0.2),
+                      width: isActive ? 1.8 : 1,
+                    ),
+                    boxShadow:
+                        isActive
+                            ? [BoxShadow(color: _teal.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 3))]
+                            : [],
+                  ),
+                  child: Stack(
+                    children: [
+                      if (isGlobal && !isActive)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            width: 7,
+                            height: 7,
+                            decoration: const BoxDecoration(color: _tealLight, shape: BoxShape.circle),
+                          ),
+                        ),
+                      if (isActive)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: const BoxDecoration(color: _teal, shape: BoxShape.circle),
+                            child: const Icon(Icons.check_rounded, size: 11, color: Colors.white),
+                          ),
+                        ),
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                lang['native']!,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: isActive ? Colors.white : const Color(0xFF1A1A2E),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 3),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isActive ? _teal.withOpacity(0.2) : _tealBg.withOpacity(0.6),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  lang['label']!,
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: isActive ? const Color(0xFF5DCAA5) : Colors.grey.shade600,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(color: _tealBg.withOpacity(0.5), borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline_rounded, size: 13, color: _teal),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Only questions & answers translate. Scores, timer and UI stay as-is.',
+                    style: TextStyle(fontSize: 11, color: _darkNavy, height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _nativeOf(String code) =>
+      languages.firstWhere((l) => l['code'] == code, orElse: () => {'native': code})['native'] ?? code;
 }
