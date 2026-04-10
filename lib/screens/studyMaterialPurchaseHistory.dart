@@ -239,20 +239,53 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
   Widget _buildStartNowRow(StudyMaterialDetailsItem material) {
     // Small preview chips of what's inside
     final List<Map<String, dynamic>> previewItems = [
-      {'icon': Icons.bolt_rounded, 'label': 'Live Test', 'color': AppColors.tealGreen},
-      {'icon': Icons.assignment_rounded, 'label': 'Mock Test', 'color': const Color(0xFF3949AB)},
-      {'icon': Icons.quiz_rounded, 'label': 'Full Mock', 'color': const Color(0xFFE65100)},
-      {
-        'icon': Icons.history_edu_rounded,
-        'label': 'PYPs',
-        'color': isPackaged == 'PREMIUM' ? AppColors.tealGreen : const Color.fromARGB(255, 114, 121, 120),
-      },
+      // 1. Chapter Test (Topic/Chapter wise)
       {
         'icon': Icons.menu_book_rounded,
-        'label': 'Notes',
-        'color': isPackaged == 'PREMIUM' ? AppColors.tealGreen : const Color.fromARGB(255, 114, 121, 120),
+        'label': 'Chapter Test',
+        'sublabel': 'Topic & Chapter wise',
+        'color': AppColors.tealGreen,
       },
-      {'icon': Icons.leaderboard_rounded, 'label': 'Leader Board', 'color': AppColors.tealGreen},
+      {
+        'icon': Icons.assignment_rounded,
+        'label': 'Subject Test',
+        'sublabel': 'Subject wise Mock Test',
+        'color': const Color(0xFF3949AB),
+      },
+
+      // 2. Weekly Live Test (Scheduled - available weekly)
+      {
+        'icon': Icons.bolt_rounded,
+        'label': 'Live Test',
+        'sublabel': 'Weekly Scheduled',
+        'color': const Color(0xFF1565C0), // deep blue — feels "live/urgent"
+      },
+
+      // 3. Mock Test (Subject wise)
+
+      // 4. Full Mock Test
+      {'icon': Icons.quiz_rounded, 'label': 'Full Mock', 'sublabel': 'Full Length', 'color': const Color(0xFFE65100)},
+
+      // 5. PYQs — Previous Year Questions (locked for non-premium)
+      {
+        'icon': Icons.history_edu_rounded,
+        'label': 'PYQs',
+        'sublabel': 'Previous Year',
+        'color': isPackaged == 'PREMIUM' ? AppColors.tealGreen : const Color(0xFF727978),
+        'locked': isPackaged != 'PREMIUM',
+      },
+
+      // 6. Notes (locked for non-premium)
+      {
+        'icon': Icons.sticky_note_2_rounded,
+        'label': 'Notes',
+        'sublabel': 'Study Material',
+        'color': isPackaged == 'PREMIUM' ? AppColors.tealGreen : const Color(0xFF727978),
+        'locked': isPackaged != 'PREMIUM',
+      },
+
+      // 7. Leaderboard
+      {'icon': Icons.leaderboard_rounded, 'label': 'Leaderboard', 'sublabel': 'Rankings', 'color': AppColors.tealGreen},
     ];
 
     return Row(
@@ -318,10 +351,11 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
     final bool isPremium = material.is_premium == 1 || material.is_premium == 2;
 
     final List<Map<String, dynamic>> actions = [
+      // 1. Chapter Test (Topic/Chapter wise)
       {
-        'icon': Icons.bolt_rounded,
-        'label': 'Live Test',
-        'subtitle': 'Attempt live quizzes',
+        'icon': Icons.menu_book_rounded,
+        'label': 'Chapter Test',
+        'subtitle': 'Topic & chapter wise tests',
         'color': AppColors.tealGreen,
         'locked': false,
         'onTap': () {
@@ -334,8 +368,8 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
       },
       {
         'icon': Icons.assignment_rounded,
-        'label': 'Mock Test',
-        'subtitle': 'Practice with mock papers',
+        'label': 'Subject Test',
+        'subtitle': 'Subject wise Mock Test',
         'color': const Color(0xFF3949AB),
         'locked': false,
         'onTap': () {
@@ -346,9 +380,31 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
           );
         },
       },
+
+      // 2. Weekly Live Test (Scheduled)
+      {
+        'icon': Icons.bolt_rounded,
+        'label': 'Live Test',
+        'subtitle': 'Weekly scheduled live tests',
+        'color': const Color(0xFF1565C0),
+        'locked': false,
+        'onTap': () {
+          Navigator.pop(context);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Paid_QuizListScreen(material.materialId.toString(), '1'),
+            ), // update type ID as per your backend
+          );
+        },
+      },
+
+      // 3. Mock Test (Subject wise)
+
+      // 4. Full Mock Test
       {
         'icon': Icons.quiz_rounded,
-        'label': 'Full Mock Test',
+        'label': 'Full Mock',
         'subtitle': 'Full-length exam simulation',
         'color': const Color(0xFFE65100),
         'locked': false,
@@ -363,12 +419,11 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
       {
         'icon': Icons.leaderboard_rounded,
         'label': 'Leaderboard',
-        'subtitle': isPremium ? 'Upgrade to access' : 'See your ranking',
+        'subtitle': 'See your ranking',
         'color': const Color(0xFF6B4EFF),
         'locked': false,
         'onTap': () {
           Navigator.pop(context);
-
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -377,10 +432,12 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
           );
         },
       },
+
+      // 5. PYQs (locked for non-premium)
       {
         'icon': Icons.history_edu_rounded,
-        'label': 'PYP',
-        'subtitle': 'Previous year questions',
+        'label': 'PYQs',
+        'subtitle': isPremium ? 'Upgrade to access' : 'Previous year questions',
         'color': isPremium ? const Color(0xFF9E9E9E) : const Color(0xFF00897B),
         'locked': isPremium,
         'onTap': () {
@@ -395,10 +452,12 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
           }
         },
       },
+
+      // 6. Notes (locked for non-premium)
       {
-        'icon': Icons.menu_book_rounded,
-        'label': 'Study Material',
-        'subtitle': isPremium ? 'Upgrade to access' : 'Notes & PDFs',
+        'icon': Icons.sticky_note_2_rounded,
+        'label': 'Notes',
+        'subtitle': isPremium ? 'Upgrade to access' : 'Study notes & PDFs',
         'color': isPremium ? const Color(0xFF9E9E9E) : AppColors.darkNavy,
         'locked': isPremium,
         'onTap': () {
@@ -413,6 +472,8 @@ class _StudyMaterialPurchaseHistoryScreenState extends State<StudyMaterialPurcha
           }
         },
       },
+
+      // 7. Leaderboard
     ];
 
     showModalBottomSheet(

@@ -95,7 +95,7 @@ class StudyMaterialDetailsItem {
       Category_name: json['Category_name']?.toString() ?? '',
       Material_name: json['Material_name']?.toString() ?? '',
       subscription_price: _toDouble(json['subscription_price']),
-      subscription_description: json['subscription_description']?.toString() ?? '',
+      subscription_description: json['course_description']?.toString() ?? '',
       subscription_id: _toInt(json['subscription_id']),
 
       // 🔥 SAFE PARSING (agar na aaye to false)

@@ -24,8 +24,8 @@ android {
         applicationId = "com.tazaquiz.quiz"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.2.22"
+        versionCode = 35
+        versionName = "1.2.23"
         multiDexEnabled = true
     }
 

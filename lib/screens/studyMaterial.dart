@@ -546,7 +546,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen> with SingleTi
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           TranslatedText(
-                            'Explore',
+                            'View Details',
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
                           ),
                           SizedBox(width: 4),

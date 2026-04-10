@@ -5,6 +5,8 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
+import 'package:tazaquiznew/screens/Paid_quzes_list.dart';
+import 'package:tazaquiznew/screens/checkout.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 import 'dart:async';
@@ -15,6 +17,63 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/study_material_details_item.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
+
+// ── Package Model ─────────────────────────────────────────────────────────────
+
+class PackageFeature {
+  final String text;
+  final String label;
+  final bool isIncluded;
+  const PackageFeature({required this.text, required this.label, required this.isIncluded});
+
+  factory PackageFeature.fromJson(Map<String, dynamic> json) {
+    return PackageFeature(
+      text: json['text']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      isIncluded: json['is_included'] == true || json['is_included'] == 1,
+    );
+  }
+}
+
+class PackageItem {
+  final int packageId;
+  final String name;
+  final double price;
+  final double oldPrice;
+  final int validityDays;
+  final List<PackageFeature> features;
+
+  const PackageItem({
+    required this.packageId,
+    required this.name,
+    required this.price,
+    required this.oldPrice,
+    required this.validityDays,
+    required this.features,
+  });
+
+  factory PackageItem.fromJson(Map<String, dynamic> json) {
+    double _toDouble(dynamic v) => double.tryParse(v?.toString() ?? '') ?? 0.0;
+    int _toInt(dynamic v) => int.tryParse(v?.toString() ?? '') ?? 0;
+    final featureList =
+        (json['features'] as List? ?? []).map((e) => PackageFeature.fromJson(e as Map<String, dynamic>)).toList();
+    return PackageItem(
+      packageId: _toInt(json['package_id']),
+      name: json['name']?.toString() ?? '',
+      price: _toDouble(json['price']),
+      oldPrice: _toDouble(json['old_price']),
+      validityDays: _toInt(json['validity_days']),
+      features: featureList,
+    );
+  }
+
+  int get discountPercent {
+    if (oldPrice <= 0) return 0;
+    return (((oldPrice - price) / oldPrice) * 100).round();
+  }
+}
+
+// ── BuyCoursePage ─────────────────────────────────────────────────────────────
 
 class BuyCoursePage extends StatefulWidget {
   final String contentId;
@@ -42,6 +101,12 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   StudyMaterialDetailsItem? _currentMaterial;
   bool _descExpanded = false;
 
+  // ── Package state ──────────────────────────────────────────────────────────
+  List<PackageItem> _packages = [];
+  PackageItem? _selectedPackage;
+
+  final List<bool> _faqExpanded = List.filled(6, false);
+
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
@@ -56,6 +121,39 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   Color get _gold => AppColors.lightGold;
   Color get _primary => AppColors.darkNavy;
   static const _borderCol = Color(0xFFE4E9F4);
+
+  final List<Map<String, String>> _faqs = [
+    {
+      'q': 'What is included in this course?',
+      'a':
+          'This course includes full mock tests, chapter-wise & subject-wise tests, live test series, All India ranking, study material, and daily current affairs updates. PYPs (Previous Year Questions) and Notes are available only in the premium plan, while all other features are available in both basic and premium plans.',
+    },
+    {
+      'q': 'How long will I have access to this course?',
+      'a':
+          'You will have access to all content until the validity date shown on your purchased plan. All features remain accessible as per your plan during the validity period.',
+    },
+    {
+      'q': 'Can I attempt mock tests multiple times?',
+      'a':
+          'Yes! All mock tests, chapter tests, and subject tests can be attempted unlimited times. This helps you practice repeatedly and track your improvement over time.',
+    },
+    {
+      'q': 'What is the All India Ranking feature?',
+      'a':
+          'After each live test or mock test, you can see your rank compared to all students who appeared for the same test across India. This helps you evaluate your performance at a national level.',
+    },
+    {
+      'q': 'Is the study material available offline?',
+      'a':
+          'Study materials like PDFs and notes can be downloaded for offline access (available in premium plan). Other features require an internet connection.',
+    },
+    {
+      'q': 'How do I contact support if I face any issues?',
+      'a':
+          'You can reach our support team through the Help section in the app or via email. Our support is available 24/7 to assist you with any issues or queries.',
+    },
+  ];
 
   @override
   void initState() {
@@ -92,7 +190,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
       _fadeController.forward();
       setState(() {});
     } catch (e) {
-      print('getUserData error: $e');
       if (mounted)
         setState(() {
           _isLoading = false;
@@ -124,6 +221,16 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
           _isFree = !_currentMaterial!.isPaid;
           _isPremium = _currentMaterial!.is_premium ?? 0;
           _product_sub_id = _currentMaterial!.subscription_id ?? 0;
+
+          // ── Parse packages from API ──────────────────────────────────────
+          final rawPackages = responseFuture.data['data'][0]['packages'] as List? ?? [];
+          _packages = rawPackages.map((e) => PackageItem.fromJson(e as Map<String, dynamic>)).toList();
+
+          // Default: select first package
+          if (_packages.isNotEmpty) {
+            _selectedPackage = _packages.first;
+          }
+
           setState(() {
             _isLoading = false;
             _hasError = false;
@@ -183,13 +290,53 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     if (_currentMaterial == null) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => PricingPage(CourseIds: _currentMaterial!.subscription_id.toString())),
-    ).then((v) {
-      if (v == true) _getUserData();
-    });
+      MaterialPageRoute(
+        builder:
+            (context) => CheckoutPage(
+              contentType: 'Subscription',
+              contentId: _currentMaterial!.subscription_id.toString(),
+              package_id: _selectedPackage?.packageId.toString() ?? '',
+            ),
+      ),
+    );
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (_) => PricingPage(CourseIds: _currentMaterial!.subscription_id.toString())),
+    // ).then((v) {
+    //   if (v == true) _getUserData();
+    // });
   }
 
-  // ════════════════════════════════════════════════════════════════════
+  // ── Show Package Picker Bottom Sheet ────────────────────────────────────────
+  void _showPackagePicker() {
+    // if (_packages.isEmpty) {
+    //   _handleSubscribe();
+    //   return;
+    // }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (_) => _PackagePickerSheet(
+            packages: _packages,
+            selectedPackage: _selectedPackage,
+            onSelect: (pkg) {
+              setState(() {
+                _selectedPackage = pkg;
+              });
+            },
+            onProceed: (pkg) {
+              setState(() {
+                _selectedPackage = pkg;
+              });
+              _handleSubscribe();
+            },
+          ),
+    );
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -215,12 +362,27 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
             child: Column(
               children: [
                 _heroBanner(canStart),
-                const SizedBox(height: 16),
-                if (canStart) ...[_accessBanner(), const SizedBox(height: 16)],
-                if (!canStart) ...[_whatYouGetSection(), const SizedBox(height: 16)],
-                if (_currentMaterial!.description.isNotEmpty) ...[_descriptionCard(), const SizedBox(height: 16)],
-                _instructorCard(),
+                const SizedBox(height: 12),
+                if (canStart) ...[
+                  _purchasedBanner(),
+                  const SizedBox(height: 12),
+                ] else ...[
+                  _examComingSoonBanner(),
+                  const SizedBox(height: 12),
+                ],
+                _specialFeaturesSection(),
+                const SizedBox(height: 12),
+                _contentSectionsCard(),
+                const SizedBox(height: 12),
+
+                // ── Dynamic Features from selected package ──────────────────
+                if (!canStart && _selectedPackage != null) ...[_dynamicFeaturesCard(), const SizedBox(height: 12)],
+
+                if (_currentMaterial!.description.isNotEmpty) ...[_descriptionCard(), const SizedBox(height: 12)],
+                _faqSection(),
                 const SizedBox(height: 8),
+                _instructorCard(),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -230,7 +392,217 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ── AppBar ────────────────────────────────────────────────────────────
+  // ── Dynamic Features Card ───────────────────────────────────────────────────
+  Widget _dynamicFeaturesCard() {
+    if (_selectedPackage == null) return const SizedBox.shrink();
+    final pkg = _selectedPackage!;
+    final includedFeatures = pkg.features.where((f) => f.isIncluded).toList();
+    final excludedFeatures = pkg.features.where((f) => !f.isIncluded).toList();
+
+    final Color planColor = pkg.name.toLowerCase().contains('premium') ? const Color(0xFF6B4EE6) : _green;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: _navy.withOpacity(0.07), blurRadius: 20, offset: const Offset(0, 6))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──
+            Container(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [planColor.withOpacity(0.08), Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: planColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      pkg.name.toLowerCase().contains('premium') ? Icons.workspace_premium : Icons.verified_rounded,
+                      color: planColor,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${pkg.name} Plan Features',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _navy),
+                        ),
+                        Text(
+                          '${pkg.validityDays} days validity',
+                          style: const TextStyle(fontSize: 11, color: _textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(color: planColor, borderRadius: BorderRadius.circular(8)),
+                    child: Text(
+                      pkg.discountPercent > 0 ? '${pkg.discountPercent}% OFF' : pkg.name.toUpperCase(),
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 1, color: _borderCol),
+
+            // ── Included ──
+            if (includedFeatures.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(color: _green, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 7),
+                    const Text(
+                      'Included',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _green, letterSpacing: 0.3),
+                    ),
+                  ],
+                ),
+              ),
+              _featuresGrid(includedFeatures, true, planColor),
+            ],
+
+            // ── Not included ──
+            if (excludedFeatures.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 7),
+                    const Text(
+                      'Not included',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.redAccent,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _featuresGrid(excludedFeatures, false, planColor),
+            ],
+
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _featuresGrid(List<PackageFeature> features, bool included, Color planColor) {
+    // Pair items into rows of 2
+    final List<Widget> rows = [];
+    for (int i = 0; i < features.length; i += 2) {
+      final left = features[i];
+      final right = i + 1 < features.length ? features[i + 1] : null;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          child: Row(
+            children: [
+              Expanded(child: _featureCell(left, included)),
+              const SizedBox(width: 8),
+              right != null ? Expanded(child: _featureCell(right, included)) : const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(children: rows);
+  }
+
+  Widget _featureCell(PackageFeature feature, bool included) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: included ? _green.withOpacity(0.05) : Colors.red.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: included ? _green.withOpacity(0.18) : Colors.redAccent.withOpacity(0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            margin: const EdgeInsets.only(top: 1),
+            decoration: BoxDecoration(
+              color: included ? _green.withOpacity(0.12) : Colors.red.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              included ? Icons.check_rounded : Icons.close_rounded,
+              size: 12,
+              color: included ? _green : Colors.redAccent,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  feature.text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: included ? _navy : _textMuted,
+                    decoration: included ? null : TextDecoration.lineThrough,
+                    decorationColor: _textMuted,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  feature.label,
+                  style: TextStyle(fontSize: 10, color: _textMuted.withOpacity(0.75), height: 1.3),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── AppBar ─────────────────────────────────────────────────────────────────
   PreferredSizeWidget _appBar({String title = 'Course Details'}) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(60),
@@ -283,151 +655,541 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ── Hero Banner ───────────────────────────────────────────────────────
+  // ── Hero Banner ─────────────────────────────────────────────────────────────
   Widget _heroBanner(bool canStart) {
     final String? thumbUrl = _currentMaterial!.thumbnail;
     final bool hasThumb = thumbUrl != null && thumbUrl.isNotEmpty;
 
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_navy, Color(0xFF0D2137)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Stack(
-        children: [
-          if (hasThumb)
-            Positioned.fill(
-              child: Image.network(
-                thumbUrl!,
-                fit: BoxFit.cover,
-                color: Colors.black.withOpacity(0.60),
-                colorBlendMode: BlendMode.darken,
-                errorBuilder: (_, __, ___) => const SizedBox(),
-              ),
-            ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [_navy.withOpacity(hasThumb ? 0.35 : 0.0), _navy.withOpacity(0.97)],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Stack(
+          children: [
+            if (hasThumb)
+              SizedBox(
+                width: double.infinity,
+                height: 155,
+                child: Image.network(
+                  thumbUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, __, ___) => Container(
+                        height: 155,
+                        color: _navy,
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported_outlined, color: Colors.white54, size: 36),
+                        ),
+                      ),
+                ),
+              )
+            else
+              Container(
+                width: double.infinity,
+                height: 140,
+                color: _navy,
+                child: Center(
+                  child: Icon(
+                    _currentMaterial!.contentType.toUpperCase() == 'PDF'
+                        ? Icons.picture_as_pdf_outlined
+                        : Icons.play_circle_outline_rounded,
+                    color: Colors.white38,
+                    size: 44,
+                  ),
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 22, 18, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _heroBadge(
-                      icon:
-                          _currentMaterial!.contentType.toUpperCase() == 'PDF'
-                              ? Icons.picture_as_pdf_outlined
-                              : Icons.video_library_outlined,
-                      label: 'Complete Course',
-                    ),
-                    if (canStart) ...[
-                      const SizedBox(width: 8),
-                      _heroBadge(
-                        icon: Icons.verified_rounded,
-                        label: _isFree ? 'FREE COURSE' : 'ENROLLED',
-                        accent: true,
+            if (canStart)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _isFree ? _green : const Color(0xFF6B4EE6),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6)],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_isFree ? Icons.lock_open_rounded : Icons.verified_rounded, color: Colors.white, size: 11),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isFree ? 'FREE' : (_isPremium == 1 ? 'PREMIUM' : 'BASIC'),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ],
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _currentMaterial!.Material_name,
-                  style: const TextStyle(
-                    fontSize: 23,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    height: 1.22,
-                    letterSpacing: -0.4,
                   ),
                 ),
-                const SizedBox(height: 8),
-                if (_currentMaterial!.subscription_description.isNotEmpty)
-                  Text(
-                    _currentMaterial!.subscription_description,
-                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.58), height: 1.5),
-                    maxLines: 6,
-                    overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _heroBadge(
+                    icon:
+                        _currentMaterial!.contentType.toUpperCase() == 'PDF'
+                            ? Icons.picture_as_pdf_outlined
+                            : Icons.play_circle_outline_rounded,
+                    label: 'Complete Course',
+                    bgColor: _navy.withOpacity(0.08),
+                    textColor: _navy,
+                    iconColor: _navy,
                   ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    _heroStat('⚡', 'Live Test', 'Unlimited'),
+                  if (canStart && _isPurchased && !_isFree) ...[
                     const SizedBox(width: 8),
-                    _heroStat('📝', 'Mock Tests', 'Unlimited'),
-                    const SizedBox(width: 8),
-                    _heroStat('📚', 'PYPs', 'Upto 10 Years'),
-                    const SizedBox(width: 8),
-                    _heroStat('📚', 'Study Material', 'Full Access'),
+                    _heroBadge(
+                      icon: Icons.verified_rounded,
+                      label: 'PURCHASED',
+                      bgColor: _green.withOpacity(0.1),
+                      textColor: _green,
+                      iconColor: _green,
+                    ),
                   ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _currentMaterial!.Material_name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: _navy,
+                  height: 1.25,
+                  letterSpacing: -0.3,
                 ),
-              ],
+              ),
+              const SizedBox(height: 6),
+              _compactDescription(),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _heroStat(Icons.bolt_rounded, 'Live Test', 'Unlimited'),
+                  const SizedBox(width: 6),
+                  _heroStat(Icons.edit_note_rounded, 'Mock Tests', 'Unlimited'),
+                  const SizedBox(width: 6),
+                  _heroStat(Icons.history_edu_rounded, 'PYPs', 'Upto 10 Yrs'),
+                  const SizedBox(width: 6),
+                  _heroStat(Icons.menu_book_rounded, 'Study Material', 'Full Access'),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _contentChipsRow(),
+              const SizedBox(height: 14),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _compactDescription() {
+    final text = _currentMaterial!.subscription_description;
+    if (text.isEmpty) return const SizedBox.shrink();
+    const maxLines = 3;
+    final isLong = text.length > 120;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 250),
+          crossFadeState: (!isLong || _descExpanded) ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          firstChild: Text(
+            text,
+            style: const TextStyle(fontSize: 12.5, color: Color(0xFF5A6A7A), height: 1.55),
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+          ),
+          secondChild: Text(text, style: const TextStyle(fontSize: 12.5, color: Color(0xFF5A6A7A), height: 1.55)),
+        ),
+        if (isLong) ...[
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: () => setState(() => _descExpanded = !_descExpanded),
+            child: Text(
+              _descExpanded ? 'Read Less ▲' : 'Read More ▼',
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _green),
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _contentChipsRow() {
+    // ── Dynamic chips from selected package features (if available) ──────
+    if (!(_isPurchased || _isAccessible || _isFree) &&
+        _selectedPackage != null &&
+        _selectedPackage!.features.isNotEmpty) {
+      return _dynamicChipsRow(_selectedPackage!.features);
+    }
+
+    // ── Fallback static chips ────────────────────────────────────────────
+    final chips = [
+      _ChipData('Chapter Test', Icons.menu_book_outlined, const Color(0xFF1565C0)),
+      _ChipData('Subject Test', Icons.assignment_outlined, const Color(0xFF6A1B9A)),
+      _ChipData('Live Test', Icons.bolt_rounded, const Color(0xFFE65100)),
+      _ChipData('Full Mock', Icons.quiz_rounded, _green),
+      _ChipData('PYQs', Icons.history_edu_rounded, _navy),
+      _ChipData('Notes', Icons.description_outlined, const Color(0xFF00897B)),
+      _ChipData('Leaderboard', Icons.leaderboard_rounded, const Color(0xFFD32F2F)),
+      _ChipData('Daily Quiz', Icons.today_rounded, const Color(0xFF2E7D32)),
+      _ChipData('Job Alerts', Icons.campaign_rounded, const Color(0xFFEF6C00)),
+      _ChipData('Daily Updates', Icons.update_rounded, const Color(0xFF00838F)),
+      _ChipData('24/7 Support', Icons.support_agent_rounded, const Color(0xFF5E35B1)),
+    ];
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: chips.map((c) => _buildChipWidget(c.label, c.icon, c.color, true)).toList(),
+    );
+  }
+
+  Widget _dynamicChipsRow(List<PackageFeature> features) {
+    final iconMap = {
+      'Chapter Test': Icons.menu_book_outlined,
+      'Subject Test': Icons.assignment_outlined,
+      'Live Test': Icons.bolt_rounded,
+      'Full Mock': Icons.quiz_rounded,
+      'PYQs': Icons.history_edu_rounded,
+      'Notes': Icons.description_outlined,
+      'Leaderboard': Icons.leaderboard_rounded,
+      'Daily Quiz': Icons.today_rounded,
+      'Job Alerts': Icons.campaign_rounded,
+      'Daily Updates': Icons.update_rounded,
+      '24/7 Support': Icons.support_agent_rounded,
+    };
+    final colorMap = {
+      'Chapter Test': const Color(0xFF1565C0),
+      'Subject Test': const Color(0xFF6A1B9A),
+      'Live Test': const Color(0xFFE65100),
+      'Full Mock': _green,
+      'PYQs': _navy,
+      'Notes': const Color(0xFF00897B),
+      'Leaderboard': const Color(0xFFD32F2F),
+      'Daily Quiz': const Color(0xFF2E7D32),
+      'Job Alerts': const Color(0xFFEF6C00),
+      'Daily Updates': const Color(0xFF00838F),
+      '24/7 Support': const Color(0xFF5E35B1),
+    };
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children:
+          features.map((f) {
+            final icon = iconMap[f.text] ?? Icons.check_circle_outline;
+            final color = colorMap[f.text] ?? _green;
+            return _buildChipWidget(f.text, icon, color, f.isIncluded);
+          }).toList(),
+    );
+  }
+
+  Widget _buildChipWidget(String label, IconData icon, Color color, bool included) {
+    return Opacity(
+      opacity: included ? 1.0 : 0.4,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(color: color.withOpacity(0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 11, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+            if (!included) ...[const SizedBox(width: 3), Icon(Icons.lock_rounded, size: 9, color: color)],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _heroBadge({required IconData icon, required String label, bool accent = false}) {
+  // ── Purchased Banner ────────────────────────────────────────────────────────
+  Widget _purchasedBanner() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: _isFree ? [_green, _greenMid] : [const Color(0xFF0D7B5F), _navy],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(color: _navy.withOpacity(0.15), blurRadius: 20, offset: const Offset(0, 6))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.18),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+              ),
+              child: Icon(
+                _isFree ? Icons.lock_open_rounded : Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _isFree
+                        ? 'This Course is FREE! 🎉'
+                        : _isPurchased
+                        ? 'Course Purchased! ✅'
+                        : 'Included in Your Plan!',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _isFree ? 'Start now — no charges at all!' : 'Your access is fully unlocked. Start learning!',
+                    style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.78)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Exam Coming Soon Banner ─────────────────────────────────────────────────
+  Widget _examComingSoonBanner() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF6B35), Color(0xFFD32F2F)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFFD32F2F).withOpacity(0.25), blurRadius: 16, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                ),
+                child: const Icon(Icons.campaign_rounded, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: const Text(
+                        '🔔  EXAM ALERT',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Exam Coming Soon!',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white, height: 1.2),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Don\'t miss out — start your prep today!',
+                      style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.85), height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: _showPackagePicker,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6)],
+                  ),
+                  child: const Text(
+                    'Enroll\nNow',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFD32F2F), height: 1.3),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _heroBadge({
+    required IconData icon,
+    required String label,
+    required Color bgColor,
+    required Color textColor,
+    required Color iconColor,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: accent ? _green.withOpacity(0.28) : Colors.white.withOpacity(0.14),
+        color: bgColor,
         borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: accent ? _green.withOpacity(0.75) : Colors.white.withOpacity(0.28)),
+        border: Border.all(color: bgColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: Colors.white),
+          Icon(icon, size: 11, color: iconColor),
           const SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: textColor, letterSpacing: 0.5),
           ),
         ],
       ),
     );
   }
 
-  Widget _heroStat(String emoji, String label, String value) {
+  Widget _heroStat(IconData icon, String label, String value) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFDDE3EE), width: 1),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(height: 5),
-            Text(value, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _green)),
+            Icon(icon, color: _green, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: _green, height: 1.2),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 2),
             Text(
               label,
+              style: const TextStyle(fontSize: 8.5, color: Color(0xFF8A9BB0), fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 9,
-                color: Colors.white.withOpacity(0.65),
-                fontWeight: FontWeight.w500,
-                height: 1.3,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Special Features ────────────────────────────────────────────────────────
+  Widget _specialFeaturesSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_navy, Color(0xFF0D4B3B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Special Features',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
+                  SizedBox(width: 6),
+                  Text('✨'),
+                ],
+              ),
+            ),
+            _featureItem(
+              title: 'Full Mock Test Series',
+              desc:
+                  'Chapter-wise, Subject-wise & Full mock tests for complete ${_currentMaterial!.Material_name} preparation.',
+              icon: Icons.quiz_rounded,
+              isIconRight: true,
+            ),
+            _divider(),
+            _featureItem(
+              title: 'Previous Year Questions',
+              desc: 'Last 10+ years PYQs with detailed solutions & answer keys for thorough practice.',
+              icon: Icons.history_edu_rounded,
+            ),
+            _divider(),
+            _featureItem(
+              title: 'Live Test Series',
+              desc: 'Compete with thousands of students in real-time live tests & check All India Ranking.',
+              icon: Icons.bolt_rounded,
+              isIconRight: true,
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.15),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
+                ),
+              ),
+              child: const Text(
+                '📌  PYPs and Notes are available on Premium plan only.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70),
               ),
             ),
           ],
@@ -436,401 +1198,188 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ── Access Banner ─────────────────────────────────────────────────────
-  Widget _accessBanner() {
+  Widget _featureItem({required String title, required String desc, required IconData icon, bool isIconRight = false}) {
+    final iconWidget = Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+      child: Icon(icon, color: Colors.white, size: 26),
+    );
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: _navy.withOpacity(0.18), blurRadius: 28, offset: const Offset(0, 10))],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: _isFree ? [_green, _greenMid] : [const Color(0xFF0D7B5F), _navy],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.white.withOpacity(0.35)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  _isFree ? Icons.celebration_outlined : Icons.verified_rounded,
-                                  color: Colors.white,
-                                  size: 11,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  _isFree ? 'Free Content' : 'Course Purchased',
-                                  style: const TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                    letterSpacing: 0.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _isFree
-                                ? 'This Course\nIs Completely FREE!'
-                                : _isPurchased
-                                ? 'Course Already\nPurchased!'
-                                : 'Included In\nYour Plan!',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1.25,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _isFree
-                                ? 'Start now — no charges at all!'
-                                : _isPurchased
-                                ? 'Your access is fully unlocked'
-                                : 'This is included in your current plan',
-                            style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.72)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
-                      ),
-                      child: Icon(
-                        _isFree ? Icons.lock_open_rounded : Icons.check_circle_rounded,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                color: _cardBg,
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'You have access to all of this:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _navy),
-                    ),
-                    const SizedBox(height: 14),
-                    _checkItem(
-                      Icons.picture_as_pdf_outlined,
-                      _currentMaterial!.contentType.toUpperCase() == 'PDF' ? 'PDF Material' : 'Complete Course',
-                      'You have full access to this content',
-                      _green,
-                    ),
-                    _checkItem(
-                      Icons.history_edu_outlined,
-                      'Previous Year Papers',
-                      'Last 5 years question papers',
-                      _green,
-                    ),
-                    _checkItem(
-                      Icons.bar_chart_rounded,
-                      'Performance Analytics',
-                      'Track your topic-wise weak areas',
-                      _navy,
-                    ),
-                    _checkItem(
-                      Icons.leaderboard_outlined,
-                      'All India Ranking',
-                      'Compare with students nationwide',
-                      _green,
-                    ),
-                    const SizedBox(height: 14),
-                    _infoBox(icon: Icons.school_outlined, text: 'Tap "Start Learning" to view all your courses!'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children:
+            isIconRight
+                ? [Expanded(child: _textContent(title, desc)), const SizedBox(width: 12), iconWidget]
+                : [iconWidget, const SizedBox(width: 12), Expanded(child: _textContent(title, desc))],
       ),
     );
   }
 
-  // ── What You Get ──────────────────────────────────────────────────────
-  Widget _whatYouGetSection() {
+  Widget _textContent(String title, String desc) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+        const SizedBox(height: 5),
+        Text(desc, style: const TextStyle(fontSize: 12, color: Colors.white70, height: 1.5)),
+      ],
+    );
+  }
+
+  Widget _divider() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 0.5,
+      color: Colors.white.withOpacity(0.15),
+    );
+  }
+
+  // ── Content Sections ────────────────────────────────────────────────────────
+  Widget _contentSectionsCard() {
+    final sections = [
+      _SectionData(
+        title: 'Chapter Test',
+        subtitle: 'Topic & chapter wise tests to strengthen your basics',
+        emoji: '📋',
+        color: const Color(0xFFFFF8E1),
+        borderColor: const Color(0xFFFFE082),
+        iconBg: const Color(0xFFFFF3CD),
+        textColor: const Color(0xFF7B5800),
+        onTap: () => Navigator.pop(context),
+      ),
+      _SectionData(
+        title: 'Subject Mock Test',
+        subtitle: 'Subject-wise tests to simulate the actual exam environment',
+        emoji: '📘',
+        color: const Color(0xFFF3F0FF),
+        borderColor: const Color(0xFFB39DDB),
+        iconBg: const Color(0xFFEDE7F6),
+        textColor: const Color(0xFF4A148C),
+        onTap: () => Navigator.pop(context),
+      ),
+      _SectionData(
+        title: 'Full Mock Test',
+        subtitle: 'Full-length real exam simulation with All India Ranking',
+        emoji: '📄',
+        color: const Color(0xFFF0F4FF),
+        borderColor: const Color(0xFF90CAF9),
+        iconBg: const Color(0xFFE3F2FD),
+        textColor: const Color(0xFF0D47A1),
+        onTap: () => Navigator.pop(context),
+      ),
+      _SectionData(
+        title: 'Live Test',
+        subtitle: 'Compete in real-time with students nationwide & track your rank',
+        emoji: '⚡',
+        color: const Color(0xFFFFF3E0),
+        borderColor: const Color(0xFFFFCC80),
+        iconBg: const Color(0xFFFFF3E0),
+        textColor: const Color(0xFF6D4C00),
+        onTap: () => Navigator.pop(context),
+      ),
+    ];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         decoration: BoxDecoration(
+          color: _cardBg,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: _navy.withOpacity(0.18), blurRadius: 28, offset: const Offset(0, 10))],
+          boxShadow: [BoxShadow(color: _navy.withOpacity(0.07), blurRadius: 20, offset: const Offset(0, 6))],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [_navy, Color(0xFF0D3B2E)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.white.withOpacity(0.28)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(Icons.workspace_premium, color: Colors.white, size: 11),
-                                SizedBox(width: 5),
-                                Text(
-                                  'Premium Course',
-                                  style: TextStyle(
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                    letterSpacing: 0.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'One Course,\nEverything Included!',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1.25,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Activate and get unlimited access',
-                            style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
-                      ),
-                      child: const Icon(Icons.rocket_launch_outlined, color: Colors.white, size: 22),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                color: _cardBg,
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'This package includes:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _navy),
-                    ),
-                    const SizedBox(height: 14),
-                    _buildBenefitGrid([
-                      _BenefitItem(
-                        emoji: '📝',
-                        icon: Icons.assignment_rounded,
-                        title: 'Mock Tests',
-                        desc: 'Attempt all mock tests in "${_currentMaterial!.Material_name}" — unlimited practice',
-                        color: _primary,
-                      ),
-                      _BenefitItem(
-                        emoji: '🎯',
-                        icon: Icons.quiz_rounded,
-                        title: 'Full Mock Tests',
-                        desc: 'Full-length real exam simulation papers for "${_currentMaterial!.Material_name}"',
-                        color: const Color(0xFFE65100),
-                      ),
-                      _BenefitItem(
-                        emoji: '📜',
-                        icon: Icons.history_edu_rounded,
-                        title: 'Previous Year Papers',
-                        desc: 'Solve actual past exam questions (PYPs) for "${_currentMaterial!.Material_name}"',
-                        color: const Color(0xFF00897B),
-                      ),
-                      _BenefitItem(
-                        emoji: '📰',
-                        icon: Icons.newspaper_rounded,
-                        title: 'Daily Current Affairs',
-                        desc: 'Fresh GK & news updates every day',
-                        color: const Color(0xFF1565C0),
-                      ),
-                      _BenefitItem(
-                        emoji: '📚',
-                        icon: Icons.menu_book_rounded,
-                        title: 'Study Material',
-                        desc: 'PDFs, notes & video lessons for complete prep',
-                        color: const Color(0xFF6A1B9A),
-                      ),
-                      _BenefitItem(
-                        emoji: '🏆',
-                        icon: Icons.leaderboard_rounded,
-                        title: 'All India Ranking',
-                        desc: 'Compare your score with students nationwide',
-                        color: _gold,
-                      ),
-                    ]),
-                    const SizedBox(height: 16),
-                    _checkItem(
-                      Icons.history_edu_outlined,
-                      'Previous Year Papers',
-                      'Last 5 years question papers',
-                      _green,
-                    ),
-                    _checkItem(
-                      Icons.picture_as_pdf_outlined,
-                      'Study PDFs & Notes',
-                      'Chapter-wise detailed notes',
-                      _green,
-                    ),
-                    _checkItem(
-                      Icons.video_library_outlined,
-                      'Complete Course',
-                      'Complete Course by expert teachers',
-                      _navy,
-                    ),
-                    _checkItem(
-                      Icons.bar_chart_rounded,
-                      'Performance Analytics',
-                      'Track your topic-wise weak areas',
-                      _navy,
-                    ),
-                    _checkItem(
-                      Icons.leaderboard_outlined,
-                      'All India Ranking',
-                      'Compare with students nationwide',
-                      _green,
-                    ),
-                    _checkItem(Icons.update_rounded, 'Regular Updates', 'New content added every week', _navy),
-                    const SizedBox(height: 14),
-                    _infoBox(
-                      icon: Icons.verified_outlined,
-                      text: 'Everything unlimited for the course validity — no hidden charges!',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBenefitGrid(List<_BenefitItem> items) {
-    final rows = <Widget>[];
-    for (int i = 0; i < items.length; i += 2) {
-      rows.add(
-        Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _buildBenefitCard(items[i])),
-            const SizedBox(width: 10),
-            Expanded(child: i + 1 < items.length ? _buildBenefitCard(items[i + 1]) : const SizedBox()),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [_green, _navy]),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.layers_rounded, color: Colors.white, size: 17),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'What\'s Inside',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _navy),
+                  ),
+                ],
+              ),
+            ),
+            ...sections.map((s) => _sectionRow(s)).toList(),
+            const SizedBox(height: 6),
           ],
         ),
-      );
-      if (i + 2 < items.length) rows.add(const SizedBox(height: 10));
-    }
-    return Column(children: rows);
-  }
-
-  Widget _buildBenefitCard(_BenefitItem item) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: item.color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: item.color.withOpacity(0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(color: item.color.withOpacity(0.14), borderRadius: BorderRadius.circular(9)),
-                child: Icon(item.icon, color: item.color, size: 16),
-              ),
-              const SizedBox(width: 6),
-              TranslatedText(item.emoji, style: const TextStyle(fontSize: 16)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(item.title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: _primary, height: 1.2)),
-          const SizedBox(height: 4),
-          TranslatedText(
-            item.desc,
-            style: TextStyle(fontSize: 9.5, color: AppColors.greyS600, fontWeight: FontWeight.w400, height: 1.4),
-          ),
-        ],
       ),
     );
   }
 
-  // ── Description Card ──────────────────────────────────────────────────
+  Widget _sectionRow(_SectionData s) {
+    return GestureDetector(
+      onTap: s.onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: s.color,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: s.borderColor, width: 1),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(color: s.iconBg, borderRadius: BorderRadius.circular(10)),
+                child: Center(child: Text(s.emoji, style: const TextStyle(fontSize: 22))),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s.title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: s.textColor)),
+                    const SizedBox(height: 3),
+                    Text(
+                      s.subtitle,
+                      style: const TextStyle(fontSize: 11, color: _textMuted, height: 1.4),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {},
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('View All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: s.textColor)),
+                    const SizedBox(width: 3),
+                    Icon(Icons.arrow_forward_rounded, size: 13, color: s.textColor),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Description Card ────────────────────────────────────────────────────────
   Widget _descriptionCard() {
     final text = _currentMaterial!.description;
     final bool isLong = text.length > 200;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -940,12 +1489,11 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ── Instructor Card ───────────────────────────────────────────────────
+  // ── Instructor Card ─────────────────────────────────────────────────────────
   Widget _instructorCard() {
     final name = _currentMaterial!.coaching_name;
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'I';
     final profileIcon = _currentMaterial!.profile_icon;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -1020,61 +1568,333 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ── Bottom Bar ────────────────────────────────────────────────────────
-  Widget _bottomBar(bool canStart) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      decoration: BoxDecoration(
-        color: _cardBg,
-        boxShadow: [BoxShadow(color: _navy.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -6))],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_green, _navy]),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: _green.withOpacity(0.38), blurRadius: 18, offset: const Offset(0, 7))],
+  // ── FAQ Section ─────────────────────────────────────────────────────────────
+  Widget _faqSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: _navy.withOpacity(0.07), blurRadius: 20, offset: const Offset(0, 6))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 22,
+                    decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('FAQs', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _navy)),
+                ],
+              ),
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () => canStart ? _handleStartLearning() : _handleSubscribe(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        canStart ? Icons.play_circle_filled : Icons.workspace_premium,
-                        color: Colors.white,
-                        size: 22,
+            const SizedBox(height: 8),
+            ...List.generate(_faqs.length, (i) => _faqItem(i)),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _faqItem(int index) {
+    final isOpen = _faqExpanded[index];
+    return Column(
+      children: [
+        if (index > 0) Divider(height: 1, color: _borderCol, indent: 16, endIndent: 16),
+        InkWell(
+          onTap: () {
+            setState(() {
+              _faqExpanded[index] = !_faqExpanded[index];
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    _faqs[index]['q']!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isOpen ? _green : _navy,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: isOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 250),
+                  child: Icon(Icons.keyboard_arrow_down_rounded, color: isOpen ? _green : _textMuted, size: 22),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 250),
+          crossFadeState: isOpen ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _greenLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _greenBorder.withOpacity(0.5)),
+              ),
+              child: Text(_faqs[index]['a']!, style: const TextStyle(fontSize: 12, color: _navy, height: 1.6)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Bottom Bar ──────────────────────────────────────────────────────────────
+  Widget _bottomBar(bool canStart) {
+    if (canStart) {
+      return Container(
+        decoration: BoxDecoration(
+          color: _cardBg,
+          boxShadow: [BoxShadow(color: _navy.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -6))],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [_green, _navy]),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [BoxShadow(color: _green.withOpacity(0.35), blurRadius: 18, offset: const Offset(0, 7))],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _handleStartLearning,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.play_circle_filled, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Start Learning',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        canStart ? 'Start Learning' : 'Activate Now',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
         ),
+      );
+    }
+
+    // ── Dynamic package bottom bar ──────────────────────────────────────────
+    final pkg = _selectedPackage;
+    final String originalPrice = _isFree ? '₹0' : (pkg != null ? '₹${pkg.oldPrice.toStringAsFixed(0)}' : '₹999');
+    final String finalPrice = _isFree ? '₹0' : (pkg != null ? '₹${pkg.price.toStringAsFixed(0)}' : '₹59');
+    final int discountPct = pkg?.discountPercent ?? 0;
+    final String buttonLabel = _isFree ? 'Get Free Access' : (pkg != null ? 'Get ${pkg.name} Pass' : 'Get Basic Pass');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardBg,
+        boxShadow: [BoxShadow(color: _navy.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -6))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Offer strip
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_green, _navy],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Text('% ', style: TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w800)),
+                  const Text(
+                    'Exclusive Offer ',
+                    style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700),
+                  ),
+                  const Text('😍', style: TextStyle(fontSize: 13)),
+                  if (!_isFree && discountPct > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '$discountPct% OFF',
+                        style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  // Package switcher chip
+                  if (_packages.length > 1)
+                    GestureDetector(
+                      onTap: _showPackagePicker,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          border: Border.all(color: Colors.white.withOpacity(0.6)),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(color: _green, shape: BoxShape.circle),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              pkg != null ? pkg.name : 'Change Plan',
+                              style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 13, color: Colors.white),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // Price + CTA
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total Price',
+                        style: TextStyle(fontSize: 10, color: _textMuted, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (!_isFree) ...[
+                            Text(
+                              originalPrice,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: _textMuted,
+                                decoration: TextDecoration.lineThrough,
+                                decorationColor: _textMuted,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            finalPrice,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: _navy,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (pkg != null)
+                        Text(
+                          '${pkg.validityDays} days validity',
+                          style: const TextStyle(fontSize: 10, color: _textMuted),
+                        ),
+                    ],
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [_green, _navy]),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: _green.withOpacity(0.38), blurRadius: 18, offset: const Offset(0, 7)),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: _showPackagePicker,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 20),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.workspace_premium, color: Colors.white, size: 18),
+                              const SizedBox(width: 6),
+                              Text(
+                                buttonLabel,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Error Screen ──────────────────────────────────────────────────────
+  // ── Error Screen ─────────────────────────────────────────────────────────────
   Widget _errorScreen() {
     IconData errorIcon;
     String headline, subtext;
@@ -1183,34 +2003,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════
-  //  SHARED WIDGETS
-  // ════════════════════════════════════════════════════════════════════
-
-  Widget _featureTile({required String emoji, required String title, required String subtitle, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.18)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 22)),
-          const SizedBox(height: 8),
-          Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
-          const SizedBox(height: 3),
-          TranslatedText(
-            subtitle,
-            style: const TextStyle(fontSize: 10, color: _textMuted, height: 1.4, fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _checkItem(IconData icon, String title, String subtitle, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -1276,18 +2068,360 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   }
 }
 
-class _BenefitItem {
-  final String emoji;
-  final IconData icon;
-  final String title;
-  final String desc;
-  final Color color;
+// ── Package Picker Bottom Sheet ───────────────────────────────────────────────
 
-  const _BenefitItem({
-    required this.emoji,
-    required this.icon,
+class _PackagePickerSheet extends StatefulWidget {
+  final List<PackageItem> packages;
+  final PackageItem? selectedPackage;
+  final ValueChanged<PackageItem> onSelect;
+  final ValueChanged<PackageItem> onProceed;
+
+  const _PackagePickerSheet({
+    required this.packages,
+    required this.selectedPackage,
+    required this.onSelect,
+    required this.onProceed,
+  });
+
+  @override
+  State<_PackagePickerSheet> createState() => _PackagePickerSheetState();
+}
+
+class _PackagePickerSheetState extends State<_PackagePickerSheet> {
+  late PackageItem _localSelected;
+
+  static const _navy = Color(0xFF0A1628);
+  static const _green = Color(0xFF1D9E75);
+  static const _greenLight = Color(0xFFE8F8F2);
+  static const _greenBorder = Color(0xFF9FE1CB);
+  static const _textMuted = Color(0xFF6B7A99);
+  static const _borderCol = Color(0xFFE4E9F4);
+
+  @override
+  void initState() {
+    super.initState();
+    _localSelected = widget.selectedPackage ?? widget.packages.first;
+  }
+
+  Color _planColor(PackageItem pkg) => pkg.name.toLowerCase().contains('premium') ? const Color(0xFF6B4EE6) : _green;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 4),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: const Color(0xFFDDE3EE), borderRadius: BorderRadius.circular(2)),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_green, _navy]),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(Icons.workspace_premium, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Choose Your Plan',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _navy),
+                      ),
+                      Text('Select a plan that fits you best', style: TextStyle(fontSize: 11, color: _textMuted)),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(color: const Color(0xFFF0F3F8), borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.close_rounded, size: 16, color: _textMuted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 20), child: Divider(color: _borderCol)),
+
+          // Package cards
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children:
+                  widget.packages
+                      .map(
+                        (pkg) => Expanded(
+                          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: _packageCard(pkg)),
+                        ),
+                      )
+                      .toList(),
+            ),
+          ),
+
+          // Features comparison for selected
+          if (_localSelected.features.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10, top: 4),
+                    child: Text(
+                      'What\'s in ${_localSelected.name}?',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _navy),
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _localSelected.features.map((f) => _featureChip(f)).toList(),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: 16),
+
+          // Proceed button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [_planColor(_localSelected), _navy]),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _planColor(_localSelected).withOpacity(0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onProceed(_localSelected);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.workspace_premium, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Get ${_localSelected.name} — ₹${_localSelected.price.toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(top: false, child: const SizedBox(height: 4)),
+        ],
+      ),
+    );
+  }
+
+  Widget _packageCard(PackageItem pkg) {
+    final isSelected = _localSelected.packageId == pkg.packageId;
+    final color = _planColor(pkg);
+    final isPremium = pkg.name.toLowerCase().contains('premium');
+
+    return GestureDetector(
+      onTap: () {
+        setState(() => _localSelected = pkg);
+        widget.onSelect(pkg);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.06) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isSelected ? color : _borderCol, width: isSelected ? 2 : 1),
+          boxShadow:
+              isSelected ? [BoxShadow(color: color.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4))] : [],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Plan badge
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                  child: Text(
+                    pkg.name.toUpperCase(),
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.6),
+                  ),
+                ),
+                if (isPremium) ...[const SizedBox(width: 4), Icon(Icons.workspace_premium, size: 14, color: color)],
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Price
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${pkg.price.toStringAsFixed(0)}',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _navy, height: 1),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                Text(
+                  '₹${pkg.oldPrice.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: _textMuted,
+                    decoration: TextDecoration.lineThrough,
+                    decorationColor: _textMuted,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                if (pkg.discountPercent > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                    child: Text(
+                      '${pkg.discountPercent}% off',
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Validity
+            Row(
+              children: [
+                Icon(Icons.calendar_today_rounded, size: 10, color: _textMuted),
+                const SizedBox(width: 4),
+                Text('${pkg.validityDays} days', style: const TextStyle(fontSize: 10, color: _textMuted)),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Radio indicator
+            Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: isSelected ? color : _borderCol, width: 1.5),
+                    color: isSelected ? color : Colors.transparent,
+                  ),
+                  child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 11) : null,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isSelected ? 'Selected' : 'Select',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: isSelected ? color : _textMuted),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _featureChip(PackageFeature feature) {
+    final included = feature.isIncluded;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: included ? _greenLight : const Color(0xFFFFF0F0),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: included ? _greenBorder.withOpacity(0.6) : Colors.red.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            included ? Icons.check_rounded : Icons.close_rounded,
+            size: 12,
+            color: included ? _green : Colors.redAccent,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            feature.text,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: included ? _green : _textMuted,
+              decoration: included ? null : TextDecoration.lineThrough,
+              decorationColor: _textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Data Models ───────────────────────────────────────────────────────────────
+
+class _ChipData {
+  final String label;
+  final IconData icon;
+  final Color color;
+  const _ChipData(this.label, this.icon, this.color);
+}
+
+class _SectionData {
+  final String title, subtitle, emoji;
+  final Color color, borderColor, iconBg, textColor;
+  final VoidCallback onTap;
+  const _SectionData({
     required this.title,
-    required this.desc,
+    required this.subtitle,
+    required this.emoji,
     required this.color,
+    required this.borderColor,
+    required this.iconBg,
+    required this.textColor,
+    required this.onTap,
   });
 }

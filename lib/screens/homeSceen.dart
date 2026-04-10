@@ -7,6 +7,7 @@ import 'package:tazaquiznew/screens/home.dart';
 import 'package:tazaquiznew/screens/profileScreen.dart';
 import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
 import 'package:tazaquiznew/screens/studyMaterial.dart';
+import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -17,8 +18,13 @@ class _HomeScreenState extends State<HomeScreen> {
   //hyggtt
   int _selectedNavIndex = 0;
 
-  final List<Widget> _pages = [HomePage(), StudyMaterialScreen('0'), QuizListScreen('0', '0'), StudentProfilePage()];
-
+  final List<Widget> _pages = [
+    HomePage(),
+    StudyMaterialScreen('0'),
+    StudyMaterialPurchaseHistoryScreen(),
+    StudentProfilePage(),
+  ];
+  //QuizListScreen('0', '0')
   void _onNavItemTapped(int index) {
     setState(() {
       _selectedNavIndex = index;
@@ -132,8 +138,8 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildNavItem('assets/icons/home.png', 'Home', 0),
               _buildNavItem('assets/icons/learning.png', 'Courses', 1),
-              // _buildNavItem('assets/icons/graduation.png', 'My Courses', 1),
-              _buildNavItem('assets/icons/ideas.png', 'Test', 2),
+              _buildNavItem('assets/icons/graduation.png', 'My Courses', 2),
+              // _buildNavItem('assets/icons/ideas.png', 'My Courses', 2),
               _buildNavItem('assets/icons/user.png', 'Profile', 3),
             ],
           ),
