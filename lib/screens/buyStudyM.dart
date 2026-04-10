@@ -1790,7 +1790,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                             ),
                             const SizedBox(width: 5),
                             Text(
-                              pkg != null ? pkg.name : 'Change Plan',
+                              '${pkg!.name} - Change Plan',
                               style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(width: 4),
@@ -1862,7 +1862,9 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(16),
-                        onTap: _showPackagePicker,
+                        onTap: () {
+                          _handleSubscribe();
+                        },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 20),
                           child: Row(
