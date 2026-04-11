@@ -24,6 +24,7 @@ import 'package:tazaquiznew/screens/notificationPage.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:tazaquiznew/widgets/WeeklyProgressWidget.dart';
 import 'package:tazaquiznew/widgets/homePage_shimmer_progress.dart';
+import 'package:tazaquiznew/widgets/home_app_featured.dart';
 import 'package:tazaquiznew/widgets/home_banner.dart';
 import 'package:tazaquiznew/widgets/home_coaching_profile.dart';
 import 'package:tazaquiznew/widgets/home_courses.dart';
@@ -78,9 +79,64 @@ class _HomePageState extends State<HomePage> {
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
     setState(() {});
+      _initActions(); // ← yahan call karo
     getNotificationCount();
     await getDailyQuizCheckHome();
   }
+  // HomePage ke _HomePageState mein isPremium add karo:
+bool isPremium = false; // ya API se fetch karo
+
+// actions ko initState ke baad ya _getUserData mein set karo:
+late List<Map<String, dynamic>> actions;
+
+void _initActions() {
+  actions = [
+    {
+      'icon': Icons.menu_book_rounded,
+      'label': 'Chapter Test',
+      'color': AppColors.tealGreen,
+      'onTap': () {
+        // Navigator.push(context, MaterialPageRoute(builder: (_) => ...));
+      },
+    },
+    {
+      'icon': Icons.assignment_rounded,
+      'label': 'Subject Test',
+      'color': const Color(0xFF3949AB),
+      'onTap': () {},
+    },
+    {
+      'icon': Icons.bolt_rounded,
+      'label': 'Live Test',
+      'color': const Color(0xFF1565C0),
+      'onTap': () {},
+    },
+    {
+      'icon': Icons.quiz_rounded,
+      'label': 'Full Mock',
+      'color': const Color(0xFFE65100),
+      'onTap': () {},
+    },
+    {
+      'icon': Icons.leaderboard_rounded,
+      'label': 'Leaderboard',
+      'color': const Color(0xFF6B4EFF),
+      'onTap': () {},
+    },
+    {
+      'icon': Icons.history_edu_rounded,
+      'label': 'PYQs',
+      'color': const Color(0xFF00897B),
+      'onTap': () {},
+    },
+    {
+      'icon': Icons.sticky_note_2_rounded,
+      'label': 'Notes',
+      'color': AppColors.darkNavy,
+      'onTap': () {},
+    },
+  ];
+}
 
   Future<void> fetchNoticeBoard() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
@@ -197,7 +253,6 @@ class _HomePageState extends State<HomePage> {
     if (hour >= 17 && hour < 21) return Icons.nights_stay_rounded;
     return Icons.nights_stay_outlined;
   }
-
   @override
   Widget build(BuildContext context) {
     if (quizSection == null || liveTests.isEmpty) {
@@ -259,6 +314,11 @@ class _HomePageState extends State<HomePage> {
                             checkattempted: _quizAlreadyDone,
                             onStartQuiz: () {},
                           ),
+                          CourseFeatureStrip(actions: actions),
+                              /// Popular Courses
+                          if (courseSection != null && popularCourses.isNotEmpty)
+                            Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
+
 
                           /// Current Affairs
                           HomeDailyCurrentAffairs(dailyNews: dailyNews),
@@ -269,10 +329,7 @@ class _HomePageState extends State<HomePage> {
                           /// Live Tests
                           if (liveTests.isNotEmpty) Home_live_test(liveTests: liveTests, homeSections: quizSection!),
 
-                          /// Popular Courses
-                          if (courseSection != null && popularCourses.isNotEmpty)
-                            Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
-
+                      
                           /// Coaching
                           if (coachingSection != null && coachingProfiles.isNotEmpty)
                             CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
