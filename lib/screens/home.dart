@@ -320,19 +320,19 @@ void _initActions() {
                             Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
 
 
-                          /// Current Affairs
-                          HomeDailyCurrentAffairs(dailyNews: dailyNews),
+                          
 
                           /// Mock Tests
-                          if (mockTests.isNotEmpty) HomeMockTest(mockTests: mockTests, homeSections: quizSection!),
+                         // if (mockTests.isNotEmpty) HomeMockTest(mockTests: mockTests, homeSections: quizSection!),
 
                           /// Live Tests
                           if (liveTests.isNotEmpty) Home_live_test(liveTests: liveTests, homeSections: quizSection!),
 
-                      
+                      /// Current Affairs
+                          HomeDailyCurrentAffairs(dailyNews: dailyNews),
                           /// Coaching
-                          if (coachingSection != null && coachingProfiles.isNotEmpty)
-                            CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
+                        //  if (coachingSection != null && coachingProfiles.isNotEmpty)
+                          //  CoachingProfileWidget(coachingProfiles: coachingProfiles, homeSections: coachingSection!),
 
                           /// Achievements
                           _buildAchievementsSection(),
