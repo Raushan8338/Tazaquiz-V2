@@ -71,7 +71,7 @@ class NotificationPlatformHandler {
         case 'payment':
         case 'payment_success':
         case 'purchase':
-          Navigator.push(context, _fadeRoute(StudyMaterialPurchaseHistoryScreen()));
+          Navigator.push(context, _fadeRoute(StudyMaterialPurchaseHistoryScreen('1')));
           break;
 
         case 'web':

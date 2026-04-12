@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
+import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 
 class CourseFeatureStrip extends StatelessWidget {
   final List<Map<String, dynamic>> actions;
@@ -34,7 +35,12 @@ class CourseFeatureStrip extends StatelessWidget {
       final Color color = action['color'] as Color;
 
       return GestureDetector(
-        onTap: action['onTap'] as VoidCallback,
+       onTap: (){
+        Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen('1')),
+    );
+       },
         child: Container(
           width: 76,
           decoration: BoxDecoration(

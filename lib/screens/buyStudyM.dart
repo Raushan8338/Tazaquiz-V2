@@ -283,7 +283,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
 
   void _handleStartLearning() {
     if (_currentMaterial == null) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen()));
+    Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen('1')));
   }
 
   void _handleSubscribe() {
@@ -1238,26 +1238,45 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
 
   // ── Content Sections ────────────────────────────────────────────────────────
   Widget _contentSectionsCard() {
+    print('Creating content sections card for material: ${_currentMaterial?.materialId}');
     final sections = [
       _SectionData(
         title: 'Chapter Test',
         subtitle: 'Topic & chapter wise tests to strengthen your basics',
         emoji: '📋',
-        color: const Color(0xFFFFF8E1),
-        borderColor: const Color(0xFFFFE082),
-        iconBg: const Color(0xFFFFF3CD),
-        textColor: const Color(0xFF7B5800),
-        onTap: () => Navigator.pop(context),
+        color: const Color(0xFFE3F2FD),
+        borderColor: const Color(0xFF90CAF9),
+        iconBg: const Color(0xFFBBDEFB),
+        textColor: const Color(0xFF0D47A1),
+        onTap: () =>  Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Paid_QuizListScreen(
+                widget.contentId.toString(),
+                '0',
+                'Chapter Test', // passing feature name as page title
+              ),
+            ),
+          ),
       ),
       _SectionData(
-        title: 'Subject Mock Test',
+        title: 'Subject Test',
         subtitle: 'Subject-wise tests to simulate the actual exam environment',
         emoji: '📘',
         color: const Color(0xFFF3F0FF),
         borderColor: const Color(0xFFB39DDB),
         iconBg: const Color(0xFFEDE7F6),
         textColor: const Color(0xFF4A148C),
-        onTap: () => Navigator.pop(context),
+        onTap: () =>  Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Paid_QuizListScreen(
+                widget.contentId.toString(),
+                '4',
+                'Subject Mock Test', // passing feature name as page title
+              ),
+            ),
+          ),
       ),
       _SectionData(
         title: 'Full Mock Test',
@@ -1267,7 +1286,16 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         borderColor: const Color(0xFF90CAF9),
         iconBg: const Color(0xFFE3F2FD),
         textColor: const Color(0xFF0D47A1),
-        onTap: () => Navigator.pop(context),
+        onTap: () =>  Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Paid_QuizListScreen(
+                widget.contentId.toString(),
+                '5',
+                'Full Mock Test', // passing feature name as page title
+              ),
+            ),
+          ),
       ),
       _SectionData(
         title: 'Live Test',
@@ -1277,8 +1305,65 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         borderColor: const Color(0xFFFFCC80),
         iconBg: const Color(0xFFFFF3E0),
         textColor: const Color(0xFF6D4C00),
-        onTap: () => Navigator.pop(context),
+        onTap: () =>  Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => Paid_QuizListScreen(
+                widget.contentId.toString(),
+                '7',
+                'Live Test', // passing feature name as page title
+              ),
+            ),
+          ),
       ),
+      _SectionData(
+  title: 'LeaderBoard',
+  subtitle: 'Compete in real-time with students nationwide & track your rank',
+  emoji: '🏆',
+ color: const Color(0xFFFFEBEE),
+  borderColor: const Color(0xFFEF9A9A),
+  iconBg: const Color(0xFFFFCDD2),
+  textColor: const Color(0xFFB71C1C),
+  onTap: () {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 8,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        backgroundColor: Colors.transparent,
+        duration: const Duration(seconds: 2),
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF2E7D32),
+                Color(0xFF1B5E20),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.workspace_premium, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "This feature is only for paid users. Please go to course to access.",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  },
+),
     ];
 
     return Padding(

@@ -2,14 +2,16 @@ class PackageFeatureItem {
   final String text;
   final String label;
   final bool isIncluded;
+  final int quizes_pageId;
 
-  const PackageFeatureItem({required this.text, required this.label, required this.isIncluded});
+  const PackageFeatureItem({required this.text, required this.label, required this.isIncluded, required this.quizes_pageId});
 
   factory PackageFeatureItem.fromJson(Map<String, dynamic> json) {
     return PackageFeatureItem(
       text: json['text']?.toString() ?? '',
       label: json['label']?.toString() ?? '',
       isIncluded: json['is_included'] == true || json['is_included'] == 1,
+      quizes_pageId: json['quizes_pageId'],
     );
   }
 }

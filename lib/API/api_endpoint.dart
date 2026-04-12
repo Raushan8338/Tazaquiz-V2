@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class BaseUrl {
   static String baseUrl = "https://tazaquiz.com/TZApi_virus/";
+  static String baseUrl_main = "https://tazaquiz.com/";
   static String loginEndpoint = "login_user_v2.php";
   static String signupVerifyOTPEndpoint = "verifyOtp_v2.php";
   static String app_banner = "app_banner.php";
@@ -46,4 +47,6 @@ class BaseUrl {
   static String fetch_notice_board = "notice.php";
   static String fetch_daily_quiz_attempts = "daily_get_attempts.php";
   static String fetch_daily_quiz_attempt_details = "daily_get_quiz_detail.php";
+  static String app_features = "app_features.php";
+  static String fetch_topics = "topic.php";
 }

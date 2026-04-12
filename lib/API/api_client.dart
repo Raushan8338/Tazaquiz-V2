@@ -7,6 +7,7 @@ import 'package:tazaquiznew/API/api_endpoint.dart';
 class Api_Client {
   // Implementation of API client using Dio package
   static String baseUrl = BaseUrl.baseUrl;
+  static String baseUrl_main = BaseUrl.baseUrl_main;
   static late Dio dio;
 
   static void init() {

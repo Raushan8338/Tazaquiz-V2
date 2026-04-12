@@ -111,7 +111,7 @@ class QuizItem {
       instruction: json['instruction']?.toString() ?? '',
       quizStatus: status,
       is_attempted: _toBool(json['is_attempted']),
-      subscription_id: _toInt(json['subscription_id']),
+      subscription_id: _toInt(json['category_id'] ?? json['subscription_id']),
       price: _toDouble(json['price']),
       isPurchased: _toBool(json['isPurchased'] ?? json['is_purchased']),
       isAccessible: _toBool(json['isAccessible'] ?? json['is_accessible']),

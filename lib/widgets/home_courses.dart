@@ -68,7 +68,7 @@ class Home_courses extends StatelessWidget {
                         ),
                       ),
                       TranslatedText(
-                        'Exam crack karo, aaj hi shuru karo!',
+                         '${homeSections.subtitle}',
                         style: const TextStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,

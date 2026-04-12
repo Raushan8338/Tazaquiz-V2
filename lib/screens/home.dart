@@ -9,6 +9,7 @@ import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
+import 'package:tazaquiznew/models/PackageFeatureItem.dart';
 import 'package:tazaquiznew/models/coaching_item_modal.dart';
 import 'package:tazaquiznew/models/course_item_modal.dart';
 import 'package:tazaquiznew/models/daily_news_modal.dart';
@@ -72,6 +73,7 @@ class _HomePageState extends State<HomePage> {
     await getAppBanner();
     await getNewsPoints();
     await fetchNoticeBoard();
+    
   }
 
   Future<void> _refreshHome() async => await _loadHome();
@@ -79,63 +81,86 @@ class _HomePageState extends State<HomePage> {
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
     setState(() {});
-      _initActions(); // ← yahan call karo
     getNotificationCount();
     await getDailyQuizCheckHome();
+     _app_future();
   }
   // HomePage ke _HomePageState mein isPremium add karo:
 bool isPremium = false; // ya API se fetch karo
 
 // actions ko initState ke baad ya _getUserData mein set karo:
-late List<Map<String, dynamic>> actions;
+ List<Map<String, dynamic>> actions=[];
 
-void _initActions() {
-  actions = [
-    {
-      'icon': Icons.menu_book_rounded,
-      'label': 'Chapter Test',
-      'color': AppColors.tealGreen,
-      'onTap': () {
-        // Navigator.push(context, MaterialPageRoute(builder: (_) => ...));
-      },
-    },
-    {
-      'icon': Icons.assignment_rounded,
-      'label': 'Subject Test',
-      'color': const Color(0xFF3949AB),
-      'onTap': () {},
-    },
-    {
-      'icon': Icons.bolt_rounded,
-      'label': 'Live Test',
-      'color': const Color(0xFF1565C0),
-      'onTap': () {},
-    },
-    {
-      'icon': Icons.quiz_rounded,
-      'label': 'Full Mock',
-      'color': const Color(0xFFE65100),
-      'onTap': () {},
-    },
-    {
-      'icon': Icons.leaderboard_rounded,
-      'label': 'Leaderboard',
-      'color': const Color(0xFF6B4EFF),
-      'onTap': () {},
-    },
-    {
-      'icon': Icons.history_edu_rounded,
-      'label': 'PYQs',
-      'color': const Color(0xFF00897B),
-      'onTap': () {},
-    },
-    {
-      'icon': Icons.sticky_note_2_rounded,
-      'label': 'Notes',
-      'color': AppColors.darkNavy,
-      'onTap': () {},
-    },
-  ];
+Future<void> _app_future() async {
+  Authrepository authRepository = Authrepository(Api_Client.dio);
+
+  final responseFuture = await authRepository.fetchAppFeatures();
+
+  final Map<String, dynamic> apiResponse =
+      responseFuture.data is String
+          ? jsonDecode(responseFuture.data)
+          : responseFuture.data;
+
+  if (apiResponse['success'] == true) {
+    final List list = apiResponse['package_features'] ?? [];
+    print("Package Features from API:");
+    print(list);
+
+    final features = list
+        .map((e) => PackageFeatureItem.fromJson(e))
+        .toList();
+
+    // ✅ yaha set karna hai
+    setActionsFromApi(features);
+
+    setState(() {}); // UI refresh
+  }
+}
+void setActionsFromApi(List<PackageFeatureItem> features) {
+  actions = features.map((item) {
+    return {
+      'icon': _getIcon(item.text),
+      'label': item.text, // ✅ only text
+      'color': _getColor(item.text),
+     
+    };
+  }).toList();
+}
+Color _getColor(String text) {
+  switch (text.toLowerCase()) {
+    case 'subject test':
+      return const Color(0xFF3949AB);
+    case 'live test':
+      return const Color(0xFF1565C0);
+    case 'full mock':
+      return const Color(0xFFE65100);
+    case 'leaderboard':
+      return const Color(0xFF6B4EFF);
+    case 'pyqs':
+      return const Color(0xFF00897B);
+    case 'notes':
+      return AppColors.darkNavy;
+    default:
+      return Colors.grey;
+  }
+}
+IconData _getIcon(String text) {
+  switch (text.toLowerCase()) {
+    case 'subject test':
+      return Icons.assignment_rounded;
+    case 'live test':
+      return Icons.bolt_rounded;
+    case 'full mock':
+      return Icons.quiz_rounded;
+    case 'leaderboard':
+      return Icons.leaderboard_rounded;
+    case 'pyqs':
+      return Icons.history_edu_rounded;
+    case 'notes':
+      return Icons.sticky_note_2_rounded;
+    default:
+      return Icons.grid_view;
+  }
 }
 
   Future<void> fetchNoticeBoard() async {
@@ -221,8 +246,8 @@ void _initActions() {
           case 'quiz':
             quizSection = section;
             final allQuizzes = section.items.cast<QuizItem>();
-            liveTests = allQuizzes.where((q) => q.pageType != 4).toList();
-            mockTests = allQuizzes.where((q) => q.pageType == 4).toList();
+            liveTests = allQuizzes.where((q) => q.pageType ==7 ).toList();
+           
           case 'course':
             courseSection = section;
             popularCourses = section.items.cast<CourseItem>();
@@ -255,9 +280,14 @@ void _initActions() {
   }
   @override
   Widget build(BuildContext context) {
-    if (quizSection == null || liveTests.isEmpty) {
-      return const Center(child: QuizShimmerUI());
-    }
+ // ✅ NAYA - yeh lagao
+// Sirf tab shimmer jab homePageItemData bilkul load nahi hua
+if (homePageItemData.isEmpty) {
+  return const Scaffold(
+    backgroundColor: AppColors.greyS1,
+    body: Center(child: QuizShimmerUI()),
+  );
+}
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
@@ -314,20 +344,21 @@ void _initActions() {
                             checkattempted: _quizAlreadyDone,
                             onStartQuiz: () {},
                           ),
-                          CourseFeatureStrip(actions: actions),
+                             /// Live Tests
+                          if (liveTests.isNotEmpty) Home_live_test(liveTests: liveTests, homeSections: quizSection!),
+
+                         
                               /// Popular Courses
                           if (courseSection != null && popularCourses.isNotEmpty)
                             Home_courses(popularCourses: popularCourses, homeSections: courseSection!),
 
-
+                            CourseFeatureStrip(actions: actions),
                           
 
                           /// Mock Tests
                          // if (mockTests.isNotEmpty) HomeMockTest(mockTests: mockTests, homeSections: quizSection!),
 
-                          /// Live Tests
-                          if (liveTests.isNotEmpty) Home_live_test(liveTests: liveTests, homeSections: quizSection!),
-
+                       
                       /// Current Affairs
                           HomeDailyCurrentAffairs(dailyNews: dailyNews),
                           /// Coaching

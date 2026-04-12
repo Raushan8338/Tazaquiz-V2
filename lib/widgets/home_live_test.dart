@@ -4,6 +4,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/buyQuizes.dart';
+import 'package:tazaquiznew/screens/buyStudyM.dart';
 import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 
@@ -11,7 +12,8 @@ class Home_live_test extends StatefulWidget {
   final List<QuizItem> liveTests;
   final HomeSection homeSections;
 
-  Home_live_test({super.key, required this.liveTests, required this.homeSections});
+  Home_live_test(
+      {super.key, required this.liveTests, required this.homeSections});
 
   @override
   State<Home_live_test> createState() => _Home_live_testState();
@@ -21,13 +23,6 @@ class _Home_live_testState extends State<Home_live_test>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
-
-  // TODO: Raat mein dynamic kar lena - quiz model se scheduledDate, registeredCount, scheduledTime, category lena
-  static const List<Map<String, String>> _staticMeta = [
-    {'day': '13', 'month': 'APR', 'time': '7:00 PM', 'registered': '5,240', 'tag': 'Economy'},
-    {'day': '20', 'month': 'APR', 'time': '6:00 PM', 'registered': '3,120', 'tag': 'Infra'},
-    {'day': '27', 'month': 'APR', 'time': '8:00 PM', 'registered': '1,890', 'tag': 'GK'},
-  ];
 
   static const List<Color> _badgeColors = [
     Color(0xFF0D6E6E),
@@ -55,6 +50,45 @@ class _Home_live_testState extends State<Home_live_test>
     super.dispose();
   }
 
+  // ─── startDateTime se day, month, time extract karo ───────────────────────
+
+  Map<String, String> _parseDateMeta(String? startDateTime) {
+    if (startDateTime == null || startDateTime.isEmpty) {
+      return {'day': '--', 'month': '---', 'time': '--:--'};
+    }
+    try {
+      final dt = DateTime.parse(startDateTime);
+      const months = [
+        'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+      ];
+      final hour   = dt.hour;
+      final minute = dt.minute.toString().padLeft(2, '0');
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final hour12 = hour % 12 == 0 ? 12 : hour % 12;
+
+      return {
+        'day':   dt.day.toString(),
+        'month': months[dt.month - 1],
+        'time':  '$hour12:$minute $period',
+      };
+    } catch (_) {
+      return {'day': '--', 'month': '---', 'time': '--:--'};
+    }
+  }
+
+  // ─── difficulty_level se category tag banao ───────────────────────────────
+
+  String _getDifficultyTag(String? level) {
+    switch ((level ?? '').toLowerCase()) {
+      case 'easy':     return 'Easy';
+      case 'medium':   return 'Medium';
+      case 'advanced': return 'Advanced';
+      case 'hard':     return 'Hard';
+      default:         return level?.isNotEmpty == true ? level! : 'General';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -78,7 +112,8 @@ class _Home_live_testState extends State<Home_live_test>
                         height: 26,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.red.withOpacity(_pulseAnim.value * 0.18),
+                          color:
+                              Colors.red.withOpacity(_pulseAnim.value * 0.18),
                         ),
                         child: Center(
                           child: Container(
@@ -99,7 +134,7 @@ class _Home_live_testState extends State<Home_live_test>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Live Tests',
+                         '${widget.homeSections.title}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
@@ -108,7 +143,7 @@ class _Home_live_testState extends State<Home_live_test>
                         ),
                       ),
                       TranslatedText(
-                        '⚡ Abhi join karo, rank badhao!',
+                        '${widget.homeSections.subtitle}',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
@@ -123,10 +158,11 @@ class _Home_live_testState extends State<Home_live_test>
               /// View All button
               GestureDetector(
                 onTap: () {
+                  
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => QuizListScreen('1', '0')),
+                        builder: (context) => QuizListScreen('1', '7')),
                   );
                 },
                 child: Container(
@@ -168,21 +204,23 @@ class _Home_live_testState extends State<Home_live_test>
             itemCount: widget.liveTests.length,
             padding: const EdgeInsets.only(left: 2, right: 2),
             itemBuilder: (context, index) {
-              final quiz = widget.liveTests[index];
-              final isLive = quiz.quizStatus == 'live';
-              final meta = _staticMeta[index % _staticMeta.length];
+              final quiz       = widget.liveTests[index];
+              final isLive     = quiz.quizStatus == 'live';
               final badgeColor = _badgeColors[index % _badgeColors.length];
+
+              // ✅ API se dynamic data
+              final meta = _parseDateMeta(quiz.startDateTime);
+              final tag  = _getDifficultyTag(quiz.difficultyLevel);
 
               return _buildCard(
                 context,
-                quiz: quiz,
-                isLive: isLive,
+                quiz:       quiz,
+                isLive:     isLive,
                 badgeColor: badgeColor,
-                day: meta['day']!,
-                month: meta['month']!,
-                time: meta['time']!,
-                registered: meta['registered']!,
-                tag: meta['tag']!,
+                day:        meta['day']!,
+                month:      meta['month']!,
+                time:       meta['time']!,
+                tag:        tag,
               );
             },
           ),
@@ -199,11 +237,19 @@ class _Home_live_testState extends State<Home_live_test>
     required String day,
     required String month,
     required String time,
-    required String registered,
     required String tag,
   }) {
     return GestureDetector(
       onTap: () {
+        if (!quiz.isAccessible) {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => BuyCoursePage(
+                  contentId: quiz.subscription_id.toString(),
+                  page_API_call: 'SUBSCRIPTION',
+                ),));
+          return;
+        }
+        else {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -211,6 +257,7 @@ class _Home_live_testState extends State<Home_live_test>
                 QuizDetailPage(quizId: quiz.quizId, is_subscribed: false),
           ),
         );
+        }
       },
       child: Container(
         width: 230,
@@ -238,7 +285,7 @@ class _Home_live_testState extends State<Home_live_test>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  /// Date badge
+                  /// Date badge — API startDateTime se
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 5),
@@ -272,7 +319,7 @@ class _Home_live_testState extends State<Home_live_test>
                     ),
                   ),
 
-                  /// Category tag
+                  /// Category tag — API difficulty_level se
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 4),
@@ -292,7 +339,7 @@ class _Home_live_testState extends State<Home_live_test>
                 ],
               ),
 
-              /// ── Title ──
+              /// ── Title — API se ──
               TranslatedText(
                 quiz.title,
                 style: TextStyle(
@@ -305,14 +352,14 @@ class _Home_live_testState extends State<Home_live_test>
                 overflow: TextOverflow.ellipsis,
               ),
 
-              /// ── Registered + Time ──
+              /// ── Time limit + Scheduled time — API se ──
               Row(
                 children: [
-                  Icon(Icons.people_outline_rounded,
+                  Icon(Icons.timer_outlined,
                       size: 12, color: Colors.grey[500]),
                   const SizedBox(width: 3),
                   Text(
-                    '$registered registered',
+                    '${quiz.timeLimit ?? '--'} mins',
                     style: TextStyle(
                         fontSize: 10,
                         color: Colors.grey[500],
@@ -336,7 +383,7 @@ class _Home_live_testState extends State<Home_live_test>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  /// Status tag
+                  /// Status — API quiz_status se
                   if (isLive) ...[
                     Row(
                       children: [
@@ -395,13 +442,23 @@ class _Home_live_testState extends State<Home_live_test>
                   /// Join / View button
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QuizDetailPage(
-                              quizId: quiz.quizId, is_subscribed: false),
-                        ),
-                      );
+                      if (!quiz.isAccessible) {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => BuyCoursePage(
+                  contentId: quiz.subscription_id.toString(),
+                  page_API_call: 'SUBSCRIPTION',
+                ),));
+          return;
+        }
+        else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                QuizDetailPage(quizId: quiz.quizId, is_subscribed: false),
+          ),
+        );
+        }
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -411,8 +468,9 @@ class _Home_live_testState extends State<Home_live_test>
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: [
                           BoxShadow(
-                            color: (isLive ? Colors.red : AppColors.tealGreen)
-                                .withOpacity(0.3),
+                            color:
+                                (isLive ? Colors.red : AppColors.tealGreen)
+                                    .withOpacity(0.3),
                             blurRadius: 5,
                             offset: const Offset(0, 2),
                           ),

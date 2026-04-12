@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = [
     HomePage(),
     StudyMaterialScreen('0'),
-    StudyMaterialPurchaseHistoryScreen(),
+    StudyMaterialPurchaseHistoryScreen('0'),
     StudentProfilePage(),
   ];
   //QuizListScreen('0', '0')

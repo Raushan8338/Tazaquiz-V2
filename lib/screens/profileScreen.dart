@@ -605,7 +605,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             subtitle: 'Course & study material',
             color: const Color(0xFFFF9800),
             onTap:
-                () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen())),
+                () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialPurchaseHistoryScreen('1'))),
           ),
           _buildActionListItem(
             icon: Icons.school_rounded,

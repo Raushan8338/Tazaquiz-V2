@@ -74,7 +74,7 @@ class _HomeBannerState extends State<HomeBanner> {
               });
             },
             itemBuilder: (context, index) {
-              print('Banner Images: ${Api_Client.baseUrl + widget.imgLists[index]['banner']}');
+          
               return GestureDetector(
                 onTap: () {
                   if (widget.imgLists[index]['banner_type'] == 'quiz') {
@@ -114,7 +114,7 @@ class _HomeBannerState extends State<HomeBanner> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(15),
                     child: CachedNetworkImage(
-                      imageUrl: Api_Client.baseUrl + widget.imgLists[index]['banner'] ?? '',
+                      imageUrl: Api_Client.baseUrl_main + widget.imgLists[index]['banner'] ?? '',
                       fit: BoxFit.cover,
                       placeholder:
                           (context, url) => Container(
