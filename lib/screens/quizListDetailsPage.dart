@@ -185,6 +185,7 @@ class _QuizListScreenState extends State<QuizListScreen>
       context,
       MaterialPageRoute(
         builder: (_) => QuizDetailPage(
+          pageType_data: widget.PageType,
           quizId: quiz.quizId,
           is_subscribed: quiz.isPurchased || !quiz.isAccessible,
         ),

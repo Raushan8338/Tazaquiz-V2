@@ -674,15 +674,30 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
           _buildActionListItem(
             icon: Icons.quiz_rounded,
-            title: 'Mock Test Performance',
-            subtitle: 'Attempts & leaderboard',
+            title: 'Subject Test Performance',
+            subtitle: 'Subject Wise Test Performance',
             color: const Color(0xFF7B1FA2),
             onTap:
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 4, Pagetitle: 'Mock Test Performance')),
+                  MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 4, Pagetitle: 'Subject Test Performance')),
                 ),
           ),
+          _buildActionListItem(
+  icon: Icons.assessment_rounded,
+  title: 'Full Mock Test Performance',
+  subtitle: 'Results & leaderboard',
+  color: const Color(0xFF1976D2),
+  onTap: () => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => QuizHistoryPage(
+        pageType: 5,
+        Pagetitle: 'Full Mock Test Performance',
+      ),
+    ),
+  ),
+),
           _buildActionListItem(
             icon: Icons.assignment_turned_in_rounded,
             title: 'PYPs Performance',

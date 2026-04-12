@@ -313,7 +313,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
           context,
           MaterialPageRoute(
               builder: (_) =>
-                  QuizDetailPage(quizId: quiz.quizId, is_subscribed: true)));
+                  QuizDetailPage(pageType_data: widget.PageType, quizId: quiz.quizId, is_subscribed: true)));
     }
   }
 
@@ -1255,23 +1255,23 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
     final Map<String, Map<String, dynamic>> emptyData = {
       '0': {
         'icon': '📖',
-        'title': 'No Chapter Tests Found',
-        'subtitle': 'Try selecting a different subject or topic.'
+       'title': 'Unlock Full Access',
+  'subtitle': 'Purchase now to start attempting all quizzes instantly.'
       },
       '4': {
         'icon': '📝',
-        'title': 'No Mock Tests Found',
-        'subtitle': 'Try selecting a different subject or filter.'
+       'title': 'Unlock Full Access',
+  'subtitle': 'Purchase now to start attempting all quizzes instantly.'
       },
       '5': {
         'icon': '🎯',
-        'title': 'No Full Mock Tests Available',
-        'subtitle': 'Full mock tests will appear here when published.'
+       'title': 'Unlock Full Access',
+  'subtitle': 'Purchase now to start attempting all quizzes instantly.'
       },
       '6': {
         'icon': '📜',
-        'title': 'No Previous Year Papers',
-        'subtitle': 'PYP papers will appear here when added.'
+        'title': 'Unlock Full Access',
+  'subtitle': 'Purchase now to start attempting all quizzes instantly.'
       },
     };
     final data = emptyData[widget.PageType] ??

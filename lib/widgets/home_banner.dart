@@ -82,7 +82,9 @@ class _HomeBannerState extends State<HomeBanner> {
                       context,
                       MaterialPageRoute(
                         builder:
-                            (context) => QuizDetailPage(quizId: widget.imgLists[index]['url'], is_subscribed: false),
+                            (context) => QuizDetailPage(
+                              pageType_data: '7',
+                              quizId: widget.imgLists[index]['url'], is_subscribed: false),
                       ),
                     );
                     // Handle URL tap, e.g., open in browser

@@ -13,9 +13,11 @@ import 'package:tazaquiznew/models/study_material_details_item.dart'
     hide StudyMaterialDetailsItem;
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
 import 'package:tazaquiznew/screens/Paid_quzes_list.dart';
+import 'package:tazaquiznew/screens/buyStudyM.dart';
 import 'package:tazaquiznew/screens/leaderboard_page.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
+import 'package:tazaquiznew/screens/studyMaterial.dart';
 import 'package:tazaquiznew/screens/subjectWiseDetails.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,6 +37,7 @@ class _StudyMaterialPurchaseHistoryScreenState
   bool _isLoading = true;
   List<StudyMaterialDetailsItem> _allStudyMaterials = [];
   UserModel? _user;
+  bool isExpired = false;
 
   @override
   void initState() {
@@ -179,6 +182,12 @@ leading: pageId == '1'
   Widget _buildCard(StudyMaterialDetailsItem material) {
     final bool isSubscription = material.contentType == 'SUBSCRIPTION';
     final bool hasImage = material.thumbnail.isNotEmpty;
+    final DateTime? expiryDate =
+    material.access_valid_until.isNotEmpty
+        ? DateTime.tryParse(material.access_valid_until)
+        : null;
+
+  isExpired = expiryDate != null ? DateTime.now().isAfter(expiryDate) : false;
 
     final String pkgLabel = material.package_name.isNotEmpty
         ? material.package_name.toUpperCase()
@@ -196,6 +205,21 @@ leading: pageId == '1'
 
     return GestureDetector(
       onTap: () {
+        if (isExpired) {
+
+         Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BuyCoursePage(
+                      contentId: material.materialId.toString(),
+                      page_API_call: 'SUBSCRIPTION',
+                    ),
+                  ),
+                );
+
+          return;
+        }
+        else {
         if (isSubscription) {
           _showCourseBottomSheet(context, material);
         } else {
@@ -209,6 +233,7 @@ leading: pageId == '1'
           } else {
             launchUrl(Uri.parse(material.filePath));
           }
+        }
         }
       },
       child: Container(
@@ -340,26 +365,31 @@ leading: pageId == '1'
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [AppColors.darkNavy, AppColors.tealGreen]),
+         gradient: LinearGradient(
+      colors: isExpired
+          ? [Colors.red.shade700, Colors.red.shade400]
+          : [AppColors.darkNavy, AppColors.tealGreen],
+    ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-                color: AppColors.tealGreen.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 3)),
+        color: (isExpired ? Colors.red : AppColors.tealGreen)
+            .withOpacity(0.3),
+        blurRadius: 8,
+        offset: const Offset(0, 3),
+      ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TranslatedText('Start',
-                style: TextStyle(
+            TranslatedText( isExpired ? 'Expired' : 'Start',
+                style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: Colors.white)),
-            SizedBox(width: 4),
-            Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
           ],
         ),
       ),
@@ -830,37 +860,217 @@ leading: pageId == '1'
   // ─── EMPTY STATE ──────────────────────────────────────────────────────────
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
+ return Center(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 32),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Illustration ──────────────────────────────────
+        Container(
+          width: 130,
+          height: 130,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.tealGreen.withOpacity(0.12),
+                AppColors.darkNavy.withOpacity(0.08),
+              ],
+            ),
+            shape: BoxShape.circle,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned(
+                top: 18, right: 18,
+                child: Container(
+                  width: 20, height: 20,
+                  decoration: BoxDecoration(
+                    color: AppColors.tealGreen.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 16, left: 16,
+                child: Container(
+                  width: 14, height: 14,
+                  decoration: BoxDecoration(
+                    color: AppColors.darkNavy.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.tealGreen.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Text('🎓', style: TextStyle(fontSize: 40)),
+              ),
+            ],
+          ),
+        ),
+ 
+        const SizedBox(height: 24),
+ 
+        // ── Title ─────────────────────────────────────────
+        const TranslatedText(
+          'No Courses Yet!',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppColors.darkNavy,
+            fontFamily: 'Poppins',
+            height: 1.3,
+          ),
+        ),
+ 
+        const SizedBox(height: 10),
+ 
+        // ── Subtitle ──────────────────────────────────────
+        TranslatedText(
+          'Choose the right course, work hard\nand achieve your dream! 🚀',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.greyS600,
+            height: 1.6,
+          ),
+        ),
+ 
+        const SizedBox(height: 20),
+ 
+        // ── Feature chips — Row 1 ─────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _emptyStateChip('📝', 'Mock Tests', const Color(0xFF3949AB)),
+            const SizedBox(width: 8),
+            _emptyStateChip('📖', 'Study Notes', AppColors.tealGreen),
+            const SizedBox(width: 8),
+            _emptyStateChip('⚡', 'Live Tests', const Color(0xFFE65100)),
+          ],
+        ),
+ 
+        const SizedBox(height: 8),
+ 
+        // ── Feature chips — Row 2 ─────────────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _emptyStateChip('📊', 'Chapter Tests', const Color(0xFF6B4EFF)),
+            const SizedBox(width: 8),
+            _emptyStateChip('🏆', 'Leaderboard', const Color(0xFFDD8E00)),
+            const SizedBox(width: 8),
+            _emptyStateChip('📜', 'PYQ Papers', const Color(0xFF00897B)),
+          ],
+        ),
+ 
+        const SizedBox(height: 28),
+ 
+        // ── CTA Button ────────────────────────────────────
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StudyMaterialScreen('1'),
+            ),
+          ),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 15),
             decoration: BoxDecoration(
-                color: AppColors.tealGreen.withOpacity(0.08),
-                shape: BoxShape.circle),
-            child: Icon(Icons.school_outlined,
-                size: 64, color: AppColors.greyS400),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0D4B3B).withOpacity(0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.rocket_launch_rounded,
+                    color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                TranslatedText(
+                 'Browse Courses & Enroll',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    fontFamily: 'Poppins',
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          const TranslatedText(
-            'No Courses Yet',
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: AppColors.darkNavy),
+        ),
+ 
+        const SizedBox(height: 12),
+ 
+        // ── Social proof ──────────────────────────────────
+        TranslatedText(
+        'Join now and start learning 🎯',
+          style: TextStyle(
+            fontSize: 11,
+            color: AppColors.greyS500,
+            fontWeight: FontWeight.w500,
           ),
-          const SizedBox(height: 6),
-          TranslatedText(
-            'Subscribe to a course to get started',
-            style: TextStyle(fontSize: 12, color: AppColors.greyS600),
-          ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  ),
+);
   }
 }
 
+Widget _emptyStateChip(String emoji, String label, Color color) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.07),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: color.withOpacity(0.2)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 12)),
+        const SizedBox(width: 4),
+        TranslatedText(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    ),
+  );
+}
 // ─── BOTTOM SHEET WIDGET ──────────────────────────────────────────────────────
 
 class _CourseBottomSheet extends StatelessWidget {

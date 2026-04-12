@@ -207,6 +207,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         'user_id': userid.toString(),
         'page_API_call': widget.page_API_call,
       };
+      print('Fetching study material with data: $data');
       final responseFuture = await authRepository
           .get_study_wise_details(data)
           .timeout(const Duration(seconds: 15), onTimeout: () => throw TimeoutException('Request timed out'));

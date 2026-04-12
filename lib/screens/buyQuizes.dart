@@ -47,7 +47,7 @@ class _DS {
   static const Color tealDark = Color(0xFF00897B);
   static const Color gold = Color(0xFFF5A623);
   static const Color red = Color(0xFFE53935);
-  static const Color indigo = Color(0xFF6366F1); // ✅ missed color
+  static const Color indigo = Color(0xFF6366F1);
   static const Color surface = Color(0xFFF4F6FB);
   static const Color card = Colors.white;
   static const Color border = Color(0xFFE2E8F4);
@@ -57,10 +57,11 @@ class _DS {
 }
 
 class QuizDetailPage extends StatefulWidget {
+  final String pageType_data;
   final String quizId;
   final bool is_subscribed;
 
-  QuizDetailPage({required this.quizId, required this.is_subscribed});
+  QuizDetailPage({required this.pageType_data, required this.quizId, required this.is_subscribed});
 
   @override
   _QuizDetailPageState createState() => _QuizDetailPageState();
@@ -89,6 +90,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
+  // ✅ Chapter wise test check — pageType_data == '0' means chapter test
+  bool get _isChapterTest => widget.pageType_data == '0';
+
   bool get _hasFullAccess =>
       (_currentQuiz?.isPurchased ?? false) &&
       (_currentQuiz?.isAccessible ?? false) &&
@@ -96,7 +100,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
   bool get _shouldShowAds => !widget.is_subscribed && !_hasFullAccess;
 
-  // ✅ Helper — quizStatus shortcuts
   bool get _isMissed => (_currentQuiz?.quizStatus.toLowerCase() ?? '') == 'missed';
   bool get _isEnded => (_currentQuiz?.quizStatus.toLowerCase() ?? '') == 'ended';
 
@@ -219,7 +222,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             _product_sub_id = _currentQuiz!.subscription_id;
             _remainingSeconds = _currentQuiz!.startsInSeconds;
           });
-          if (_remainingSeconds > 0) _startCountdown();
+
+          // ✅ Chapter test (pageType_data == '0') mein countdown start nahi hoga
+          if (_remainingSeconds > 0 && !_isChapterTest) {
+            _startCountdown();
+          }
+
           setState(() {
             _isLoading = false;
             _hasError = false;
@@ -307,8 +315,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       _showAccessDialog();
       return;
     }
-    // ✅ Daily limit check
-    if (_currentQuiz!.dailyLimitExceeded) {
+    // ✅ Chapter test mein daily limit check skip
+    if (!_isChapterTest && _currentQuiz!.dailyLimitExceeded) {
       _showDailyLimitModal();
       return;
     }
@@ -404,7 +412,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   }
 
   void _navigateToQuiz() {
-    //  QuizInstructionPage
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -508,7 +515,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     });
   }
 
-  // ✅ FIXED: Added missed + ended cases
   Color _getStatusColor() {
     switch (_currentQuiz?.quizStatus.toLowerCase()) {
       case 'live':
@@ -516,15 +522,14 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       case 'upcoming':
         return _DS.gold;
       case 'missed':
-        return _DS.indigo; // ✅ indigo for missed/assessment
+        return _DS.indigo;
       case 'ended':
-        return _DS.textSec; // ✅ grey for ended
+        return _DS.textSec;
       default:
         return _DS.teal;
     }
   }
 
-  // ✅ FIXED: Added missed + ended icons
   IconData _getStatusIcon() {
     switch (_currentQuiz?.quizStatus.toLowerCase()) {
       case 'live':
@@ -532,7 +537,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       case 'upcoming':
         return Icons.schedule_rounded;
       case 'missed':
-        return Icons.assignment_late_outlined; // ✅ assessment icon
+        return Icons.assignment_late_outlined;
       case 'ended':
         return Icons.check_circle_rounded;
       default:
@@ -632,8 +637,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     _buildAccessBanner(),
                     const SizedBox(height: 12),
 
-                    // ✅ Live banner only for live status
-                    if (_isLive && canStartQuiz) ...[_buildLiveBanner(), const SizedBox(height: 12)],
+                    // ✅ Live banner — chapter test mein nahi dikhega
+                    if (_isLive && canStartQuiz && !_isChapterTest) ...[
+                      _buildLiveBanner(),
+                      const SizedBox(height: 12),
+                    ],
 
                     // ✅ Assessment banner for missed status
                     if (_isMissed && _hasFullAccess) ...[_buildAssessmentBanner(), const SizedBox(height: 12)],
@@ -832,7 +840,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  ACCESS BANNER — ✅ FIXED: added missed + ended cases
+  //  ACCESS BANNER
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildAccessBanner() {
     final quiz = _currentQuiz!;
@@ -842,7 +850,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     _AccessBannerCfg cfg;
 
     if (_hasFullAccess) {
-      // ✅ Missed — attempted but expired
       if (_isMissed) {
         cfg = _AccessBannerCfg(
           gradient: [const Color(0xFF4527A0), const Color(0xFF311B92)],
@@ -854,9 +861,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           statusColor: const Color(0xFFB39DDB),
           locked: false,
         );
-      }
-      // ✅ Ended — user already attempted
-      else if (_isEnded) {
+      } else if (_isEnded) {
         cfg = _AccessBannerCfg(
           gradient: [const Color(0xFF37474F), const Color(0xFF263238)],
           icon: Icons.check_circle_rounded,
@@ -867,9 +872,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           statusColor: const Color(0xFF80CBC4),
           locked: false,
         );
-      }
-      // Full access — purchased
-      else if (quiz.isPurchased) {
+      } else if (quiz.isPurchased) {
         cfg = _AccessBannerCfg(
           gradient: [const Color(0xFF00897B), const Color(0xFF004D40)],
           icon: Icons.verified_rounded,
@@ -880,9 +883,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           statusColor: const Color(0xFF69F0AE),
           locked: false,
         );
-      }
-      // Free test
-      else {
+      } else {
         cfg = _AccessBannerCfg(
           gradient: [const Color(0xFF1976D2), const Color(0xFF0D47A1)],
           icon: Icons.lock_open_rounded,
@@ -1089,7 +1090,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  // ✅ NEW: Assessment banner for missed quizzes
+  // ✅ Assessment banner for missed quizzes
   Widget _buildAssessmentBanner() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1229,9 +1230,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                       icon: _getStatusIcon(),
                       label:
                           _isMissed
-                              ? 'ASSESSMENT' // ✅ show ASSESSMENT not MISSED
+                              ? 'ASSESSMENT'
+                              : _isChapterTest
+                              ? 'CHAPTER TEST' // ✅ chapter test tag
                               : _currentQuiz!.quizStatus.toUpperCase(),
-                      color: _getStatusColor(),
+                      color: _isChapterTest ? _DS.teal : _getStatusColor(),
                     ),
                     if (_currentQuiz!.difficultyLevel.isNotEmpty)
                       _buildTag(
@@ -1271,7 +1274,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        /// 🔥 NOTICE TITLE
                         Row(
                           children: const [
                             Icon(Icons.info_outline, size: 16, color: Color(0xFF00695C)),
@@ -1280,15 +1282,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                               "Notice",
                               style: TextStyle(
                                 fontSize: _DS.fsSm,
-                                fontWeight: FontWeight.w700, // bold
+                                fontWeight: FontWeight.w700,
                                 color: Color(0xFF00695C),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
-
-                        /// 📄 INSTRUCTION TEXT
                         TranslatedText(
                           'Test Name : ${_currentQuiz!.title}',
                           style: const TextStyle(
@@ -1298,10 +1298,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                             height: 1.6,
                           ),
                         ),
-
                         const SizedBox(height: 3),
-
-                        /// 📄 INSTRUCTION TEXT
                         TranslatedText(
                           _currentQuiz!.instruction,
                           style: const TextStyle(
@@ -1316,7 +1313,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   ),
                 ],
 
-                if (_remainingSeconds > 0) ...[
+                // ✅ Countdown box — chapter test mein bilkul nahi dikhega
+                if (_remainingSeconds > 0 && !_isChapterTest) ...[
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
@@ -1543,7 +1541,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         borderRadius: BorderRadius.circular(20),
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────────────
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(15),
@@ -1564,7 +1561,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Badge
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                         decoration: BoxDecoration(
@@ -1585,32 +1581,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                         ),
                       ),
                       const SizedBox(height: 12),
-
-                      // Course name pill
-                      // if ((_currentQuiz?.Material_name ?? '').isNotEmpty) ...[
-                      //   Container(
-                      //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      //     decoration: BoxDecoration(
-                      //       color: Colors.white.withOpacity(0.12),
-                      //       borderRadius: BorderRadius.circular(8),
-                      //       border: Border.all(color: Colors.white.withOpacity(0.2)),
-                      //     ),
-                      //     child: Row(
-                      //       mainAxisSize: MainAxisSize.min,
-                      //       children: [
-                      //         const Icon(Icons.library_books_rounded, size: 11, color: Colors.white),
-                      //         const SizedBox(width: 6),
-                      //         TranslatedText(
-                      //           _currentQuiz!.Material_name,
-                      //           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
-                      //         ),
-                      //       ],
-                      //     ),
-                      //   ),
-                      //   const SizedBox(height: 10),
-                      // ],
-
-                      // Headline
                       TranslatedText(
                         headline,
                         style: const TextStyle(
@@ -1636,14 +1606,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               ),
             ),
 
-            // ── Body ────────────────────────────────────────────────────
             Container(
               color: AppColors.white,
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Section label
                   Row(
                     children: [
                       Container(
@@ -1660,7 +1628,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   ),
                   const SizedBox(height: 14),
 
-                  // Benefits grid
                   _buildBenefitGrid([
                     _BenefitItem(
                       emoji: '📝',
@@ -1708,7 +1675,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
 
                   const SizedBox(height: 16),
 
-                  // Bottom highlight box
                   Container(
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
@@ -2065,7 +2031,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                 Expanded(
                   child: TranslatedText(
                     'Designed to simulate actual exam conditions — same pattern, same time pressure.',
-                    style: TextStyle(fontSize: _DS.fsSm, color: _DS.textPri, fontWeight: FontWeight.w500, height: 1.4),
+                    style: TextStyle(
+                      fontSize: _DS.fsSm,
+                      color: _DS.textPri,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4,
+                    ),
                   ),
                 ),
               ],
@@ -2293,13 +2264,13 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  BOTTOM BAR — ✅ FIXED: missed + ended cases added
+  //  BOTTOM BAR — ✅ Chapter test (pageType_data == '0') mein direct start
   // ═══════════════════════════════════════════════════════════════════════
   Widget _buildBottomBar() {
     final quiz = _currentQuiz;
     if (quiz == null) return const SizedBox.shrink();
 
-    // ✅ 1. Pehle — completed attempt check (View Result)
+    // ✅ 1. Completed attempt — View Result
     if (quiz.is_attempted) {
       return _buildActionBar(
         label: 'View Result',
@@ -2312,7 +2283,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             MaterialPageRoute(
               builder:
                   (_) => QuizReviewPage(
-                    attemptId: quiz.completedAttemptId ?? 0, // ✅ attempt_id
+                    attemptId: quiz.completedAttemptId ?? 0,
                     userId: int.tryParse(_user!.id.toString()) ?? 0,
                     quizTitle: quiz.title,
                     pageType: 0,
@@ -2323,7 +2294,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       );
     }
 
-    // ✅ 2. Phir — incomplete/pending attempt (Resume)
+    // ✅ 2. Pending attempt — Resume
     if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
       return _buildActionBar(
         label: 'Resume Attempt',
@@ -2345,7 +2316,18 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       );
     }
 
-    // ✅ 4. Has access — quiz status check
+    // ✅ 4. Chapter test — seedha Start Test, koi status check nahi
+    if (_isChapterTest) {
+      return _buildActionBar(
+        label: 'Start Test',
+        icon: Icons.play_arrow_rounded,
+        colors: [_DS.teal, _DS.tealDark],
+        shadowColor: _DS.teal.withOpacity(0.3),
+        onTap: _handleStartQuiz,
+      );
+    }
+
+    // ✅ 5. Normal quiz — status ke basis pe
     switch (quiz.quizStatus.toLowerCase()) {
       case 'live':
         return _buildActionBar(
@@ -2463,7 +2445,11 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   const SizedBox(width: 7),
                   TranslatedText(
                     _getCountdownLabel(),
-                    style: const TextStyle(fontSize: _DS.fsMd, color: Color(0xFFB45309), fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: _DS.fsMd,
+                      color: Color(0xFFB45309),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   TranslatedText(
                     _getCountdownText(),
@@ -2483,7 +2469,9 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [_DS.navy, _DS.teal]),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [BoxShadow(color: _DS.teal.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(color: _DS.teal.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                ],
               ),
               child: Material(
                 color: Colors.transparent,

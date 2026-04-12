@@ -230,7 +230,8 @@ IconData _getIcon(String text) {
 
   Future<void> get_home_page_data() async {
     final authRepository = Authrepository(Api_Client.dio);
-    final response = await authRepository.fetchHomePageData();
+    final data_user = {'user_id': _user?.id};
+    final response = await authRepository.fetchHomePageData(data_user);
 
     if (response.statusCode == 200) {
       HomeDataResponse res = HomeDataResponse.fromJson(response.data);

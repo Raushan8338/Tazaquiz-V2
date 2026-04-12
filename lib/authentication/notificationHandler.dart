@@ -63,7 +63,7 @@ class NotificationPlatformHandler {
           final quizId = data['quiz_id'] as String? ?? '';
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => QuizDetailPage(quizId: quizId, is_subscribed: false)),
+            MaterialPageRoute(builder: (context) => QuizDetailPage(pageType_data: '7', quizId: quizId, is_subscribed: false)),
           );
           //_showQuizJoinSheet(context, data);
           break;
