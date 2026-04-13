@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:http/http.dart' as http;
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/API/api_endpoint.dart';
+import 'package:tazaquiznew/ads/banner_ads_helper.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/blog_post_modal.dart';
@@ -22,17 +24,22 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
   bool _loading = true;
   String? _error;
   late AnimationController _fadeCtrl;
-
+  final BannerAdService bannerService = BannerAdService();
+  bool isBannerLoaded = false;
   @override
   void initState() {
     super.initState();
     _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+
     _fetch();
+        bannerService.loadAd(
+        () => mounted ? setState(() => isBannerLoaded = true) : null);
   }
 
   @override
   void dispose() {
     _fadeCtrl.dispose();
+    bannerService.dispose();
     super.dispose();
   }
 
@@ -85,6 +92,20 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
             else ...[
               _featured(),
               _sectionHeader('Latest Articles'),
+                if (isBannerLoaded && bannerService.bannerAd != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                      height: bannerService.bannerAd!.size.height.toDouble(),
+                      width: bannerService.bannerAd!.size.width.toDouble(),
+                      child: AdWidget(ad: bannerService.bannerAd!)),
+                ),
+              ),
+            ),
               _postsList(),
               const SliverToBoxAdapter(child: SizedBox(height: 30)),
             ],
