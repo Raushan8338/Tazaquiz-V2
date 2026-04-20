@@ -36,15 +36,16 @@ class CheckoutPage extends StatefulWidget {
   _CheckoutPageState createState() => _CheckoutPageState();
 }
 
-class _CheckoutPageState extends State<CheckoutPage> {
+class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserver {
   bool _isProcessing = false;
   bool _showCouponField = false;
   bool _isLoadingCheckout = true;
   bool _isApplyingCoupon = false;
+  bool _isWebCheckoutOpen = false; // ✅ Track karo
 
   CheckoutModel? checkoutData;
   CheckoutModel? originalCheckoutData;
-  CFEnvironment environment = CFEnvironment.SANDBOX;
+  CFEnvironment environment = CFEnvironment.PRODUCTION;
 
   // Store coupon details separately
   String? appliedCouponCode;
@@ -57,6 +58,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+     WidgetsBinding.instance.addObserver(this); // ✅ Register
     _initialize();
   }
 
@@ -178,11 +180,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void dispose() {
     _couponController.dispose();
+      WidgetsBinding.instance.removeObserver(this); // ✅ Cleanup
     super.dispose();
   }
-
+  // ✅ Yeh function add karo
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _isWebCheckoutOpen) {
+      _isWebCheckoutOpen = false;
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+  
   void _processPayment() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
+     setState(() => _isProcessing = true);
     final data = {
       'user_id': _user?.id,
       'product_id': widget.contentId,
@@ -203,20 +217,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
         String orderId = jsonResponse['order_id'];
         String paymentLink = jsonResponse['payment_link'];
         String cfToken = jsonResponse['payment_session_id'];
+        String payMode = jsonResponse['PAYmode'] ?? '0';
 
         // Proceed with Cashfree payment using orderId
-        _startCashfreePayment(orderId, paymentLink, cfToken);
+        _startCashfreePayment(orderId, paymentLink, cfToken,payMode);
       } else {
+         setState(() => _isProcessing = false); // ✅ Error pe false
         _showErrorSnackbar('Failed to create payment order');
       }
 
-      setState(() => _isProcessing = true);
+     
 
       // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => PaymentFailedPage()));
     }
   }
 
-  void _startCashfreePayment(String orderId, String paymentlink, String cfToken) {
+  void _startCashfreePayment(String orderId, String paymentlink, String cfToken,String payMode) {
     // Implement Cashfree payment integration here
     // On successful payment, call _showPaymentSuccessDialog()
     try {
@@ -228,11 +244,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
+      if(payMode=="0"){
+        var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
+        var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
+        service.doPayment(upiPayment);
+        
+      }else{
+        _isWebCheckoutOpen = true; // ✅ Yeh add karo
   var cfWebCheckout = CFWebCheckoutPaymentBuilder()
     .setSession(session)
     .build();
 
 service.doPayment(cfWebCheckout);
+      }
+
+
       // final cfPaymentService = CFPaymentGatewayService();
 
       // final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
@@ -267,6 +293,10 @@ service.doPayment(cfWebCheckout);
   }
 
   void onError(CFErrorResponse errorResponse, String orderId) async {
+      if (mounted) {
+    setState(() => _isProcessing = false);
+  }
+
     final String combinedError =
         "Message: ${errorResponse.getMessage()}, "
         "Status: ${errorResponse.getStatus()}, "
