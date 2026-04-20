@@ -615,22 +615,7 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudyMaterialSearchScreen())),
           ),
 
-          _buildActionListItem(
-            icon: Icons.workspace_premium_rounded,
-            title: 'Buy Courses / Upgrade Plan',
-            subtitle: 'View & upgrade your plan',
-            color: const Color(0xFFFF9800),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage(CourseIds: '0'))),
-            isFirst: true,
-          ),
-
-          _buildActionListItem(
-            icon: Icons.school_rounded,
-            title: 'Selected Courses',
-            subtitle: 'Manage your enrolled courses',
-            color: const Color(0xFF00695C),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
-          ),
+      
           _buildActionListItem(
             icon: Icons.receipt_long_rounded,
             title: 'All Payments',
@@ -830,13 +815,28 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
             'Change App Language',
             'Change the app language',
             const Color(0xFF00695C),
-
             () => Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => LanguageSelectionPage(showSkip: false, onDone: () => Navigator.pop(context)),
               ),
             ),
+          ),
+              _buildActionListItem(
+            icon: Icons.workspace_premium_rounded,
+            title: 'Buy Courses / Upgrade Plan',
+            subtitle: 'View & upgrade your plan',
+            color: const Color(0xFFFF9800),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage(CourseIds: '0'))),
+            isFirst: true,
+          ),
+
+          _buildActionListItem(
+            icon: Icons.school_rounded,
+            title: 'Selected Courses',
+            subtitle: 'Manage your enrolled courses',
+            color: const Color(0xFF00695C),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
           ),
 
           _buildSettingItem(

@@ -6,8 +6,10 @@ import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart
 import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfupi.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfupipayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cftheme/cftheme.dart';
 import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
@@ -42,7 +44,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   CheckoutModel? checkoutData;
   CheckoutModel? originalCheckoutData;
-  CFEnvironment environment = CFEnvironment.PRODUCTION;
+  CFEnvironment environment = CFEnvironment.SANDBOX;
 
   // Store coupon details separately
   String? appliedCouponCode;
@@ -225,15 +227,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (session == null) {
         return;
       }
+
+  var cfWebCheckout = CFWebCheckoutPaymentBuilder()
+    .setSession(session)
+    .build();
+
+service.doPayment(cfWebCheckout);
       // final cfPaymentService = CFPaymentGatewayService();
 
       // final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
 
       // cfPaymentService.doPayment(payment);
-      var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
-      var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
+      // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
+      // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
 
-      service.doPayment(upiPayment);
+      // service.doPayment(upiPayment);
 
       // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
       // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
@@ -244,7 +252,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
 
       // service.doPayment(upiPayment);
-    } catch (e) {}
+    } catch (e) {
+      _showErrorSnackbar('Payment failed to start');
+    }
   }
 
   CFSession? createSession(String orderId, String cfToken) {

@@ -89,7 +89,7 @@ class Authrepository {
 
   Future<Response> createPaymentOrder(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
-    return await _dio.post(BaseUrl.create_payment_order, data: formData);
+    return await _dio.post('https://tazaquiz.com/create_payment_order.php', data: formData);
   }
 
   Future<Response> savePaymentStatus(Map<String, dynamic> data) async {

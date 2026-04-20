@@ -10,6 +10,7 @@ import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/first_instructionPage.dart' hide AppColors;
+import 'package:tazaquiznew/screens/leaderboard_page.dart';
 import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quiz_review_page.dart';
@@ -644,15 +645,16 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                     ],
 
                     // ✅ Assessment banner for missed status
-                    if (_isMissed && _hasFullAccess) ...[_buildAssessmentBanner(), const SizedBox(height: 12)],
+                  //  if (_isMissed && _hasFullAccess) ...[_buildAssessmentBanner(), const SizedBox(height: 12)],
 
                     if (!_hasFullAccess) _buildSubscriptionSection() else _buildCombinedHeader(),
                     const SizedBox(height: 12),
 
                     _buildStatsRow(),
                     const SizedBox(height: 12),
+                    if (_remainingSeconds > 0 && !_isChapterTest)
+  if (!canStartQuiz) _buildCombinedHeader() else _buildScheduleSection(),
 
-                    if (!canStartQuiz) _buildCombinedHeader() else _buildScheduleSection(),
                     const SizedBox(height: 12),
 
                     if (_currentQuiz!.description.isNotEmpty) ...[_buildDescriptionCard(), const SizedBox(height: 12)],
@@ -856,7 +858,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
           icon: Icons.assignment_late_outlined,
           badge: _planDisplayName,
           headline: 'Assessment Available',
-          subLine: 'This quiz expired — attempt it now as an assessment.',
+          subLine: 'Attempt it now as an assessment.',
           statusLabel: 'ASSESSMENT',
           statusColor: const Color(0xFFB39DDB),
           locked: false,
@@ -2372,50 +2374,118 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     required Color shadowColor,
     required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      decoration: BoxDecoration(
-        color: _DS.card,
-        border: Border(top: BorderSide(color: _DS.border)),
-        boxShadow: [BoxShadow(color: _DS.navy.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, -3))],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: colors),
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: shadowColor, blurRadius: 14, offset: const Offset(0, 5))],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
+   return Container(
+  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+  decoration: BoxDecoration(
+    color: _DS.card,
+    border: Border(top: BorderSide(color: _DS.border)),
+    boxShadow: [
+      BoxShadow(
+        color: _DS.navy.withOpacity(0.06),
+        blurRadius: 16,
+        offset: const Offset(0, -3),
+      )
+    ],
+  ),
+  child: SafeArea(
+    top: false,
+    child: Row(
+      children: [
+        // Main action button
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: colors),
               borderRadius: BorderRadius.circular(14),
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, color: Colors.white, size: 20),
-                    const SizedBox(width: 9),
-                    TranslatedText(
-                      label,
-                      style: const TextStyle(
-                        fontSize: _DS.fsLg,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: 0.2,
+              boxShadow: [
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                )
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 20),
+                      const SizedBox(width: 9),
+                      TranslatedText(
+                        label,
+                        style: const TextStyle(
+                          fontSize: _DS.fsLg,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
+
+        const SizedBox(width: 10),
+
+        // Leaderboard button
+       _currentQuiz!.is_attempted == true ?
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LeaderboardPage(
+                  quizId: int.tryParse(_currentQuiz!.quizId.toString()) ?? 0,
+                  quizTitle: _currentQuiz!.title,
+                ),
+              ),
+            );
+          },
+          child: Container(
+            height: 54,
+            width: 54,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5A623).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: const Color(0xFFF5A623).withOpacity(0.5),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(
+                  Icons.leaderboard_rounded,
+                  color: Color(0xFFF5A623),
+                  size: 20,
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Rank',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFF5A623),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ):SizedBox()
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildRemindMeBar() {

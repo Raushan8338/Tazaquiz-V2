@@ -225,6 +225,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
     print('_fetchQuizzes payload: $data');
  
     final response = await auth.get_paid_quizes_api(data);
+    print('_fetchQuizzes response: ${response.data}');
     if (response.statusCode == 200) {
       final List list = response.data['data'] ?? [];
       setState(() {
@@ -1122,6 +1123,9 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
   }
 
   IconData _btnIcon(QuizItem quiz, bool isLive, bool isAttempted) {
+    if (quiz.attempt_status == 'in_progress') {
+      return Icons.play_arrow_rounded;
+    }
     if (!quiz.isAccessible) return Icons.lock_outline_rounded;
     if (!isLiveTest)
       return isAttempted ? Icons.bar_chart_rounded : Icons.play_arrow_rounded;
@@ -1130,6 +1134,9 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
   }
 
   String _btnText(QuizItem quiz, bool isLive, bool isMissed, bool isAttempted) {
+    if (quiz.attempt_status == 'in_progress') {
+      return 'Resume';
+    }
     if (!quiz.isAccessible) return 'Enroll Now';
     if (!isLiveTest) return isAttempted ? 'View Result' : 'Start Test';
     if (isLive) return 'Join Now';

@@ -86,7 +86,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
       if ((_currentType == 'quiz' || _currentType == 'mock') && widget.quizId != null) {
         data['quiz_id'] = widget.quizId.toString();
       }
-      print('Leaderboard fetch: $data');
 
       final res = await auth.fetchLeaderboard(data);
       print('Leaderboard fetch: ${res.data}');
@@ -663,9 +662,25 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
+
+              if (item.correctAnswers == 0 && item.totalAnswered == 0)
+
                 TranslatedText(
-                  'Correct: ${item.correctAnswers}/${item.totalAnswered}  •  ${item.timeTaken}',
+
+                  'Check Subject / Chapter for more details',
+
                   style: TextStyle(fontSize: 10, color: AppColors.greyS600),
+
+                )
+
+              else
+
+                TranslatedText(
+
+                  'Correct: ${item.correctAnswers}/${item.totalAnswered}  •  ${item.timeTaken}',
+
+                  style: TextStyle(fontSize: 10, color: AppColors.greyS600),
+
                 ),
               ],
             ),

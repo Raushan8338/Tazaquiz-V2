@@ -17,13 +17,19 @@ class LiveTestScreen extends StatefulWidget {
   final String Quiz_id;
   final int timeLimit;
 
-  LiveTestScreen({required this.testTitle, required this.subject, required this.Quiz_id, required this.timeLimit});
+  LiveTestScreen({
+    required this.testTitle,
+    required this.subject,
+    required this.Quiz_id,
+    required this.timeLimit,
+  });
 
   @override
   _LiveTestScreenState createState() => _LiveTestScreenState();
 }
 
-class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProviderStateMixin {
+class _LiveTestScreenState extends State<LiveTestScreen>
+    with SingleTickerProviderStateMixin {
   int _currentQuestion = 0;
   List<dynamic> _questions = [];
   int totalQuestions = 0;
@@ -37,13 +43,18 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   late AnimationController _animationController;
   late Animation<double> _pulseAnimation;
 
-  Map<String, dynamic> _currentQuestionData = {};
+  // Saves selected answer per question index so Previous restores it
+  Map<int, int?> _savedAnswers = {};
 
+  Map<String, dynamic> _currentQuestionData = {};
   UserModel? _user;
 
-  // ── Page-local language override ──────────────────────────────────────────
-  String? _localLang;
+  // ── Language state ──────────────────────────────────────────────────────────
+  // _activeLang is single source of truth. Changing it forces TranslatedText
+  // widgets to rebuild via their ValueKey.
+  late String _activeLang;
   late final String _globalLang;
+  bool _isOverride = false;
 
   static const _languages = [
     {'code': 'en', 'native': 'English', 'label': 'English'},
@@ -59,18 +70,22 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     {'code': 'ur', 'native': 'اردو', 'label': 'Urdu'},
   ];
 
-  String get _effectiveLang => _localLang ?? _globalLang;
-  bool get _isLocalOverrideActive => _localLang != null && _localLang != _globalLang;
+  static const _mlCodeMap = {
+    'hi': 'hi', 'mr': 'mr', 'bn': 'bn', 'ta': 'ta',
+    'te': 'te', 'gu': 'gu', 'kn': 'kn', 'ml': 'ml',
+    'pa': 'pa', 'ur': 'ur',
+  };
 
   @override
   void initState() {
     super.initState();
     _globalLang = TranslationService.instance.currentLanguage;
-    _animationController = AnimationController(vsync: this, duration: Duration(seconds: 2))..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
+    _activeLang = _globalLang;
+    _animationController =
+        AnimationController(vsync: this, duration: Duration(seconds: 2))
+          ..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+        CurvedAnimation(parent: _animationController, curve: Curves.easeInOut));
     _getUserData();
   }
 
@@ -78,10 +93,11 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   void dispose() {
     _timer?.cancel();
     _animationController.dispose();
-    if (_isLocalOverrideActive) TranslationService.instance.setLanguage(_globalLang);
+    if (_isOverride) TranslationService.instance.setLanguage(_globalLang);
     super.dispose();
   }
 
+  // ── Data loading ───────────────────────────────────────────────────────────
   void _getUserData() async {
     _user = await SessionManager.getUser();
     if (mounted) setState(() {});
@@ -93,8 +109,13 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     const maxRetries = 3;
     while (retryCount < maxRetries) {
       try {
-        final data = {'user_id': _user?.id, 'quiz_id': widget.Quiz_id, 'score': ''};
-        final responseFuture = await Authrepository(Api_Client.dio).fetchQuizQuestion(data);
+        final data = {
+          'user_id': _user?.id,
+          'quiz_id': widget.Quiz_id,
+          'score': ''
+        };
+        final responseFuture =
+            await Authrepository(Api_Client.dio).fetchQuizQuestion(data);
         final Map<String, dynamic> apiResponse =
             responseFuture.data is String
                 ? jsonDecode(responseFuture.data)
@@ -131,6 +152,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     setState(() {
       _currentQuestion = index;
       _correctAnswer = correctIndex == -1 ? 0 : correctIndex;
+      _selectedOption = _savedAnswers[index]; // restore saved answer
       _currentQuestionData = {
         'question': question['question_text'],
         'options': answers.map((a) => a['answer_text']).toList(),
@@ -140,67 +162,18 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
         'attempt_id': question['attempt_id'] ?? 0,
         'question_ans_id': question['question_ans_id'] ?? 0,
         'question_id': question['question_id'] ?? 0,
-        'is_translation_allowed': (question['is_translation_allowed'] ?? 0).toString(),
+        'is_translation_allowed':
+            (question['is_translation_allowed'] ?? 0).toString(),
       };
     });
   }
 
-  // ── Check model downloaded, show popup if not ─────────────────────────────
-  Future<void> _applyLocalLang(String code) async {
-    if (code == _effectiveLang) return;
-
-    if (code != 'en') {
-      final modelManager = OnDeviceTranslatorModelManager();
-      final mlCodeMap = {
-        'hi': 'hi',
-        'mr': 'mr',
-        'bn': 'bn',
-        'ta': 'ta',
-        'te': 'te',
-        'gu': 'gu',
-        'kn': 'kn',
-        'ml': 'ml',
-        'pa': 'pa',
-        'ur': 'ur',
-      };
-      final mlCode = mlCodeMap[code];
-      if (mlCode != null) {
-        final isDownloaded = await modelManager.isModelDownloaded(mlCode);
-        if (!isDownloaded && mounted) {
-          final langName =
-              _languages.firstWhere((l) => l['code'] == code, orElse: () => {'native': code})['native'] ?? code;
-          // Show popup
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (_) => _ModelDownloadPopup(langName: langName),
-          );
-          // Wait for download via setLanguage (TranslationService downloads internally)
-          await TranslationService.instance.setLanguage(code);
-          // Close popup
-          if (mounted) Navigator.of(context, rootNavigator: true).pop();
-        } else {
-          await TranslationService.instance.setLanguage(code);
-        }
-      } else {
-        await TranslationService.instance.setLanguage(code);
-      }
-    } else {
-      await TranslationService.instance.setLanguage(code);
-    }
-
-    if (mounted) setState(() => _localLang = code == _globalLang ? null : code);
-  }
-
-  Future<void> _resetToGlobal() async {
-    await TranslationService.instance.setLanguage(_globalLang);
-    setState(() => _localLang = null);
-  }
-
+  // ── Timer ──────────────────────────────────────────────────────────────────
   void _startTimer() {
     _timer?.cancel();
     _timeLeft = _perQuestionTime;
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (!mounted) return;
       setState(() {
         if (_timeLeft > 0) {
           _timeLeft--;
@@ -215,6 +188,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   void _resumeTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (!mounted) return;
       setState(() {
         if (_timeLeft > 0) {
           _timeLeft--;
@@ -226,9 +200,90 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     });
   }
 
+  void _pauseTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  // ── Language change ────────────────────────────────────────────────────────
+  Future<void> _applyLang(String code) async {
+  if (code == _activeLang) return;
+
+  _pauseTimer();
+
+  final mlCode = _mlCodeMap[code];
+  bool needsDownload = false;
+
+  if (mlCode != null) {
+    final modelManager = OnDeviceTranslatorModelManager();
+    needsDownload = !(await modelManager.isModelDownloaded(mlCode));
+  }
+
+  if (needsDownload && mounted) {
+    final langName = _languages.firstWhere(
+      (l) => l['code'] == code,
+      orElse: () => {'native': code},
+    )['native'] ?? code;
+
+    final completer = Completer<void>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _ModelDownloadPopup(
+        langName: langName,
+        langCode: code,
+        onDownloadComplete: () {
+          if (!completer.isCompleted) completer.complete();
+        },
+      ),
+    );
+
+    await completer.future;
+
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+    // ✅ KEY FIX: Popup ne model download kiya,
+    // ab parent explicitly setLanguage call karta hai
+    // taaki TranslatedText rebuild hone se pehle
+    // TranslationService ka state ready ho
+    await TranslationService.instance.setLanguage(code);
+  } else {
+    await TranslationService.instance.setLanguage(code);
+  }
+
+  if (mounted) {
+    setState(() {
+      _activeLang = code;
+      _isOverride = code != _globalLang;
+    });
+  }
+
+  if (mounted && !_answered && _timeLeft > 0) {
+    _resumeTimer();
+  }
+}
+
+  Future<void> _resetToGlobal() async {
+    if (_activeLang == _globalLang) return;
+    _pauseTimer();
+    await TranslationService.instance.setLanguage(_globalLang);
+    if (mounted) {
+      setState(() {
+        _activeLang = _globalLang;
+        _isOverride = false;
+      });
+    }
+    if (mounted && !_answered && _timeLeft > 0) _resumeTimer();
+  }
+
+  // ── Answer handling ────────────────────────────────────────────────────────
   void _selectOption(int index) {
     if (_answered) return;
-    setState(() => _selectedOption = index);
+    setState(() {
+      _selectedOption = index;
+      _savedAnswers[_currentQuestion] = index;
+    });
   }
 
   void _submitAnswer() async {
@@ -236,20 +291,24 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     setState(() {
       _answered = true;
       _timer?.cancel();
-      if (_selectedOption == _correctAnswer) _score += _currentQuestionData['points'] as int;
+      if (_selectedOption == _correctAnswer)
+        _score += _currentQuestionData['points'] as int;
     });
     final data = {
       'attempt_id': _currentQuestionData['attempt_id'].toString(),
       'question_id': _currentQuestionData['question_id'].toString(),
       'answer_id': _currentQuestionData['question_ans_id'].toString(),
-      'score': (_selectedOption == _correctAnswer ? _currentQuestionData['points'] : 0).toString(),
+      'score': (_selectedOption == _correctAnswer
+              ? _currentQuestionData['points']
+              : 0)
+          .toString(),
       'is_correct': (_selectedOption == _correctAnswer ? '1' : '0'),
       'time_spent': (_perQuestionTime - _timeLeft).toString(),
     };
     try {
       await Authrepository(Api_Client.dio).submitQuizAnswers(data);
     } catch (e) {
-      print('Error: $e');
+      print('Submit error: $e');
     }
     Future.delayed(Duration(milliseconds: 500), () => _nextQuestion());
   }
@@ -267,78 +326,87 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     };
     try {
       final r = await Authrepository(Api_Client.dio).submitQuizAnswers(data);
-      if (r.statusCode == 200) Future.delayed(Duration(milliseconds: 500), () => _nextQuestion());
+      if (r.statusCode == 200)
+        Future.delayed(Duration(milliseconds: 500), () => _nextQuestion());
     } catch (e) {
-      print('Error: $e');
+      print('AutoSubmit error: $e');
     }
   }
 
   void _nextQuestion() {
     if (_currentQuestion < totalQuestions - 1) {
-      setState(() {
-        _currentQuestion++;
-        _selectedOption = null;
-        _answered = false;
-      });
-      setQuestionFromApi(_currentQuestion);
+      setState(() => _answered = false);
+      setQuestionFromApi(_currentQuestion + 1);
       _startTimer();
     } else {
       _showResultDialog();
     }
   }
 
+  void _goToPreviousQuestion() {
+    if (_currentQuestion <= 0) return;
+    _pauseTimer();
+    setState(() => _answered = false);
+    setQuestionFromApi(_currentQuestion - 1);
+    _startTimer();
+  }
+
   void _showResultDialog() async {
-    final data = {'attempt_id': _currentQuestionData['attempt_id'].toString(), 'Passingscore': '$_score'};
+    final data = {
+      'attempt_id': _currentQuestionData['attempt_id'].toString(),
+      'Passingscore': '$_score'
+    };
     await Authrepository(Api_Client.dio).finalSubmitQuiz(data);
-    if (_isLocalOverrideActive) await TranslationService.instance.setLanguage(_globalLang);
+    if (_isOverride) await TranslationService.instance.setLanguage(_globalLang);
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder:
-            (_) => QuizReviewPage(
-              attemptId: int.tryParse(_currentQuestionData['attempt_id'].toString()) ?? 0,
-              userId: int.tryParse(_user!.id.toString()) ?? 0,
-              quizTitle: widget.testTitle,
-              pageType: 0,
-            ),
+        builder: (_) => QuizReviewPage(
+          attemptId:
+              int.tryParse(_currentQuestionData['attempt_id'].toString()) ?? 0,
+          userId: int.tryParse(_user!.id.toString()) ?? 0,
+          quizTitle: widget.testTitle,
+          pageType: 0,
+        ),
       ),
       (route) => route.isFirst,
     );
   }
 
+  // ── Language sheet ─────────────────────────────────────────────────────────
   void _showLangSheet() {
-    _timer?.cancel();
+    _pauseTimer();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder:
-          (_) => _LangPickerSheet(
-            languages: _languages,
-            activeLang: _effectiveLang,
-            globalLang: _globalLang,
-            onSelect: (code) async {
-              Navigator.pop(context);
-              await _applyLocalLang(code);
-              if (!_answered && _timeLeft > 0) _resumeTimer();
-            },
-            onReset: () async {
-              Navigator.pop(context);
-              await _resetToGlobal();
-              if (!_answered && _timeLeft > 0) _resumeTimer();
-            },
-          ),
+      builder: (_) => _LangPickerSheet(
+        languages: _languages,
+        activeLang: _activeLang,
+        globalLang: _globalLang,
+        onSelect: (code) async {
+          Navigator.pop(context);
+          await _applyLang(code);
+        },
+        onReset: () async {
+          Navigator.pop(context);
+          await _resetToGlobal();
+        },
+      ),
     ).then((_) {
-      if (!_answered && _timeLeft > 0) _resumeTimer();
+      // User dismissed without selecting — resume timer
+      if (mounted && !_answered && _timeLeft > 0) _resumeTimer();
     });
   }
 
+  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     if (_questions.isEmpty || _currentQuestionData.isEmpty) {
       return Scaffold(
         backgroundColor: AppColors.greyS1,
-        body: Center(child: CircularProgressIndicator(color: AppColors.tealGreen)),
+        body: Center(
+            child: CircularProgressIndicator(color: AppColors.tealGreen)),
       );
     }
     return Scaffold(
@@ -354,7 +422,7 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                   SizedBox(height: 10),
                   _buildQuestionCard(),
                   _buildOptionsSection(),
-                  if (!_answered) _buildSubmitButton(),
+                  if (!_answered) _buildBottomButtons(),
                   SizedBox(height: 20),
                 ],
               ),
@@ -367,14 +435,24 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
   Widget _buildHeader() {
     final activeLangMap = _languages.firstWhere(
-      (l) => l['code'] == _effectiveLang,
+      (l) => l['code'] == _activeLang,
       orElse: () => {'code': 'en', 'native': 'English', 'label': 'English'},
     );
     return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 12, left: 16, right: 16, bottom: 12),
+      padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 12,
+          left: 16,
+          right: 16,
+          bottom: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
-        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 20, offset: Offset(0, 5))],
+        gradient:
+            LinearGradient(colors: [AppColors.darkNavy, AppColors.tealGreen]),
+        boxShadow: [
+          BoxShadow(
+              color: AppColors.darkNavy.withOpacity(0.3),
+              blurRadius: 20,
+              offset: Offset(0, 5))
+        ],
       ),
       child: Column(
         children: [
@@ -412,23 +490,31 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                     SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(widget.subject, style: TextStyle(fontSize: 11, color: AppColors.lightGold)),
+                        Text(widget.subject,
+                            style: TextStyle(
+                                fontSize: 11, color: AppColors.lightGold)),
                         SizedBox(width: 8),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(8)),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                              color: AppColors.red,
+                              borderRadius: BorderRadius.circular(8)),
                           child: Row(
                             children: [
                               Container(
                                 width: 6,
                                 height: 6,
-                                decoration: BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
+                                decoration: BoxDecoration(
+                                    color: AppColors.white,
+                                    shape: BoxShape.circle),
                               ),
                               SizedBox(width: 4),
-                              Text(
-                                'LIVE',
-                                style: TextStyle(fontSize: 10, color: AppColors.white, fontWeight: FontWeight.w900),
-                              ),
+                              Text('LIVE',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.white,
+                                      fontWeight: FontWeight.w900)),
                             ],
                           ),
                         ),
@@ -439,70 +525,82 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(color: AppColors.lightGold, borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(
+                    color: AppColors.lightGold,
+                    borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   children: [
-                    Icon(Icons.emoji_events, color: AppColors.darkNavy, size: 16),
+                    Icon(Icons.emoji_events,
+                        color: AppColors.darkNavy, size: 16),
                     SizedBox(width: 6),
-                    Text(
-                      '$_score',
-                      style: TextStyle(fontSize: 14, color: AppColors.darkNavy, fontWeight: FontWeight.w900),
-                    ),
+                    Text('$_score',
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.darkNavy,
+                            fontWeight: FontWeight.w900)),
                   ],
                 ),
               ),
             ],
           ),
           SizedBox(height: 10),
-          // Language bar
           GestureDetector(
             onTap: _showLangSheet,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                color: _isLocalOverrideActive ? AppColors.white.withOpacity(0.15) : AppColors.white.withOpacity(0.1),
+                color: _isOverride
+                    ? AppColors.white.withOpacity(0.15)
+                    : AppColors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _isLocalOverrideActive ? AppColors.white.withOpacity(0.4) : AppColors.white.withOpacity(0.15),
+                  color: _isOverride
+                      ? AppColors.white.withOpacity(0.4)
+                      : AppColors.white.withOpacity(0.15),
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.translate_rounded, size: 14, color: AppColors.white.withOpacity(0.9)),
+                  Icon(Icons.translate_rounded,
+                      size: 14, color: AppColors.white.withOpacity(0.9)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _isLocalOverrideActive
+                          _isOverride
                               ? 'Page language (tap to change)'
                               : 'View questions in… (tap to change)',
                           style: TextStyle(
-                            fontSize: 10,
-                            color: AppColors.white.withOpacity(0.7),
-                            fontWeight: FontWeight.w500,
-                          ),
+                              fontSize: 10,
+                              color: AppColors.white.withOpacity(0.7),
+                              fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 1),
                         Row(
                           children: [
                             Text(
                               activeLangMap['native'] ?? 'English',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white),
                             ),
-                            if (_isLocalOverrideActive) ...[
+                            if (_isOverride) ...[
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
                                 decoration: BoxDecoration(
                                   color: AppColors.tealGreen.withOpacity(0.35),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                child: const Text(
-                                  'Page only',
-                                  style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w700),
-                                ),
+                                child: const Text('Page only',
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700)),
                               ),
                             ],
                           ],
@@ -511,15 +609,20 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: AppColors.tealGreen.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.white.withOpacity(0.2)),
+                      border:
+                          Border.all(color: AppColors.white.withOpacity(0.2)),
                     ),
                     child: Text(
-                      _isLocalOverrideActive ? 'Change' : 'Select',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                      _isOverride ? 'Change' : 'Select',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -532,8 +635,12 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   }
 
   Widget _buildProgressSection() {
-    double progress = totalQuestions > 0 ? _currentQuestion / totalQuestions : 0;
-    double timeProgress = _perQuestionTime > 0 ? _timeLeft / _perQuestionTime : 0;
+    double progress =
+        totalQuestions > 0 ? _currentQuestion / totalQuestions : 0;
+    double timeProgress =
+        _perQuestionTime > 0 ? _timeLeft / _perQuestionTime : 0;
+    final bool timerPaused = _timer == null && !_answered;
+
     return Container(
       color: AppColors.white,
       padding: EdgeInsets.all(16),
@@ -544,25 +651,35 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             children: [
               Text(
                 'Question ${_currentQuestion + 1}/$totalQuestions',
-                style: TextStyle(fontSize: 14, color: AppColors.darkNavy, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.darkNavy,
+                    fontWeight: FontWeight.w600),
               ),
               ScaleTransition(
-                scale: _timeLeft <= (_perQuestionTime * 0.3).floor() ? _pulseAnimation : AlwaysStoppedAnimation(1.0),
+                scale: _timeLeft <= (_perQuestionTime * 0.3).floor()
+                    ? _pulseAnimation
+                    : AlwaysStoppedAnimation(1.0),
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors:
-                          _timeLeft <= (_perQuestionTime * 0.2).floor()
+                      colors: timerPaused
+                          ? [Colors.grey.shade500, Colors.grey.shade700]
+                          : _timeLeft <= (_perQuestionTime * 0.2).floor()
                               ? [AppColors.red, AppColors.redS1]
                               : _timeLeft <= (_perQuestionTime * 0.3).floor()
-                              ? [AppColors.orange, AppColors.orangeS1]
-                              : [AppColors.tealGreen, AppColors.darkNavy],
+                                  ? [AppColors.orange, AppColors.orangeS1]
+                                  : [AppColors.tealGreen, AppColors.darkNavy],
                     ),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: (_timeLeft <= (_perQuestionTime * 0.3).floor() ? AppColors.red : AppColors.tealGreen)
+                        color: (timerPaused
+                                ? Colors.grey
+                                : _timeLeft <= (_perQuestionTime * 0.3).floor()
+                                    ? AppColors.red
+                                    : AppColors.tealGreen)
                             .withOpacity(0.3),
                         blurRadius: 12,
                         offset: Offset(0, 4),
@@ -571,13 +688,25 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.timer, color: AppColors.white, size: 16),
+                      Icon(
+                        timerPaused ? Icons.pause_circle_outline : Icons.timer,
+                        color: AppColors.white,
+                        size: 16,
+                      ),
                       SizedBox(width: 6),
                       Text(
-                        '$_timeLeft',
-                        style: TextStyle(fontSize: 14, color: AppColors.white, fontWeight: FontWeight.w900),
+                        timerPaused ? 'Paused' : '$_timeLeft',
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w900),
                       ),
-                      Text('s', style: TextStyle(fontSize: 14, color: AppColors.white, fontWeight: FontWeight.w600)),
+                      if (!timerPaused)
+                        Text('s',
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
@@ -591,14 +720,17 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Progress', style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
+                    Text('Progress',
+                        style: TextStyle(
+                            fontSize: 11, color: AppColors.greyS600)),
                     SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
                         value: progress,
                         backgroundColor: AppColors.greyS200,
-                        valueColor: AlwaysStoppedAnimation(AppColors.tealGreen),
+                        valueColor:
+                            AlwaysStoppedAnimation(AppColors.tealGreen),
                         minHeight: 8,
                       ),
                     ),
@@ -610,19 +742,24 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Time', style: TextStyle(fontSize: 11, color: AppColors.greyS600)),
+                    Text('Time',
+                        style: TextStyle(
+                            fontSize: 11, color: AppColors.greyS600)),
                     SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
-                        value: timeProgress,
+                        value: timerPaused ? timeProgress : timeProgress,
                         backgroundColor: AppColors.greyS200,
                         valueColor: AlwaysStoppedAnimation(
-                          _timeLeft <= (_perQuestionTime * 0.2).floor()
-                              ? AppColors.red
-                              : _timeLeft <= (_perQuestionTime * 0.3).floor()
-                              ? AppColors.orange
-                              : AppColors.tealGreen,
+                          timerPaused
+                              ? Colors.grey.shade400
+                              : _timeLeft <= (_perQuestionTime * 0.2).floor()
+                                  ? AppColors.red
+                                  : _timeLeft <=
+                                          (_perQuestionTime * 0.3).floor()
+                                      ? AppColors.orange
+                                      : AppColors.tealGreen,
                         ),
                         minHeight: 8,
                       ),
@@ -638,14 +775,20 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
   }
 
   Widget _buildQuestionCard() {
-    final isTranslationAllowed = _currentQuestionData['is_translation_allowed'] == '1';
+    final isTranslationAllowed =
+        _currentQuestionData['is_translation_allowed'] == '1';
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
       padding: EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 8))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: Offset(0, 8))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -662,7 +805,9 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                   children: [
                     Icon(Icons.category, color: AppColors.tealGreen, size: 14),
                     SizedBox(width: 6),
-                    Text(widget.subject, style: TextStyle(fontSize: 12, color: AppColors.tealGreen)),
+                    Text(widget.subject,
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.tealGreen)),
                   ],
                 ),
               ),
@@ -670,17 +815,17 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
+                  gradient: LinearGradient(
+                      colors: [AppColors.lightGold, AppColors.lightGoldS2]),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
                     Icon(Icons.stars, color: AppColors.darkNavy, size: 14),
                     SizedBox(width: 6),
-                    Text(
-                      '${_currentQuestionData['points']} Points',
-                      style: TextStyle(fontSize: 11, color: AppColors.darkNavy),
-                    ),
+                    Text('${_currentQuestionData['points']} Points',
+                        style:
+                            TextStyle(fontSize: 11, color: AppColors.darkNavy)),
                   ],
                 ),
               ),
@@ -691,25 +836,34 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
                   color: AppColors.tealGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  '${_perQuestionTime}s / Q',
-                  style: TextStyle(fontSize: 11, color: AppColors.tealGreen, fontWeight: FontWeight.w600),
-                ),
+                child: Text('${_perQuestionTime}s / Q',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.tealGreen,
+                        fontWeight: FontWeight.w600)),
               ),
             ],
           ),
           SizedBox(height: 10),
-          // ── ONLY question text translates ──────────────────────────────────
+          // Key includes _activeLang — forces rebuild when language changes
           isTranslationAllowed
               ? Text(
-                _currentQuestionData['question'] ?? '',
-                style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700, height: 1.4),
-              )
+                  _currentQuestionData['question'] ?? '',
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.darkNavy,
+                      fontWeight: FontWeight.w700,
+                      height: 1.4),
+                )
               : TranslatedText(
-                _currentQuestionData['question'] ?? '',
-                key: ValueKey('live_q_${_effectiveLang}_$_currentQuestion'),
-                style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700, height: 1.4),
-              ),
+                  _currentQuestionData['question'] ?? '',
+                  key: ValueKey('q_${_activeLang}_$_currentQuestion'),
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.darkNavy,
+                      fontWeight: FontWeight.w700,
+                      height: 1.4),
+                ),
         ],
       ),
     );
@@ -717,19 +871,25 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
 
   Widget _buildOptionsSection() {
     final options = _currentQuestionData['options'] as List? ?? [];
-    final isTranslationAllowed = _currentQuestionData['is_translation_allowed'] == '1';
+    final isTranslationAllowed =
+        _currentQuestionData['is_translation_allowed'] == '1';
     return Container(
       margin: EdgeInsets.all(16),
       child: Column(
         children: List.generate(
           options.length,
-          (i) => _buildOptionCard(String.fromCharCode(65 + i), options[i].toString(), i, isTranslationAllowed),
+          (i) => _buildOptionCard(
+              String.fromCharCode(65 + i),
+              options[i].toString(),
+              i,
+              isTranslationAllowed),
         ),
       ),
     );
   }
 
-  Widget _buildOptionCard(String letter, String text, int index, bool isTranslationAllowed) {
+  Widget _buildOptionCard(
+      String letter, String text, int index, bool isTranslationAllowed) {
     bool isSelected = _selectedOption == index;
     Color backgroundColor = AppColors.white;
     Color borderColor = AppColors.greyS300;
@@ -751,23 +911,31 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
           color: backgroundColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: borderColor, width: 2),
-          boxShadow:
-              isSelected && !_answered
-                  ? [BoxShadow(color: AppColors.lightGold.withOpacity(0.4), blurRadius: 15, offset: Offset(0, 5))]
-                  : [],
+          boxShadow: isSelected && !_answered
+              ? [
+                  BoxShadow(
+                      color: AppColors.lightGold.withOpacity(0.4),
+                      blurRadius: 15,
+                      offset: Offset(0, 5))
+                ]
+              : [],
         ),
         child: Row(
           children: [
             Container(
               width: 35,
               height: 35,
-              decoration: BoxDecoration(color: letterBgColor, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                  color: letterBgColor,
+                  borderRadius: BorderRadius.circular(12)),
               child: Center(
                 child: Text(
                   letter,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isSelected && !_answered ? AppColors.white : AppColors.darkNavy,
+                    color: isSelected && !_answered
+                        ? AppColors.white
+                        : AppColors.darkNavy,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -775,15 +943,22 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
             ),
             SizedBox(width: 16),
             Expanded(
-              // ── ONLY option text translates ──────────────────────────────
-              child:
-                  isTranslationAllowed
-                      ? Text(text, style: TextStyle(fontSize: 14, color: textColor, fontWeight: FontWeight.w600))
-                      : TranslatedText(
-                        text,
-                        key: ValueKey('live_opt_${_effectiveLang}_${_currentQuestion}_$index'),
-                        style: TextStyle(fontSize: 14, color: textColor, fontWeight: FontWeight.w600),
-                      ),
+              // Key includes _activeLang — forces rebuild when language changes
+              child: isTranslationAllowed
+                  ? Text(text,
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: textColor,
+                          fontWeight: FontWeight.w600))
+                  : TranslatedText(
+                      text,
+                      key: ValueKey(
+                          'opt_${_activeLang}_${_currentQuestion}_$index'),
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: textColor,
+                          fontWeight: FontWeight.w600),
+                    ),
             ),
           ],
         ),
@@ -791,148 +966,272 @@ class _LiveTestScreenState extends State<LiveTestScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildSubmitButton() {
+  // ── Previous + Submit buttons ──────────────────────────────────────────────
+  Widget _buildBottomButtons() {
     bool canSubmit = _selectedOption != null;
+    bool canGoBack = _currentQuestion > 0;
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16),
-      child: ElevatedButton(
-        onPressed: canSubmit ? _submitAnswer : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.transparent,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          elevation: 0,
-          disabledBackgroundColor: AppColors.greyS300,
-        ),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: canSubmit ? LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]) : null,
-            color: canSubmit ? null : AppColors.greyS300,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow:
-                canSubmit
-                    ? [BoxShadow(color: AppColors.tealGreen.withOpacity(0.4), blurRadius: 20, offset: Offset(0, 10))]
-                    : [],
-          ),
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle, color: canSubmit ? AppColors.white : AppColors.greyS500, size: 24),
-                SizedBox(width: 12),
-                Text(
-                  'Submit Answer',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: canSubmit ? AppColors.white : AppColors.greyS500,
-                    fontWeight: FontWeight.w700,
+      child: Row(
+        children: [
+          if (canGoBack) ...[
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _goToPreviousQuestion,
+                icon: Icon(Icons.arrow_back_ios_rounded,
+                    size: 14, color: AppColors.darkNavy),
+                label: Text('Previous',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.darkNavy,
+                        fontWeight: FontWeight.w600)),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: AppColors.white,
+                  side: BorderSide(color: AppColors.greyS300, width: 1.5),
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+            SizedBox(width: 12),
+          ],
+          Expanded(
+            flex: canGoBack ? 2 : 1,
+            child: ElevatedButton(
+              onPressed: canSubmit ? _submitAnswer : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.transparent,
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+                disabledBackgroundColor: AppColors.greyS300,
+              ),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: canSubmit
+                      ? LinearGradient(
+                          colors: [AppColors.tealGreen, AppColors.darkNavy])
+                      : null,
+                  color: canSubmit ? null : AppColors.greyS300,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: canSubmit
+                      ? [
+                          BoxShadow(
+                              color: AppColors.tealGreen.withOpacity(0.4),
+                              blurRadius: 20,
+                              offset: Offset(0, 10))
+                        ]
+                      : [],
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle,
+                          color: canSubmit
+                              ? AppColors.white
+                              : AppColors.greyS500,
+                          size: 22),
+                      SizedBox(width: 10),
+                      Text('Submit Answer',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: canSubmit
+                                  ? AppColors.white
+                                  : AppColors.greyS500,
+                              fontWeight: FontWeight.w700)),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
+  // ── Exit dialog ────────────────────────────────────────────────────────────
   void _showExitDialog() {
     showDialog(
       context: context,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              padding: EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      builder: (context) => Dialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                    color: AppColors.red.withOpacity(0.1),
+                    shape: BoxShape.circle),
+                child: Icon(Icons.warning_amber_rounded,
+                    color: AppColors.red, size: 40),
+              ),
+              SizedBox(height: 20),
+              Text('Exit Test?',
+                  style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.darkNavy,
+                      fontWeight: FontWeight.w700)),
+              SizedBox(height: 12),
+              Text('Your progress will be lost if you exit now.',
+                  style:
+                      TextStyle(fontSize: 11, color: AppColors.greyS600)),
+              SizedBox(height: 24),
+              Row(
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.red.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(Icons.warning_amber_rounded, color: AppColors.red, size: 40),
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    'Exit Test?',
-                    style: TextStyle(fontSize: 16, color: AppColors.darkNavy, fontWeight: FontWeight.w700),
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    'Your progress will be lost if you exit now.',
-                    style: TextStyle(fontSize: 11, color: AppColors.greyS600),
-                  ),
-                  SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.greyS300),
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(fontSize: 13, color: AppColors.greyS700, fontWeight: FontWeight.w600),
-                          ),
-                        ),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.greyS300),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.red,
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text(
-                            'Exit',
-                            style: TextStyle(fontSize: 13, color: AppColors.white, fontWeight: FontWeight.w700),
-                          ),
-                        ),
+                      child: Text('Cancel',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.greyS700,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.red,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                    ],
+                      child: Text('Exit',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w700)),
+                    ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
+        ),
+      ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Model Download Popup
+//  FIXED: Popup itself handles download + shows real animated progress bar
+//  Calls onDownloadComplete() when done → parent resumes timer
 // ─────────────────────────────────────────────────────────────────────────────
 class _ModelDownloadPopup extends StatefulWidget {
   final String langName;
-  const _ModelDownloadPopup({required this.langName});
+  final String langCode;
+  final VoidCallback onDownloadComplete;
+
+  const _ModelDownloadPopup({
+    required this.langName,
+    required this.langCode,
+    required this.onDownloadComplete,
+  });
+
   @override
   State<_ModelDownloadPopup> createState() => _ModelDownloadPopupState();
 }
 
-class _ModelDownloadPopupState extends State<_ModelDownloadPopup> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
+class _ModelDownloadPopupState extends State<_ModelDownloadPopup>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _iconCtrl;
+  late Animation<double> _iconAnim;
+
+  double _progress = 0.0;
+  Timer? _fakeProgressTimer;
+  bool _downloadDone = false;
+
+  // ✅ ML code map — popup ko directly chahiye model download ke liye
+  static const _mlCodeMap = {
+    'hi': 'hi', 'mr': 'mr', 'bn': 'bn', 'ta': 'ta',
+    'te': 'te', 'gu': 'gu', 'kn': 'kn', 'ml': 'ml',
+    'pa': 'pa', 'ur': 'ur',
+  };
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 1.0).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+
+    _iconCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat(reverse: true);
+    _iconAnim = Tween<double>(begin: 0.4, end: 1.0)
+        .animate(CurvedAnimation(parent: _iconCtrl, curve: Curves.easeInOut));
+
+    _fakeProgressTimer = Timer.periodic(
+      const Duration(milliseconds: 250),
+      (t) {
+        if (!mounted) return;
+        setState(() {
+          if (!_downloadDone && _progress < 0.88) {
+            _progress += 0.013 + (_progress * 0.007);
+            if (_progress > 0.88) _progress = 0.88;
+          }
+        });
+      },
+    );
+
+    _startDownload();
+  }
+
+  Future<void> _startDownload() async {
+    try {
+      // ✅ KEY FIX: Sirf ML model download karo
+      // setLanguage() parent (_applyLang) karega
+      // Isse ensure hota hai ki parent setState se
+      // pehle service properly initialized ho
+      final mlCode = _mlCodeMap[widget.langCode];
+      if (mlCode != null) {
+        final modelManager = OnDeviceTranslatorModelManager();
+        await modelManager.downloadModel(mlCode);
+      }
+    } catch (e) {
+      print('Download error: $e');
+    }
+
+    if (!mounted) return;
+
+    _fakeProgressTimer?.cancel();
+    setState(() {
+      _downloadDone = true;
+      _progress = 1.0;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // ✅ mounted check AFTER delay bhi zaroori hai
+    if (mounted) {
+      widget.onDownloadComplete();
+    }
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _iconCtrl.dispose();
+    _fakeProgressTimer?.cancel();
     super.dispose();
   }
 
@@ -945,56 +1244,146 @@ class _ModelDownloadPopupState extends State<_ModelDownloadPopup> with SingleTic
         decoration: BoxDecoration(
           color: const Color(0xFF0A4A4A),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 24, offset: const Offset(0, 8))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 24,
+                offset: const Offset(0, 8))
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             FadeTransition(
-              opacity: _anim,
+              opacity: _downloadDone
+                  ? const AlwaysStoppedAnimation(1.0)
+                  : _iconAnim,
               child: Container(
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFF0D6E6E).withOpacity(0.2),
-                  border: Border.all(color: const Color(0xFF0D6E6E), width: 2),
+                  border: Border.all(
+                      color: const Color(0xFF0D6E6E), width: 2),
                 ),
-                child: const Icon(Icons.download_rounded, color: Color(0xFF14A3A3), size: 30),
+                child: Icon(
+                  _downloadDone
+                      ? Icons.check_rounded
+                      : Icons.download_rounded,
+                  color: const Color(0xFF14A3A3),
+                  size: 30,
+                ),
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Downloading Language Model',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+            Text(
+              _downloadDone
+                  ? 'Download Complete!'
+                  : 'Downloading Language Model',
+              style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white),
             ),
             const SizedBox(height: 8),
             Text(
-              '${widget.langName} is being downloaded for the first time. Please wait…',
+              _downloadDone
+                  ? '${widget.langName} is ready. Resuming Test...'
+                  : 'Downloading ${widget.langName} for the first time. Please wait…',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7), height: 1.5),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withOpacity(0.7),
+                  height: 1.5),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Download progress',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white.withOpacity(0.5))),
+                Text(
+                  '${(_progress * 100).toInt()}%',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: _downloadDone
+                          ? const Color(0xFF14A3A3)
+                          : Colors.white.withOpacity(0.85),
+                      fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: const LinearProgressIndicator(
-                backgroundColor: Color(0x33FFFFFF),
-                valueColor: AlwaysStoppedAnimation(Color(0xFF14A3A3)),
-                minHeight: 6,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                child: LinearProgressIndicator(
+                  value: _progress,
+                  backgroundColor: const Color(0x33FFFFFF),
+                  valueColor:
+                      const AlwaysStoppedAnimation(Color(0xFF14A3A3)),
+                  minHeight: 10,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border:
+                    Border.all(color: Colors.amber.withOpacity(0.35)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    _downloadDone
+                        ? Icons.timer_rounded
+                        : Icons.timer_off_rounded,
+                    size: 14,
+                    color: Colors.amber,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _downloadDone
+                          ? 'Test timer will resume now.'
+                          : 'Test timer is paused. It will resume automatically once download is complete.',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.amber.shade200,
+                          height: 1.5),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 14),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10)),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFF14A3A3)),
+                  const Icon(Icons.info_outline_rounded,
+                      size: 13, color: Color(0xFF14A3A3)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'One-time download (~10MB). Future use will be instant.',
-                      style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.6), height: 1.5),
+                      'One-time download (upto 5 MB). Future language switches will be instant.',
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withOpacity(0.6),
+                          height: 1.5),
                     ),
                   ),
                 ],
@@ -1006,7 +1395,6 @@ class _ModelDownloadPopupState extends State<_ModelDownloadPopup> with SingleTic
     );
   }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 //  Language Picker Bottom Sheet
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1046,7 +1434,9 @@ class _LangPickerSheet extends StatelessWidget {
             width: 36,
             height: 3,
             margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2)),
           ),
           Row(
             children: [
@@ -1058,17 +1448,20 @@ class _LangPickerSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: _teal.withOpacity(0.3)),
                 ),
-                child: const Icon(Icons.translate_rounded, size: 18, color: _teal),
+                child: const Icon(Icons.translate_rounded,
+                    size: 18, color: _teal),
               ),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text(
-                    'Page Language',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1A1A2E)),
-                  ),
-                  Text('Only questions & answers will translate', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text('Page Language',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1A1A2E))),
+                  Text('Only questions & answers will translate',
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                 ],
               ),
             ],
@@ -1079,7 +1472,8 @@ class _LangPickerSheet extends StatelessWidget {
               onTap: onReset,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 11),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: Colors.amber.withOpacity(0.07),
@@ -1088,15 +1482,20 @@ class _LangPickerSheet extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.refresh_rounded, size: 15, color: Colors.amber),
+                    const Icon(Icons.refresh_rounded,
+                        size: 15, color: Colors.amber),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Reset to app language (${_nativeOf(globalLang)})',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF7D5200), fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF7D5200),
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.amber),
+                    const Icon(Icons.arrow_forward_ios_rounded,
+                        size: 12, color: Colors.amber),
                   ],
                 ),
               ),
@@ -1122,16 +1521,23 @@ class _LangPickerSheet extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   decoration: BoxDecoration(
-                    color: isActive ? _darkNavy : Colors.grey.withOpacity(0.05),
+                    color: isActive
+                        ? _darkNavy
+                        : Colors.grey.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isActive ? _teal : Colors.grey.withOpacity(0.2),
+                      color:
+                          isActive ? _teal : Colors.grey.withOpacity(0.2),
                       width: isActive ? 1.8 : 1,
                     ),
-                    boxShadow:
-                        isActive
-                            ? [BoxShadow(color: _teal.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 3))]
-                            : [],
+                    boxShadow: isActive
+                        ? [
+                            BoxShadow(
+                                color: _teal.withOpacity(0.2),
+                                blurRadius: 12,
+                                offset: const Offset(0, 3))
+                          ]
+                        : [],
                   ),
                   child: Stack(
                     children: [
@@ -1142,7 +1548,9 @@ class _LangPickerSheet extends StatelessWidget {
                           child: Container(
                             width: 7,
                             height: 7,
-                            decoration: const BoxDecoration(color: _tealLight, shape: BoxShape.circle),
+                            decoration: const BoxDecoration(
+                                color: _tealLight,
+                                shape: BoxShape.circle),
                           ),
                         ),
                       if (isActive)
@@ -1152,13 +1560,16 @@ class _LangPickerSheet extends StatelessWidget {
                           child: Container(
                             width: 18,
                             height: 18,
-                            decoration: const BoxDecoration(color: _teal, shape: BoxShape.circle),
-                            child: const Icon(Icons.check_rounded, size: 11, color: Colors.white),
+                            decoration: const BoxDecoration(
+                                color: _teal, shape: BoxShape.circle),
+                            child: const Icon(Icons.check_rounded,
+                                size: 11, color: Colors.white),
                           ),
                         ),
                       Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 6),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -1167,22 +1578,29 @@ class _LangPickerSheet extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: isActive ? Colors.white : const Color(0xFF1A1A2E),
+                                  color: isActive
+                                      ? Colors.white
+                                      : const Color(0xFF1A1A2E),
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 3),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: isActive ? _teal.withOpacity(0.2) : _tealBg.withOpacity(0.6),
+                                  color: isActive
+                                      ? _teal.withOpacity(0.2)
+                                      : _tealBg.withOpacity(0.6),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
                                   lang['label']!,
                                   style: TextStyle(
                                     fontSize: 9,
-                                    color: isActive ? const Color(0xFF5DCAA5) : Colors.grey.shade600,
+                                    color: isActive
+                                        ? const Color(0xFF5DCAA5)
+                                        : Colors.grey.shade600,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -1199,8 +1617,11 @@ class _LangPickerSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            decoration: BoxDecoration(color: _tealBg.withOpacity(0.5), borderRadius: BorderRadius.circular(10)),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+                color: _tealBg.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(10)),
             child: Row(
               children: const [
                 Icon(Icons.info_outline_rounded, size: 13, color: _teal),
@@ -1208,7 +1629,8 @@ class _LangPickerSheet extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Only questions & answers translate. Scores, timer and UI stay as-is.',
-                    style: TextStyle(fontSize: 11, color: _darkNavy, height: 1.5),
+                    style: TextStyle(
+                        fontSize: 11, color: _darkNavy, height: 1.5),
                   ),
                 ),
               ],
@@ -1220,5 +1642,8 @@ class _LangPickerSheet extends StatelessWidget {
   }
 
   String _nativeOf(String code) =>
-      languages.firstWhere((l) => l['code'] == code, orElse: () => {'native': code})['native'] ?? code;
+      languages
+          .firstWhere((l) => l['code'] == code,
+              orElse: () => {'native': code})['native'] ??
+      code;
 }

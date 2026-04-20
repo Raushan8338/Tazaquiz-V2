@@ -10,6 +10,7 @@ import 'dart:async';
 import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/quizItem_modal.dart';
 import 'package:tazaquiznew/screens/first_instructionPage.dart' hide AppColors;
+import 'package:tazaquiznew/screens/leaderboard_page.dart';
 import 'package:tazaquiznew/screens/mockTestScreen.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quiz_review_page.dart';
@@ -1590,134 +1591,214 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     );
   }
 
-  Widget _buildBottomBar() {
-    final quiz = _currentQuiz;
-    if (quiz == null) return const SizedBox.shrink();
+Widget _buildBottomBar() {
+  final quiz = _currentQuiz;
+  if (quiz == null) return const SizedBox.shrink();
 
-    String label;
-    IconData icon;
-    List<Color> colors;
-    VoidCallback onTap;
+  String label;
+  IconData icon;
+  List<Color> colors;
+  VoidCallback onTap;
 
-    if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
-      label = 'Resume Test';
-      icon = Icons.play_circle_outline;
-      colors = [_accent, _primary];
-      onTap = _navigateToMockTest;
-    } else if (_attempted) {
-      label = 'View Result';
-      icon = Icons.bar_chart_rounded;
-      colors = [_DS.teal, _DS.tealDark];
-
-      onTap =
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (_) => QuizReviewPage(
-                    attemptId: quiz.completedAttemptId ?? 0, // ✅ attempt_id
-                    userId: int.tryParse(_user!.id.toString()) ?? 0,
-                    quizTitle: quiz.title,
-                    pageType: 4,
-                  ),
+  if (quiz.pendingAttemptId != null && quiz.pendingAttemptId! > 0) {
+    label = 'Resume Test';
+    icon = Icons.play_circle_outline;
+    colors = [_accent, _primary];
+    onTap = _navigateToMockTest;
+  } else if (_attempted) {
+    label = 'View Result';
+    icon = Icons.bar_chart_rounded;
+    colors = [_DS.teal, _DS.tealDark];
+    onTap = () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => QuizReviewPage(
+              attemptId: quiz.completedAttemptId ?? 0,
+              userId: int.tryParse(_user!.id.toString()) ?? 0,
+              quizTitle: quiz.title,
+              pageType: 4,
             ),
-          );
-    } else if (!_hasFullAccess) {
-      final error = quiz.accessError ?? '';
-      if (error == 'plan_expired') {
-        label = 'Renew Plan Now';
-        icon = Icons.refresh_rounded;
-        colors = [Colors.orange.shade700, Colors.orange.shade900];
-      } else if (error == 'upgrade_required') {
-        label = 'Activate Now';
-        icon = Icons.workspace_premium_rounded;
-        colors = [
-          Color(0xFF00C9A7), // Green
-          Color(0xFF0D3B66), // Blue
-        ];
-      } else {
-        label = 'Activate Now';
-        icon = Icons.workspace_premium_rounded;
-        colors = [
-          Color(0xFF00C9A7), // Green
-          Color(0xFF0D3B66), // Blue
-        ];
-      }
-      onTap = _handleSubscribe;
+          ),
+        );
+  } else if (!_hasFullAccess) {
+    final error = quiz.accessError ?? '';
+    if (error == 'plan_expired') {
+      label = 'Renew Plan Now';
+      icon = Icons.refresh_rounded;
+      colors = [Colors.orange.shade700, Colors.orange.shade900];
     } else {
-      label = 'Start Mock Test';
-      icon = Icons.play_arrow_rounded;
-      colors = [_primary, _secondary];
-      onTap = _handleStartMockTest;
+      label = 'Activate Now';
+      icon = Icons.workspace_premium_rounded;
+      colors = [const Color(0xFF00C9A7), const Color(0xFF0D3B66)];
     }
+    onTap = _handleSubscribe;
+  } else {
+    label = 'Start Mock Test';
+    icon = Icons.play_arrow_rounded;
+    colors = [_primary, _secondary];
+    onTap = _handleStartMockTest;
+  }
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [BoxShadow(color: _primary.withOpacity(0.1), blurRadius: 18, offset: const Offset(0, -4))],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_hasFullAccess && !_attempted)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.info_outline_rounded, size: 12, color: _primary.withOpacity(0.5)),
-                    const SizedBox(width: 5),
-                    TranslatedText(
-                      'Timer starts as soon as the test begins',
-                      style: TextStyle(fontSize: 10, color: _primary.withOpacity(0.6), fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
-              ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: colors),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(color: colors.first.withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 5)),
+  return Container(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+    decoration: BoxDecoration(
+      color: AppColors.white,
+      boxShadow: [BoxShadow(color: _primary.withOpacity(0.1), blurRadius: 18, offset: const Offset(0, -4))],
+    ),
+    child: SafeArea(
+      top: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_hasFullAccess && !_attempted)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 12, color: _primary.withOpacity(0.5)),
+                  const SizedBox(width: 5),
+                  TranslatedText(
+                    'Timer starts as soon as the test begins',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: _primary.withOpacity(0.6),
+                        fontWeight: FontWeight.w500),
+                  ),
                 ],
               ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: onTap,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(icon, color: Colors.white, size: 21),
-                        const SizedBox(width: 9),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          label,
-                          15,
-                          AppColors.white,
-                          FontWeight.w800,
-                          1,
-                          TextAlign.center,
-                          0,
+            ),
+
+          // ── When attempted: View Result (80%) + Rank (20%) ──────────
+          if (_attempted)
+            Row(
+              children: [
+                // View Result — 80%
+                Expanded(
+                  flex: 4,
+                  child: _buildGradientButton(
+                    label: label,
+                    icon: icon,
+                    colors: colors,
+                    onTap: onTap,
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Rank button — 20%
+                Expanded(
+                  flex: 1,
+                  child: GestureDetector(
+                    onTap: () {
+                     
+                     Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => LeaderboardPage(
+                                      quizId: int.tryParse(quiz.quizId.toString()) ?? 0,
+                                      quizTitle: quiz.title,
+                                    ),
+                              ),
+                            );
+
+                    },
+                    child: Container(
+                      height: 54, // same height as main button
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5A623).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFFF5A623).withOpacity(0.5),
+                          width: 1.5,
                         ),
-                      ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.leaderboard_rounded,
+                            color: Color(0xFFF5A623),
+                            size: 20,
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Rank',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFF5A623),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
+            )
+          else
+            // ── All other states: full-width button ──────────────────
+            _buildGradientButton(
+              label: label,
+              icon: icon,
+              colors: colors,
+              onTap: onTap,
             ),
-          ],
+        ],
+      ),
+    ),
+  );
+}
+
+// Helper — reusable gradient button
+Widget _buildGradientButton({
+  
+  required String label,
+  required IconData icon,
+  required List<Color> colors,
+  required VoidCallback onTap,
+}) {
+  return Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(colors: colors),
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: [
+        BoxShadow(
+            color: colors.first.withOpacity(0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 5)),
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 21),
+              const SizedBox(width: 9),
+              AppRichText.setTextPoppinsStyle(
+                context,
+                label,
+                15,
+                AppColors.white,
+                FontWeight.w800,
+                1,
+                TextAlign.center,
+                0,
+              ),
+            ],
+          ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _AccessBannerCfg {
