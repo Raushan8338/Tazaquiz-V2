@@ -822,21 +822,21 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
               ),
             ),
           ),
-              _buildActionListItem(
-            icon: Icons.workspace_premium_rounded,
-            title: 'Buy Courses / Upgrade Plan',
-            subtitle: 'View & upgrade your plan',
-            color: const Color(0xFFFF9800),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage(CourseIds: '0'))),
-            isFirst: true,
+              _buildSettingItem(
+             Icons.workspace_premium_rounded,
+          'Buy Courses / Upgrade Plan',
+        'View & upgrade your plan',
+           const Color(0xFFFF9800),
+         () => Navigator.push(context, MaterialPageRoute(builder: (_) => PricingPage(CourseIds: '0'))),
+           
           ),
 
-          _buildActionListItem(
-            icon: Icons.school_rounded,
-            title: 'Selected Courses',
-            subtitle: 'Manage your enrolled courses',
-            color: const Color(0xFF00695C),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
+          _buildSettingItem(
+           Icons.school_rounded,
+             'Selected Courses',
+         'Manage your enrolled courses',
+             const Color(0xFF00695C),
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyCoursesSelection(pageId: 0))),
           ),
 
           _buildSettingItem(

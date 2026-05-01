@@ -13,6 +13,7 @@ import 'package:tazaquiznew/screens/buyQuizes.dart';
 import 'package:tazaquiznew/screens/buyStudyM.dart';
 import 'package:tazaquiznew/screens/mock_test_detail_page.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:tazaquiznew/widgets/year_filter_chip_list.dart';
 
 class Paid_QuizListScreen extends StatefulWidget {
   final String pageId;
@@ -39,6 +40,10 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
   bool _isFetchingChapters = false;
   int _selectedChapterId = 0;
   String _selectedChapterName = 'All Topics';
+    bool _isPurchased = true;
+
+  List<int> _availableYears = [];
+  int? _selectedYear;
 
   bool _isLoading = true;
   bool _isFetchingQuizzes = false;
@@ -226,10 +231,19 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
  
     final response = await auth.get_paid_quizes_api(data);
     print('_fetchQuizzes response: ${response.data}');
+  
     if (response.statusCode == 200) {
       final List list = response.data['data'] ?? [];
+      final quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
       setState(() {
-        _quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
+        _quizzes = quizzes;
+        _isPurchased = response.data['material_is_purchased'] ?? false;
+        if (isPYP) {
+          _availableYears = YearFilterChipList.extractUniqueYears(quizzes);
+          if (_selectedYear != null && !_availableYears.contains(_selectedYear)) {
+            _selectedYear = null;
+          }
+        }
         _isFetchingQuizzes = false;
       });
       _animController.forward(from: 0);
@@ -268,12 +282,16 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
   // ── FILTERED LIST ─────────────────────────────────────────────────
 
   List<QuizItem> get _filtered {
+    var source = _quizzes;
+    if (isPYP && _selectedYear != null) {
+      source = source.where((q) => q.pyps_year == _selectedYear).toList();
+    }
     if (isMockTest || isFullMockTest || isPYP || isChapterTest) {
       if (_selectedFilter == 'attempted')
-        return _quizzes.where((q) => q.is_attempted).toList();
+        return source.where((q) => q.is_attempted).toList();
       if (_selectedFilter == 'unattempted')
-        return _quizzes.where((q) => !q.is_attempted).toList();
-      return _quizzes;
+        return source.where((q) => !q.is_attempted).toList();
+      return source;
     }
     if (_selectedFilter == 'live')
       return _quizzes.where((q) => q.isLive).toList();
@@ -334,6 +352,12 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                 if (showCategoryTabs) _buildCategoryTabs(),
                 if (isChapterTest && !_isLoading && _selectedCategoryId != 0)
                   _buildChapterSelectorRow(),
+                if (isPYP && !_isLoading && _availableYears.isNotEmpty)
+                  YearFilterChipList(
+                    years: _availableYears,
+                    selectedYear: _selectedYear,
+                    onYearSelected: (year) => setState(() => _selectedYear = year),
+                  ),
                 if (_errorMessage != null && !_isFetchingQuizzes)
                   _buildErrorBanner(),
                 Expanded(
@@ -1258,56 +1282,205 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
     );
   }
 
-  Widget _buildEmptyState() {
-    final Map<String, Map<String, dynamic>> emptyData = {
-      '0': {
-        'icon': '📖',
-       'title': 'Unlock Full Access',
-  'subtitle': 'Purchase now to start attempting all quizzes instantly.'
-      },
-      '4': {
-        'icon': '📝',
-       'title': 'Unlock Full Access',
-  'subtitle': 'Purchase now to start attempting all quizzes instantly.'
-      },
-      '5': {
-        'icon': '🎯',
-       'title': 'Unlock Full Access',
-  'subtitle': 'Purchase now to start attempting all quizzes instantly.'
-      },
-      '6': {
-        'icon': '📜',
-        'title': 'Unlock Full Access',
-  'subtitle': 'Purchase now to start attempting all quizzes instantly.'
-      },
-    };
-    final data = emptyData[widget.PageType] ??
-        {'icon': '📭', 'title': 'Nothing Here', 'subtitle': 'Try again later.'};
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                  color: AppColors.tealGreen.withOpacity(0.07),
-                  shape: BoxShape.circle),
-              child: TranslatedText(data['icon'] as String,
-                  style: const TextStyle(fontSize: 48))),
-          const SizedBox(height: 20),
-          TranslatedText(data['title'] as String,
-              style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.darkNavy)),
-          const SizedBox(height: 8),
-          TranslatedText(data['subtitle'] as String,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.greyS600)),
-        ]),
-      ),
-    );
+Widget _buildEmptyState() {
+  final Map<String, Map<String, dynamic>> emptyData = {
+    '0': {'icon': Icons.menu_book_rounded},
+    '4': {'icon': Icons.quiz_rounded},
+    '5': {'icon': Icons.track_changes_rounded},
+    '6': {'icon': Icons.workspace_premium_rounded},
+  };
+
+  final data = emptyData[widget.PageType] ?? {'icon': Icons.lock_outline_rounded};
+  final bool isPurchased = _isPurchased;
+
+  String title;
+  String subtitle;
+
+  if (isPurchased) {
+    if (widget.PageType == '7') {
+      title = 'Test Available Periodically';
+      subtitle = 'This test is available on weekly or occasional basis. Check back later for upcoming sessions.';
+    } else {
+      title = 'Tests Coming Soon';
+      subtitle = 'Exciting tests are on the way! Stay tuned and check back soon to boost your preparation.';
+    }
+  } else {
+    title = 'Unlock Full Access';
+    subtitle = 'Everything you need to ace your exam — all in one place.';
   }
+
+  return Center(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 88,
+            height: 88,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Icon(data['icon'] as IconData, size: 40, color: Colors.white),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ✅ FIXED: Use `title` variable, removed `const`
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1A1A2E),
+              letterSpacing: -0.3,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          // ✅ FIXED: Use `subtitle` variable, removed `const`
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF6B7280),
+              height: 1.5,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Show features only when NOT purchased
+          if (!isPurchased) ...[
+            _buildFeatureRow(
+              color: const Color(0xFFEDE9FE),
+              iconColor: const Color(0xFF7C3AED),
+              icon: Icons.layers_rounded,
+              text: 'Chapter & Topic Wise Tests',
+            ),
+            const SizedBox(height: 10),
+            _buildFeatureRow(
+              color: const Color(0xFFDBEAFE),
+              iconColor: const Color(0xFF2563EB),
+              icon: Icons.subject_rounded,
+              text: 'Subject Wise Tests',
+            ),
+            const SizedBox(height: 10),
+            _buildFeatureRow(
+              color: const Color(0xFFDCFCE7),
+              iconColor: const Color(0xFF16A34A),
+              icon: Icons.assignment_rounded,
+              text: 'Full Length Mock Tests',
+            ),
+            const SizedBox(height: 10),
+            _buildFeatureRow(
+              color: const Color(0xFFFEF3C7),
+              iconColor: const Color(0xFFD97706),
+              icon: Icons.live_tv_rounded,
+              text: 'Live Tests',
+            ),
+            const SizedBox(height: 10),
+            _buildFeatureRow(
+              color: const Color(0xFFFFEDD5),
+              iconColor: const Color(0xFFEA580C),
+              icon: Icons.history_edu_rounded,
+              text: 'Previous Year Papers (PYPs)',
+            ),
+            const SizedBox(height: 10),
+            _buildFeatureRow(
+              color: const Color(0xFFFCE7F3),
+              iconColor: const Color(0xFFDB2777),
+              icon: Icons.note_alt_rounded,
+              text: 'Notes & Study Material',
+            ),
+
+            const SizedBox(height: 20),
+
+            // 24hr Activation Card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF86EFAC)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Icon(Icons.check_circle_rounded,
+                      color: Color(0xFF22C55E), size: 20),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(children: [
+                        TextSpan(
+                          text: 'Activated within 24 hours ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'of purchase — full course access enabled automatically across all sections.',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: Color(0xFF15803D),
+                            height: 1.5,
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildFeatureRow({
+  required Color color,
+  required Color iconColor,
+  required IconData icon,
+  required String text,
+}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF9FAFB),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          child: Icon(icon, size: 16, color: iconColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 12.5, color: Color(0xFF374151)),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   // ── FILTER SHEET ──────────────────────────────────────────────────
 

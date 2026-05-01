@@ -100,6 +100,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
   bool _isFree = false;
   StudyMaterialDetailsItem? _currentMaterial;
   bool _descExpanded = false;
+  bool _bannerImageFailed = false;
 
   // ── Package state ──────────────────────────────────────────────────────────
   List<PackageItem> _packages = [];
@@ -171,6 +172,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         _errorType = '';
       });
     try {
+      _bannerImageFailed = false;
       _user = await SessionManager.getUser();
       if (_user == null) {
         await Future.delayed(const Duration(milliseconds: 500));
@@ -664,71 +666,73 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Stack(
-          children: [
-            if (hasThumb)
+        if (hasThumb && !_bannerImageFailed)
+          Stack(
+            children: [
               SizedBox(
                 width: double.infinity,
-                height: 155,
-                child: Image.network(
-                  thumbUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder:
-                      (_, __, ___) => Container(
-                        height: 155,
+                height: 190,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.zero,
+                  child: Image.network(
+                    thumbUrl!,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: double.infinity,
+                        height: 190,
                         color: _navy,
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported_outlined, color: Colors.white54, size: 36),
-                        ),
-                      ),
-                ),
-              )
-            else
-              Container(
-                width: double.infinity,
-                height: 140,
-                color: _navy,
-                child: Center(
-                  child: Icon(
-                    _currentMaterial!.contentType.toUpperCase() == 'PDF'
-                        ? Icons.picture_as_pdf_outlined
-                        : Icons.play_circle_outline_rounded,
-                    color: Colors.white38,
-                    size: 44,
+                        child: const Center(child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2.2)),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) {
+                      if (!_bannerImageFailed) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              _bannerImageFailed = true;
+                            });
+                          }
+                        });
+                      }
+                      return const SizedBox.shrink();
+                    },
                   ),
                 ),
               ),
-            if (canStart)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: _isFree ? _green : const Color(0xFF6B4EE6),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6)],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_isFree ? Icons.lock_open_rounded : Icons.verified_rounded, color: Colors.white, size: 11),
-                      const SizedBox(width: 4),
-                      Text(
-                        _isFree ? 'FREE' : (_isPremium == 1 ? 'PREMIUM' : 'BASIC'),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
+              if (canStart)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _isFree ? _green : const Color(0xFF6B4EE6),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6)],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_isFree ? Icons.lock_open_rounded : Icons.verified_rounded, color: Colors.white, size: 11),
+                        const SizedBox(width: 4),
+                        Text(
+                          _isFree ? 'FREE' : (_isPremium == 1 ? 'PREMIUM' : 'BASIC'),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
-        ),
+            ],
+          ),
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
@@ -1834,7 +1838,7 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
               ),
               child: Row(
                 children: [
-                  const Text('% ', style: TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w800)),
+                  // const Text('% ', style: TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w800)),
                   const Text(
                     'Exclusive Offer ',
                     style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700),

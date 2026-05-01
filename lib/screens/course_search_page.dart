@@ -93,12 +93,13 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
 
     try {
       final Authrepository repo = Authrepository(Api_Client.dio);
-      final Response response = await repo.fetchStudyCategory({
+      final Response response = await repo.fetchCourseSearchResults({
         'category_id': 0,
         'page': 1,
         'limit': 100, // search mode → bada limit, no pagination
         'search': query, // ← PHP API mein yeh param add kiya gaya hai
       });
+
 
       if (!mounted) return;
 
