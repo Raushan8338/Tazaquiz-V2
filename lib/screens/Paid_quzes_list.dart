@@ -40,10 +40,14 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
   bool _isFetchingChapters = false;
   int _selectedChapterId = 0;
   String _selectedChapterName = 'All Topics';
-    bool _isPurchased = true;
+  bool _isPurchased = true;
 
   List<int> _availableYears = [];
   int? _selectedYear;
+
+  // ── PHASE FILTER (NEW) ────────────────────────────────────────────
+  List<String> _availablePhases = [];
+  String? _selectedPhase; // null = All Phases, sirf local filter
 
   bool _isLoading = true;
   bool _isFetchingQuizzes = false;
@@ -53,11 +57,11 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
-  bool get isLiveTest     => widget.PageType == '7';
-  bool get isChapterTest  => widget.PageType == '0';
-  bool get isMockTest     => widget.PageType == '4';
+  bool get isLiveTest => widget.PageType == '7';
+  bool get isChapterTest => widget.PageType == '0';
+  bool get isMockTest => widget.PageType == '4';
   bool get isFullMockTest => widget.PageType == '5';
-  bool get isPYP          => widget.PageType == '6';
+  bool get isPYP => widget.PageType == '6';
   bool get showCategoryTabs => isLiveTest || isMockTest || isChapterTest;
 
   final List<List<Color>> _cardGradients = const [
@@ -123,9 +127,11 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
         final List list = response.data['data'] ?? [];
         setState(() {
           _categories = [
+            // ChapterTest me All tab nahi aayega, baaki sab me aayega
             if (!isChapterTest) CategoryItem(category_id: 0, name: 'All'),
             ...list.map((e) => CategoryItem.fromJson(e)).toList(),
           ];
+          // ChapterTest me pehla category auto-select hoga
           if (isChapterTest && _categories.isNotEmpty) {
             _selectedCategoryId = _categories[0].category_id;
           }
@@ -158,114 +164,128 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
   }
 
   Future<void> _fetchChapters(int subjectId) async {
-  setState(() {
-    _chapters = [];
-    _selectedChapterId = 0;          // 0 = "All Topics"
-    _selectedChapterName = 'All Topics';
-    _isFetchingChapters = true;
-  });
-  try {
-    Authrepository auth = Authrepository(Api_Client.dio);
-    final response =
-        await auth.fetchTopics({'subject_id': subjectId.toString()});
-    if (response.statusCode == 200) {
-      final List list = response.data['data'] ?? [];
-      final topics = list
-          .map((e) => {
-                'id': int.tryParse(e['level_id'].toString()) ?? 0,
-                'name': e['name'].toString(),
-              })
-          .toList();
- 
-      setState(() {
-        // ✅ "All Topics" pehle entry — id=0
-        _chapters = [
-          {'id': 0, 'name': 'All Topics'},
-          ...topics,
-        ];
-        // ✅ Default: All Topics selected (id=0)
-        _selectedChapterId = 0;
-        _selectedChapterName = 'All Topics';
-        _isFetchingChapters = false;
-      });
- 
-      // ✅ All Topics ke saath pehla data load — topic_id nahi jayega
-      await _fetchQuizzes(subjectId, 1);
-    } else {
+    setState(() {
+      _chapters = [];
+      _selectedChapterId = 0;
+      _selectedChapterName = 'All Topics';
+      _isFetchingChapters = true;
+    });
+    try {
+      Authrepository auth = Authrepository(Api_Client.dio);
+      final response =
+          await auth.fetchTopics({'subject_id': subjectId.toString()});
+      if (response.statusCode == 200) {
+        final List list = response.data['data'] ?? [];
+        final topics = list
+            .map((e) => {
+                  'id': int.tryParse(e['level_id'].toString()) ?? 0,
+                  'name': e['name'].toString(),
+                })
+            .toList();
+
+        setState(() {
+          _chapters = [
+            {'id': 0, 'name': 'All Topics'},
+            ...topics,
+          ];
+          _selectedChapterId = 0;
+          _selectedChapterName = 'All Topics';
+          _isFetchingChapters = false;
+        });
+
+        await _fetchQuizzes(subjectId, 1);
+      } else {
+        setState(() => _isFetchingChapters = false);
+      }
+    } catch (_) {
       setState(() => _isFetchingChapters = false);
     }
-  } catch (_) {
-    setState(() => _isFetchingChapters = false);
   }
-}
 
- Future<void> _fetchQuizzes(int categoryId, int educationLevelId) async {
-  setState(() {
-    _isFetchingQuizzes = true;
-    _errorMessage = null;
-  });
-  try {
-    Authrepository auth = Authrepository(Api_Client.dio);
-    final data = {
-      'subscription_id': widget.pageId,
-      'user_id': _user!.id.toString(),
-      'category_id': categoryId.toString(),
-      'education_level_id': isChapterTest
-          ? categoryId.toString()
-          : educationLevelId == 0
-              ? categoryId.toString()
-              : '0',
-      'Pagetype': widget.PageType,
-      if (isLiveTest &&
-          (_selectedFilter == 'live' ||
-              _selectedFilter == 'upcoming' ||
-              _selectedFilter == 'missed'))
-        'type': _selectedFilter,
-      // ✅ KEY FIX: topic_id sirf tab jaaye jab specific chapter selected ho
-      // _selectedChapterId == 0 matlab "All Topics" → topic_id mat bhejo
-      if (isChapterTest && _selectedChapterId != 0)
-        'topic_id': _selectedChapterId.toString(),
-    };
- 
-    print('_fetchQuizzes payload: $data');
- 
-    final response = await auth.get_paid_quizes_api(data);
-    print('_fetchQuizzes response: ${response.data}');
-  
-    if (response.statusCode == 200) {
-      final List list = response.data['data'] ?? [];
-      final quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
-      setState(() {
-        _quizzes = quizzes;
-        _isPurchased = response.data['material_is_purchased'] ?? false;
-        if (isPYP) {
-          _availableYears = YearFilterChipList.extractUniqueYears(quizzes);
-          if (_selectedYear != null && !_availableYears.contains(_selectedYear)) {
-            _selectedYear = null;
+  Future<void> _fetchQuizzes(int categoryId, int educationLevelId) async {
+    setState(() {
+      _isFetchingQuizzes = true;
+      _errorMessage = null;
+    });
+    try {
+      Authrepository auth = Authrepository(Api_Client.dio);
+      final data = {
+        'subscription_id': widget.pageId,
+        'user_id': _user!.id.toString(),
+        'category_id': categoryId.toString(),
+        'education_level_id': isChapterTest
+            ? '0'
+            : isMockTest
+                // categoryId=0 matlab "All" selected -> '0' bhejo (sab data)
+                // warna specific category id bhejo
+                ? categoryId == 0
+                    ? '0'
+                    : categoryId.toString()
+                : educationLevelId == 0
+                    ? categoryId.toString()
+                    : '0',
+        'Pagetype': widget.PageType,
+        if (isLiveTest &&
+            (_selectedFilter == 'live' ||
+                _selectedFilter == 'upcoming' ||
+                _selectedFilter == 'missed'))
+          'type': _selectedFilter,
+        if (isChapterTest && _selectedChapterId != 0)
+          'topic_id': _selectedChapterId.toString(),
+      };
+
+      print('_fetchQuizzes payload: $data');
+
+      final response = await auth.get_paid_quizes_api(data);
+      print('_fetchQuizzes response: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final List list = response.data['data'] ?? [];
+        final quizzes = list.map((e) => QuizItem.fromJson(e)).toList();
+        setState(() {
+          _quizzes = quizzes;
+          _isPurchased = response.data['material_is_purchased'] ?? false;
+
+          // ── PHASE: extract unique non-null phases (NEW) ───────────
+          _availablePhases = quizzes
+              .map((q) => q.phase)
+              .whereType<String>() // null values ignore
+              .toSet()
+              .toList();
+          // Agar selected phase ab list me nahi to reset
+          if (_selectedPhase != null &&
+              !_availablePhases.contains(_selectedPhase)) {
+            _selectedPhase = null;
           }
-        }
+
+          if (isPYP) {
+            _availableYears = YearFilterChipList.extractUniqueYears(quizzes);
+            if (_selectedYear != null &&
+                !_availableYears.contains(_selectedYear)) {
+              _selectedYear = null;
+            }
+          }
+          _isFetchingQuizzes = false;
+        });
+        _animController.forward(from: 0);
+      } else {
+        setState(() {
+          _errorMessage = 'Failed to load tests. Pull down to refresh.';
+          _isFetchingQuizzes = false;
+        });
+      }
+    } on DioException catch (e) {
+      setState(() {
+        _errorMessage = _dioErrorMessage(e);
         _isFetchingQuizzes = false;
       });
-      _animController.forward(from: 0);
-    } else {
+    } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load tests. Pull down to refresh.';
+        _errorMessage = 'Unexpected error occurred.';
         _isFetchingQuizzes = false;
       });
     }
-  } on DioException catch (e) {
-    setState(() {
-      _errorMessage = _dioErrorMessage(e);
-      _isFetchingQuizzes = false;
-    });
-  } catch (e) {
-    setState(() {
-      _errorMessage = 'Unexpected error occurred.';
-      _isFetchingQuizzes = false;
-    });
   }
-}
- 
 
   String _dioErrorMessage(DioException e) {
     switch (e.type) {
@@ -283,6 +303,12 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
 
   List<QuizItem> get _filtered {
     var source = _quizzes;
+
+    // ── PHASE filter sabse pehle (NEW) ────────────────────────────
+    if (_selectedPhase != null) {
+      source = source.where((q) => q.phase == _selectedPhase).toList();
+    }
+
     if (isPYP && _selectedYear != null) {
       source = source.where((q) => q.pyps_year == _selectedYear).toList();
     }
@@ -325,14 +351,20 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
       return;
     }
     if (isMockTest || isFullMockTest || isPYP) {
-      Navigator.push(context,
-          MaterialPageRoute(builder: (_) => MockTestDetailPage(quizId: quiz.quizId)));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => MockTestDetailPage(
+                  quizId: quiz.quizId, courseId: widget.pageId)));
     } else {
       Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) =>
-                  QuizDetailPage(pageType_data: widget.PageType, quizId: quiz.quizId, is_subscribed: true)));
+              builder: (_) => QuizDetailPage(
+                  pageType_data: widget.PageType,
+                  quizId: quiz.quizId,
+                  is_subscribed: true,
+                  courseId: widget.pageId)));
     }
   }
 
@@ -352,11 +384,17 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                 if (showCategoryTabs) _buildCategoryTabs(),
                 if (isChapterTest && !_isLoading && _selectedCategoryId != 0)
                   _buildChapterSelectorRow(),
+
+                // ── PHASE DROPDOWN: sirf tab jab phases available hon (NEW) ──
+                if (!_isLoading && _availablePhases.isNotEmpty)
+                  _buildPhaseDropdown(),
+
                 if (isPYP && !_isLoading && _availableYears.isNotEmpty)
                   YearFilterChipList(
                     years: _availableYears,
                     selectedYear: _selectedYear,
-                    onYearSelected: (year) => setState(() => _selectedYear = year),
+                    onYearSelected: (year) =>
+                        setState(() => _selectedYear = year),
                   ),
                 if (_errorMessage != null && !_isFetchingQuizzes)
                   _buildErrorBanner(),
@@ -409,17 +447,22 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
-            isLiveTest ? '⚡'
-                : isMockTest ? '📝'
-                : isFullMockTest ? '🎯'
-                : isChapterTest ? '📖'
-                : '📜',
+            isLiveTest
+                ? '⚡'
+                : isMockTest
+                    ? '📝'
+                    : isFullMockTest
+                        ? '🎯'
+                        : isChapterTest
+                            ? '📖'
+                            : '📜',
             style: const TextStyle(fontSize: 15),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(widget.pageTitle,
                 style: const TextStyle(
                     color: Colors.white,
@@ -477,18 +520,28 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                 _selectedChapterName = 'All Topics';
                 _chapters = [];
                 _quizzes = [];
+                // ── PHASE reset on category change (NEW) ──────────
+                _selectedPhase = null;
+                _availablePhases = [];
               });
-              if (isChapterTest && cat.category_id != 0) {
-                await _fetchChapters(cat.category_id);
+              if (isChapterTest) {
+                if (cat.category_id == 0) {
+                  // ✅ ChapterTest me All tap kiya → seedha sab quizzes fetch karo
+                  await _fetchQuizzes(0, 1);
+                } else {
+                  // ✅ ChapterTest me specific subject → chapters fetch karo
+                  await _fetchChapters(cat.category_id);
+                }
               } else {
-                // ORIGINAL: educationLevelId = 0 → subject wise filter
+                // LiveTest / MockTest
                 await _fetchQuizzes(cat.category_id, 0);
               }
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 gradient: sel
                     ? const LinearGradient(
@@ -498,14 +551,17 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                 borderRadius: BorderRadius.circular(20),
                 border: sel
                     ? null
-                    : Border.all(color: AppColors.greyS600.withOpacity(0.2)),
+                    : Border.all(
+                        color: AppColors.greyS600.withOpacity(0.2)),
               ),
               child: Center(
                 child: TranslatedText(cat.name,
                     style: TextStyle(
                         fontSize: 12,
-                        fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-                        color: sel ? Colors.white : AppColors.greyS700,
+                        fontWeight:
+                            sel ? FontWeight.w700 : FontWeight.w500,
+                        color:
+                            sel ? Colors.white : AppColors.greyS700,
                         fontFamily: 'Poppins')),
               ),
             ),
@@ -525,7 +581,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
       child: GestureDetector(
         onTap: _isFetchingChapters ? null : _showChapterBottomSheet,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: hasChapterSelected
                 ? AppColors.tealGreen.withOpacity(0.07)
@@ -554,26 +611,30 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Topic / Chapter',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: AppColors.greyS600,
-                        fontWeight: FontWeight.w500,
-                        fontFamily: 'Poppins')),
-                Text(
-                  _isFetchingChapters ? 'Loading topics...' : _selectedChapterName,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'Poppins',
-                    color: hasChapterSelected
-                        ? AppColors.tealGreen
-                        : AppColors.darkNavy,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Topic / Chapter',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.greyS600,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: 'Poppins')),
+                    Text(
+                      _isFetchingChapters
+                          ? 'Loading topics...'
+                          : _selectedChapterName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Poppins',
+                        color: hasChapterSelected
+                            ? AppColors.tealGreen
+                            : AppColors.darkNavy,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ]),
             ),
             _isFetchingChapters
                 ? SizedBox(
@@ -581,8 +642,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                     height: 16,
                     child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor:
-                            AlwaysStoppedAnimation(AppColors.tealGreen)))
+                        valueColor: AlwaysStoppedAnimation(
+                            AppColors.tealGreen)))
                 : Icon(Icons.keyboard_arrow_down_rounded,
                     size: 20,
                     color: hasChapterSelected
@@ -608,66 +669,79 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
           return Container(
             decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(28))),
+            child:
+                Column(mainAxisSize: MainAxisSize.min, children: [
               Container(
                   margin: const EdgeInsets.only(top: 12),
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
                       color: Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(10))),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                              colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
-                          borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.menu_book_rounded,
-                          color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Text('Select Topic',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.darkNavy,
-                            fontFamily: 'Poppins')),
-                    const Spacer(),
-                    if (_chapters.length > 1)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                            color: AppColors.tealGreen.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20)),
-                        child: Text('${_chapters.length} topics',
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [
+                                Color(0xFF0A1628),
+                                Color(0xFF0D4B3B)
+                              ]),
+                              borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.menu_book_rounded,
+                              color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('Select Topic',
                             style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.tealGreen,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.close_rounded,
-                            color: AppColors.greyS600)),
-                  ]),
-                  const SizedBox(height: 4),
-                  Text('Choose a topic to filter quizzes',
-                      style: TextStyle(fontSize: 12, color: AppColors.greyS600)),
-                  const SizedBox(height: 14),
-                ]),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.darkNavy,
+                                fontFamily: 'Poppins')),
+                        const Spacer(),
+                        if (_chapters.length > 1)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                                color: AppColors.tealGreen
+                                    .withOpacity(0.1),
+                                borderRadius:
+                                    BorderRadius.circular(20)),
+                            child: Text('${_chapters.length} topics',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.tealGreen,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(Icons.close_rounded,
+                                color: AppColors.greyS600)),
+                      ]),
+                      const SizedBox(height: 4),
+                      Text('Choose a topic to filter quizzes',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.greyS600)),
+                      const SizedBox(height: 14),
+                    ]),
               ),
               ConstrainedBox(
                 constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.48),
+                    maxHeight:
+                        MediaQuery.of(context).size.height * 0.48),
                 child: ListView.builder(
                   shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: _chapters.length,
                   itemBuilder: (context, index) {
                     final chapter = _chapters[index];
@@ -689,7 +763,9 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                               : const Color(0xFFF5F7FA),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                              color: sel ? AppColors.tealGreen : Colors.transparent,
+                              color: sel
+                                  ? AppColors.tealGreen
+                                  : Colors.transparent,
                               width: 1.5),
                         ),
                         child: Row(children: [
@@ -697,11 +773,16 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                                 color: sel
-                                    ? AppColors.tealGreen.withOpacity(0.15)
+                                    ? AppColors.tealGreen
+                                        .withOpacity(0.15)
                                     : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(10)),
-                            child: Icon(Icons.bookmark_outline_rounded,
-                                color: sel ? AppColors.tealGreen : AppColors.greyS600,
+                                borderRadius:
+                                    BorderRadius.circular(10)),
+                            child: Icon(
+                                Icons.bookmark_outline_rounded,
+                                color: sel
+                                    ? AppColors.tealGreen
+                                    : AppColors.greyS600,
                                 size: 16),
                           ),
                           const SizedBox(width: 12),
@@ -710,8 +791,9 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                                 style: TextStyle(
                                     fontSize: 13,
                                     fontFamily: 'Poppins',
-                                    fontWeight:
-                                        sel ? FontWeight.w700 : FontWeight.w500,
+                                    fontWeight: sel
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                     color: sel
                                         ? AppColors.tealGreen
                                         : AppColors.darkNavy)),
@@ -727,7 +809,10 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
               ),
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                    20, 12, 20, MediaQuery.of(context).padding.bottom + 16),
+                    20,
+                    12,
+                    20,
+                    MediaQuery.of(context).padding.bottom + 16),
                 child: GestureDetector(
                   onTap: () {
                     setState(() {
@@ -735,24 +820,300 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                       _selectedChapterName = tempChapterName;
                     });
                     Navigator.pop(context);
-                    // Chapter apply: educationLevelId=1 → '0' jayega (chapter topic_id se filter)
                     _fetchQuizzes(_selectedCategoryId, 1);
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                            colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
+                        gradient: const LinearGradient(colors: [
+                          Color(0xFF0A1628),
+                          Color(0xFF0D4B3B)
+                        ]),
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
-                              color: const Color(0xFF0D4B3B).withOpacity(0.3),
+                              color: const Color(0xFF0D4B3B)
+                                  .withOpacity(0.3),
                               blurRadius: 10,
                               offset: const Offset(0, 4))
                         ]),
                     child: const Center(
                       child: Text('Apply Topic Filter',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              fontFamily: 'Poppins')),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── PHASE DROPDOWN (NEW) ──────────────────────────────────────────
+
+  Widget _buildPhaseDropdown() {
+    final bool hasPhaseSelected = _selectedPhase != null;
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: GestureDetector(
+        onTap: _showPhaseBottomSheet,
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: hasPhaseSelected
+                ? AppColors.tealGreen.withOpacity(0.07)
+                : const Color(0xFFF0F2F8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hasPhaseSelected
+                  ? AppColors.tealGreen.withOpacity(0.4)
+                  : AppColors.greyS600.withOpacity(0.2),
+            ),
+          ),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: hasPhaseSelected
+                    ? AppColors.tealGreen.withOpacity(0.15)
+                    : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.layers_rounded,
+                  size: 16,
+                  color: hasPhaseSelected
+                      ? AppColors.tealGreen
+                      : AppColors.greyS600),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Select Phase/Exam Levels',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.greyS600,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: 'Poppins')),
+                    Text(
+                      _selectedPhase ?? 'All Phases/Levels',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Poppins',
+                        color: hasPhaseSelected
+                            ? AppColors.tealGreen
+                            : AppColors.darkNavy,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ]),
+            ),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: hasPhaseSelected
+                    ? AppColors.tealGreen
+                    : AppColors.greyS600),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  void _showPhaseBottomSheet() {
+    String? tempPhase = _selectedPhase;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setModalState) {
+          // "All Phases" (null) + actual phases
+          final allOptions = <String?>[null, ..._availablePhases];
+
+          return Container(
+            decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(28))),
+            child:
+                Column(mainAxisSize: MainAxisSize.min, children: [
+              // Handle bar
+              Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10))),
+
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [
+                          Color(0xFF0A1628),
+                          Color(0xFF0D4B3B)
+                        ]),
+                        borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.layers_rounded,
+                        color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Select Phase',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.darkNavy,
+                          fontFamily: 'Poppins')),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: AppColors.tealGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20)),
+                    child: Text(
+                        '${_availablePhases.length} phase${_availablePhases.length == 1 ? '' : 's'}',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.tealGreen,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close_rounded,
+                          color: AppColors.greyS600)),
+                ]),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Phase list
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxHeight:
+                        MediaQuery.of(context).size.height * 0.45),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: allOptions.length,
+                  itemBuilder: (context, index) {
+                    final String? phase = allOptions[index];
+                    final String label = phase ?? 'All Phases';
+                    final bool sel = tempPhase == phase;
+
+                    return GestureDetector(
+                      onTap: () =>
+                          setModalState(() => tempPhase = phase),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: sel
+                              ? AppColors.tealGreen.withOpacity(0.07)
+                              : const Color(0xFFF5F7FA),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: sel
+                                  ? AppColors.tealGreen
+                                  : Colors.transparent,
+                              width: 1.5),
+                        ),
+                        child: Row(children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                                color: sel
+                                    ? AppColors.tealGreen
+                                        .withOpacity(0.15)
+                                    : Colors.grey.shade100,
+                                borderRadius:
+                                    BorderRadius.circular(10)),
+                            child: Icon(
+                              phase == null
+                                  ? Icons.select_all_rounded
+                                  : Icons.layers_rounded,
+                              color: sel
+                                  ? AppColors.tealGreen
+                                  : AppColors.greyS600,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(label,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontFamily: 'Poppins',
+                                    fontWeight: sel
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: sel
+                                        ? AppColors.tealGreen
+                                        : AppColors.darkNavy)),
+                          ),
+                          if (sel)
+                            Icon(Icons.check_circle_rounded,
+                                color: AppColors.tealGreen,
+                                size: 20),
+                        ]),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Apply button
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                    20,
+                    12,
+                    20,
+                    MediaQuery.of(context).padding.bottom + 16),
+                child: GestureDetector(
+                  onTap: () {
+                    // ✅ Sirf setState — no API call, local filter only
+                    setState(() => _selectedPhase = tempPhase);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [
+                          Color(0xFF0A1628),
+                          Color(0xFF0D4B3B)
+                        ]),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                              color: const Color(0xFF0D4B3B)
+                                  .withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4))
+                        ]),
+                    child: const Center(
+                      child: Text('Apply Phase Filter',
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -782,22 +1143,25 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildCard(
-                    _filtered[index],
+                (context, index) => _buildCard(_filtered[index],
                     _cardGradients[index % _cardGradients.length]),
-                childCount: _filtered.length.clamp(0, adAfterIndex + 1),
+                childCount:
+                    _filtered.length.clamp(0, adAfterIndex + 1),
               ),
             ),
           ),
           if (isBannerLoaded && bannerService.bannerAd != null)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: SizedBox(
-                    height: bannerService.bannerAd!.size.height.toDouble(),
-                    width: bannerService.bannerAd!.size.width.toDouble(),
+                    height: bannerService.bannerAd!.size.height
+                        .toDouble(),
+                    width:
+                        bannerService.bannerAd!.size.width.toDouble(),
                     child: AdWidget(ad: bannerService.bannerAd!),
                   ),
                 ),
@@ -856,8 +1220,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
       try {
         final dt = DateTime.parse(quiz.startDateTime);
         const months = [
-          'JAN','FEB','MAR','APR','MAY','JUN',
-          'JUL','AUG','SEP','OCT','NOV','DEC'
+          'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+          'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
         ];
         dateDisplay = '${dt.day}';
         monthDisplay = months[dt.month - 1];
@@ -866,29 +1230,45 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
 
     final String badgeLabel = isLocked
         ? 'Locked'
-        : isLive ? 'Live'
-        : isUpcoming ? 'Soon'
-        : isMissed ? 'Assess'
-        : isAttempted ? 'Done'
-        : 'Attempt';
+        : isLive
+            ? 'Live'
+            : isUpcoming
+                ? 'Soon'
+                : isMissed
+                    ? 'Assess'
+                    : isAttempted
+                        ? 'Done'
+                        : 'Attempt';
 
     final Color badgeColor = isLocked
         ? const Color(0xFF74726E)
-        : isLive ? Colors.red
-        : isUpcoming ? const Color(0xFF1B5E20)
-        : isMissed ? const Color(0xFF3949AB)
-        : isAttempted ? const Color(0xFF00897B)
-        : const Color(0xFF3949AB);
+        : isLive
+            ? Colors.red
+            : isUpcoming
+                ? const Color(0xFF1B5E20)
+                : isMissed
+                    ? const Color(0xFF3949AB)
+                    : isAttempted
+                        ? const Color(0xFF00897B)
+                        : const Color(0xFF3949AB);
 
-    final String panelEmoji = isLocked ? '🔒'
-        : isLive ? '⚡'
-        : isUpcoming ? '⏰'
-        : isMissed ? '📋'
-        : isMockTest ? '📝'
-        : isFullMockTest ? '🎯'
-        : isChapterTest ? '📖'
-        : isPYP ? '📜'
-        : '⚡';
+    final String panelEmoji = isLocked
+        ? '🔒'
+        : isLive
+            ? '⚡'
+            : isUpcoming
+                ? '⏰'
+                : isMissed
+                    ? '📋'
+                    : isMockTest
+                        ? '📝'
+                        : isFullMockTest
+                            ? '🎯'
+                            : isChapterTest
+                                ? '📖'
+                                : isPYP
+                                    ? '📜'
+                                    : '⚡';
 
     return GestureDetector(
       onTap: () => _goToDetail(quiz),
@@ -927,15 +1307,18 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                   child: Stack(
                     children: [
                       Positioned.fill(
-                          child: CustomPaint(painter: _DotPatternPainter())),
+                          child: CustomPaint(
+                              painter: _DotPatternPainter())),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                             vertical: 12, horizontal: 7),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment:
+                              MainAxisAlignment.center,
                           children: [
                             Text(panelEmoji,
-                                style: const TextStyle(fontSize: 22)),
+                                style:
+                                    const TextStyle(fontSize: 22)),
                             const SizedBox(height: 5),
                             if (dateDisplay.isNotEmpty) ...[
                               Text(dateDisplay,
@@ -949,7 +1332,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                                   style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.white.withOpacity(0.8),
+                                      color: Colors.white
+                                          .withOpacity(0.8),
                                       fontFamily: 'Poppins')),
                               const SizedBox(height: 6),
                             ] else
@@ -961,17 +1345,22 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                                   horizontal: 3, vertical: 4),
                               decoration: BoxDecoration(
                                 color: badgeColor,
-                                borderRadius: BorderRadius.circular(7),
+                                borderRadius:
+                                    BorderRadius.circular(7),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   if (isLive)
                                     Container(
-                                      width: 5, height: 5,
-                                      margin: const EdgeInsets.only(right: 3),
-                                      decoration: const BoxDecoration(
+                                      width: 5,
+                                      height: 5,
+                                      margin: const EdgeInsets.only(
+                                          right: 3),
+                                      decoration:
+                                          const BoxDecoration(
                                         color: Colors.white,
                                         shape: BoxShape.circle,
                                       ),
@@ -1013,7 +1402,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                         )
                       : null,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                    padding:
+                        const EdgeInsets.fromLTRB(12, 11, 12, 11),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -1045,7 +1435,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                         ],
                         const SizedBox(height: 8),
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.center,
                           children: [
                             Expanded(
                               child: Wrap(
@@ -1054,23 +1445,35 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                                 children: [
                                   if (quiz.timeLimit.isNotEmpty &&
                                       quiz.timeLimit != '0')
-                                    _chip(Icons.timer_outlined,
+                                    _chip(
+                                        Icons.timer_outlined,
                                         '${quiz.timeLimit} min',
                                         AppColors.greyS600),
                                   if (quiz.totalQuestions > 0)
-                                    _chip(Icons.help_outline_rounded,
+                                    _chip(
+                                        Icons.help_outline_rounded,
                                         '${quiz.totalQuestions} Qs',
                                         AppColors.greyS600),
                                   if (isLiveTest &&
                                       quiz.startsInText.isNotEmpty &&
                                       !isLive)
-                                    _chip(Icons.schedule_rounded,
+                                    _chip(
+                                        Icons.schedule_rounded,
                                         quiz.startsInText,
                                         Colors.orange.shade700),
                                   if (isMissed)
-                                    _chip(Icons.assignment_late_outlined,
+                                    _chip(
+                                        Icons
+                                            .assignment_late_outlined,
                                         'Assessment',
                                         const Color(0xFF6366F1)),
+                                  // ── PHASE chip on card (NEW) ─────
+                                  if (quiz.phase != null &&
+                                      quiz.phase!.isNotEmpty)
+                                    _chip(
+                                        Icons.layers_rounded,
+                                        quiz.phase!,
+                                        const Color(0xFF7C3AED)),
                                 ],
                               ),
                             ),
@@ -1081,11 +1484,14 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(colors: btnColors),
-                                  borderRadius: BorderRadius.circular(10),
+                                  gradient: LinearGradient(
+                                      colors: btnColors),
+                                  borderRadius:
+                                      BorderRadius.circular(10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: btnColors[1].withOpacity(0.3),
+                                      color: btnColors[1]
+                                          .withOpacity(0.3),
                                       blurRadius: 7,
                                       offset: const Offset(0, 3),
                                     ),
@@ -1095,14 +1501,15 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      _btnIcon(quiz, isLive, isAttempted),
+                                      _btnIcon(quiz, isLive,
+                                          isAttempted),
                                       color: Colors.white,
                                       size: 13,
                                     ),
                                     const SizedBox(width: 4),
                                     TranslatedText(
-                                      _btnText(quiz, isLive, isMissed,
-                                          isAttempted),
+                                      _btnText(quiz, isLive,
+                                          isMissed, isAttempted),
                                       style: const TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
@@ -1141,7 +1548,9 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
         const SizedBox(width: 3),
         TranslatedText(label,
             style: TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color)),
       ]),
     );
   }
@@ -1152,12 +1561,15 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
     }
     if (!quiz.isAccessible) return Icons.lock_outline_rounded;
     if (!isLiveTest)
-      return isAttempted ? Icons.bar_chart_rounded : Icons.play_arrow_rounded;
+      return isAttempted
+          ? Icons.bar_chart_rounded
+          : Icons.play_arrow_rounded;
     if (isLive) return Icons.play_arrow_rounded;
     return Icons.arrow_forward_rounded;
   }
 
-  String _btnText(QuizItem quiz, bool isLive, bool isMissed, bool isAttempted) {
+  String _btnText(
+      QuizItem quiz, bool isLive, bool isMissed, bool isAttempted) {
     if (quiz.attempt_status == 'in_progress') {
       return 'Resume';
     }
@@ -1191,7 +1603,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
         GestureDetector(
           onTap: () => _fetchQuizzes(_selectedCategoryId, 1),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
                 color: Colors.orange.shade100,
                 borderRadius: BorderRadius.circular(8)),
@@ -1213,8 +1626,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
               padding: const EdgeInsets.all(24),
-              decoration:
-                  BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                  color: Colors.red.shade50, shape: BoxShape.circle),
               child: Icon(Icons.wifi_off_rounded,
                   size: 48, color: Colors.red.shade300)),
           const SizedBox(height: 20),
@@ -1226,13 +1639,14 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
           const SizedBox(height: 8),
           TranslatedText(_errorMessage!,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.greyS600)),
+              style:
+                  TextStyle(fontSize: 13, color: AppColors.greyS600)),
           const SizedBox(height: 24),
           GestureDetector(
             onTap: _getUserData,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 28, vertical: 13),
               decoration: BoxDecoration(
                   gradient: const LinearGradient(
                       colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
@@ -1273,7 +1687,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
               strokeWidth: 3),
         ),
         const SizedBox(height: 16),
-        TranslatedText('Loading ${widget.pageTitle.toLowerCase()}...',
+        TranslatedText(
+            'Loading ${widget.pageTitle.toLowerCase()}...',
             style: TextStyle(
                 fontSize: 13,
                 color: AppColors.greyS600,
@@ -1282,221 +1697,268 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
     );
   }
 
-Widget _buildEmptyState() {
-  final Map<String, Map<String, dynamic>> emptyData = {
-    '0': {'icon': Icons.menu_book_rounded},
-    '4': {'icon': Icons.quiz_rounded},
-    '5': {'icon': Icons.track_changes_rounded},
-    '6': {'icon': Icons.workspace_premium_rounded},
-  };
+  Widget _buildEmptyState() {
+    final Map<String, Map<String, dynamic>> emptyData = {
+      '0': {'icon': Icons.menu_book_rounded},
+      '4': {'icon': Icons.quiz_rounded},
+      '5': {'icon': Icons.track_changes_rounded},
+      '6': {'icon': Icons.workspace_premium_rounded},
+    };
 
-  final data = emptyData[widget.PageType] ?? {'icon': Icons.lock_outline_rounded};
-  final bool isPurchased = _isPurchased;
+    final data = emptyData[widget.PageType] ??
+        {'icon': Icons.lock_outline_rounded};
+    final bool isPurchased = _isPurchased;
 
-  String title;
-  String subtitle;
+    String title;
+    String subtitle;
 
-  if (isPurchased) {
-    if (widget.PageType == '7') {
-      title = 'Test Available Periodically';
-      subtitle = 'This test is available on weekly or occasional basis. Check back later for upcoming sessions.';
+    if (isPurchased) {
+      if (widget.PageType == '7') {
+        title = 'Test Available Periodically';
+        subtitle =
+            'This test is available on weekly or occasional basis. Check back later for upcoming sessions.';
+      } else {
+        title = 'Tests Coming Soon';
+        subtitle =
+            'Exciting tests are on the way! Stay tuned and check back soon to boost your preparation.';
+      }
     } else {
-      title = 'Tests Coming Soon';
-      subtitle = 'Exciting tests are on the way! Stay tuned and check back soon to boost your preparation.';
+      title = 'Unlock Full Access';
+      subtitle =
+          'Everything you need to ace your exam — all in one place.';
     }
-  } else {
-    title = 'Unlock Full Access';
-    subtitle = 'Everything you need to ace your exam — all in one place.';
+
+    return Center(
+      child: SingleChildScrollView(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Icon(data['icon'] as IconData,
+                  size: 40, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1A1A2E),
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF6B7280),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (!isPurchased) ...[
+              _buildFeatureRow(
+                color: const Color(0xFFEDE9FE),
+                iconColor: const Color(0xFF7C3AED),
+                icon: Icons.layers_rounded,
+                text: 'Chapter & Topic Wise Tests',
+              ),
+              const SizedBox(height: 10),
+              _buildFeatureRow(
+                color: const Color(0xFFDBEAFE),
+                iconColor: const Color(0xFF2563EB),
+                icon: Icons.subject_rounded,
+                text: 'Subject Wise Tests',
+              ),
+              const SizedBox(height: 10),
+              _buildFeatureRow(
+                color: const Color(0xFFDCFCE7),
+                iconColor: const Color(0xFF16A34A),
+                icon: Icons.assignment_rounded,
+                text: 'Full Length Mock Tests',
+              ),
+              const SizedBox(height: 10),
+              _buildFeatureRow(
+                color: const Color(0xFFFEF3C7),
+                iconColor: const Color(0xFFD97706),
+                icon: Icons.live_tv_rounded,
+                text: 'Live Tests',
+              ),
+              const SizedBox(height: 10),
+              _buildFeatureRow(
+                color: const Color(0xFFFFEDD5),
+                iconColor: const Color(0xFFEA580C),
+                icon: Icons.history_edu_rounded,
+                text: 'Previous Year Papers (PYPs)',
+              ),
+              const SizedBox(height: 10),
+              _buildFeatureRow(
+                color: const Color(0xFFFCE7F3),
+                iconColor: const Color(0xFFDB2777),
+                icon: Icons.note_alt_rounded,
+                text: 'Notes & Study Material',
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(12),
+                  border:
+                      Border.all(color: const Color(0xFF86EFAC)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Icon(Icons.check_circle_rounded,
+                        color: Color(0xFF22C55E), size: 20),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(children: [
+                          TextSpan(
+                            text: 'Activated within 24 hours ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.5,
+                              color: Color(0xFF15803D),
+                            ),
+                          ),
+                          TextSpan(
+                            text:
+                                'of purchase — full course access enabled automatically across all sections.',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: Color(0xFF15803D),
+                              height: 1.5,
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
-  return Center(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildFeatureRow({
+    required Color color,
+    required Color iconColor,
+    required IconData icon,
+    required String text,
+  }) {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
         children: [
           Container(
-            width: 88,
-            height: 88,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Icon(data['icon'] as IconData, size: 40, color: Colors.white),
+            width: 32,
+            height: 32,
+            decoration:
+                BoxDecoration(color: color, shape: BoxShape.circle),
+            child: Icon(icon, size: 16, color: iconColor),
           ),
-
-          const SizedBox(height: 16),
-
-          // ✅ FIXED: Use `title` variable, removed `const`
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1A1A2E),
-              letterSpacing: -0.3,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                  fontSize: 12.5, color: Color(0xFF374151)),
             ),
           ),
-
-          const SizedBox(height: 6),
-
-          // ✅ FIXED: Use `subtitle` variable, removed `const`
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF6B7280),
-              height: 1.5,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Show features only when NOT purchased
-          if (!isPurchased) ...[
-            _buildFeatureRow(
-              color: const Color(0xFFEDE9FE),
-              iconColor: const Color(0xFF7C3AED),
-              icon: Icons.layers_rounded,
-              text: 'Chapter & Topic Wise Tests',
-            ),
-            const SizedBox(height: 10),
-            _buildFeatureRow(
-              color: const Color(0xFFDBEAFE),
-              iconColor: const Color(0xFF2563EB),
-              icon: Icons.subject_rounded,
-              text: 'Subject Wise Tests',
-            ),
-            const SizedBox(height: 10),
-            _buildFeatureRow(
-              color: const Color(0xFFDCFCE7),
-              iconColor: const Color(0xFF16A34A),
-              icon: Icons.assignment_rounded,
-              text: 'Full Length Mock Tests',
-            ),
-            const SizedBox(height: 10),
-            _buildFeatureRow(
-              color: const Color(0xFFFEF3C7),
-              iconColor: const Color(0xFFD97706),
-              icon: Icons.live_tv_rounded,
-              text: 'Live Tests',
-            ),
-            const SizedBox(height: 10),
-            _buildFeatureRow(
-              color: const Color(0xFFFFEDD5),
-              iconColor: const Color(0xFFEA580C),
-              icon: Icons.history_edu_rounded,
-              text: 'Previous Year Papers (PYPs)',
-            ),
-            const SizedBox(height: 10),
-            _buildFeatureRow(
-              color: const Color(0xFFFCE7F3),
-              iconColor: const Color(0xFFDB2777),
-              icon: Icons.note_alt_rounded,
-              text: 'Notes & Study Material',
-            ),
-
-            const SizedBox(height: 20),
-
-            // 24hr Activation Card
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF86EFAC)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Icon(Icons.check_circle_rounded,
-                      color: Color(0xFF22C55E), size: 20),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(children: [
-                        TextSpan(
-                          text: 'Activated within 24 hours ',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12.5,
-                            color: Color(0xFF15803D),
-                          ),
-                        ),
-                        TextSpan(
-                          text: 'of purchase — full course access enabled automatically across all sections.',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: Color(0xFF15803D),
-                            height: 1.5,
-                          ),
-                        ),
-                      ]),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
-    ),
-  );
-}
-
-Widget _buildFeatureRow({
-  required Color color,
-  required Color iconColor,
-  required IconData icon,
-  required String text,
-}) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF9FAFB),
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: const Color(0xFFE5E7EB)),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: Icon(icon, size: 16, color: iconColor),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 12.5, color: Color(0xFF374151)),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
   // ── FILTER SHEET ──────────────────────────────────────────────────
 
   Widget _buildFilterSheet() {
     String tempFilter = _selectedFilter;
     final mockFilters = [
-      {'key': 'all', 'title': 'All Tests', 'subtitle': 'Show every test in this series', 'icon': Icons.view_list_rounded, 'color': const Color(0xFF0A1628)},
-      {'key': 'unattempted', 'title': 'Not Attempted', 'subtitle': "Tests you haven't started yet", 'icon': Icons.radio_button_unchecked_rounded, 'color': const Color(0xFF3949AB)},
-      {'key': 'attempted', 'title': 'Attempted', 'subtitle': 'Tests you have already completed', 'icon': Icons.check_circle_outline_rounded, 'color': const Color(0xFF00897B)},
+      {
+        'key': 'all',
+        'title': 'All Tests',
+        'subtitle': 'Show every test in this series',
+        'icon': Icons.view_list_rounded,
+        'color': const Color(0xFF0A1628)
+      },
+      {
+        'key': 'unattempted',
+        'title': 'Not Attempted',
+        'subtitle': "Tests you haven't started yet",
+        'icon': Icons.radio_button_unchecked_rounded,
+        'color': const Color(0xFF3949AB)
+      },
+      {
+        'key': 'attempted',
+        'title': 'Attempted',
+        'subtitle': 'Tests you have already completed',
+        'icon': Icons.check_circle_outline_rounded,
+        'color': const Color(0xFF00897B)
+      },
     ];
     final liveFilters = [
-      {'key': 'all', 'title': 'All Tests', 'subtitle': 'Show live, upcoming and assessments', 'icon': Icons.view_list_rounded, 'color': const Color(0xFF0A1628)},
-      {'key': 'live', 'title': 'Live Now', 'subtitle': 'Tests currently running', 'icon': Icons.radio_button_checked_rounded, 'color': Colors.red},
-      {'key': 'upcoming', 'title': 'Upcoming', 'subtitle': 'Tests scheduled ahead', 'icon': Icons.schedule_rounded, 'color': const Color(0xFFF59E0B)},
-      {'key': 'missed', 'title': 'Assessment', 'subtitle': 'Missed tests — attempt anytime', 'icon': Icons.assignment_late_outlined, 'color': const Color(0xFF6366F1)},
-      {'key': 'ended', 'title': 'Ended', 'subtitle': 'Tests that have concluded', 'icon': Icons.history_rounded, 'color': AppColors.greyS600},
+      {
+        'key': 'all',
+        'title': 'All Tests',
+        'subtitle': 'Show live, upcoming and assessments',
+        'icon': Icons.view_list_rounded,
+        'color': const Color(0xFF0A1628)
+      },
+      {
+        'key': 'live',
+        'title': 'Live Now',
+        'subtitle': 'Tests currently running',
+        'icon': Icons.radio_button_checked_rounded,
+        'color': Colors.red
+      },
+      {
+        'key': 'upcoming',
+        'title': 'Upcoming',
+        'subtitle': 'Tests scheduled ahead',
+        'icon': Icons.schedule_rounded,
+        'color': const Color(0xFFF59E0B)
+      },
+      {
+        'key': 'missed',
+        'title': 'Assessment',
+        'subtitle': 'Missed tests — attempt anytime',
+        'icon': Icons.assignment_late_outlined,
+        'color': const Color(0xFF6366F1)
+      },
+      {
+        'key': 'ended',
+        'title': 'Ended',
+        'subtitle': 'Tests that have concluded',
+        'icon': Icons.history_rounded,
+        'color': AppColors.greyS600
+      },
     ];
     final filters = isLiveTest ? liveFilters : mockFilters;
 
@@ -1504,17 +1966,20 @@ Widget _buildFeatureRow({
       return Container(
         decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(28))),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
               margin: const EdgeInsets.only(top: 12),
-              width: 40, height: 4,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(10))),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -1534,15 +1999,16 @@ Widget _buildFeatureRow({
                 const Spacer(),
                 IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close_rounded, color: AppColors.greyS600)),
+                    icon: Icon(Icons.close_rounded,
+                        color: AppColors.greyS600)),
               ]),
               const SizedBox(height: 16),
               ...filters.map((f) {
                 final bool sel = tempFilter == f['key'];
                 final Color c = f['color'] as Color;
                 return GestureDetector(
-                  onTap: () =>
-                      setModalState(() => tempFilter = f['key'] as String),
+                  onTap: () => setModalState(
+                      () => tempFilter = f['key'] as String),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     margin: const EdgeInsets.only(bottom: 8),
@@ -1553,7 +2019,8 @@ Widget _buildFeatureRow({
                             : const Color(0xFFF5F7FA),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: sel ? c : Colors.transparent, width: 1.5)),
+                            color: sel ? c : Colors.transparent,
+                            width: 1.5)),
                     child: Row(children: [
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -1563,12 +2030,15 @@ Widget _buildFeatureRow({
                                 : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(10)),
                         child: Icon(f['icon'] as IconData,
-                            color: sel ? c : AppColors.greyS600, size: 18),
+                            color:
+                                sel ? c : AppColors.greyS600,
+                            size: 18),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                           child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                             TranslatedText(f['title'] as String,
                                 style: TextStyle(
@@ -1576,14 +2046,19 @@ Widget _buildFeatureRow({
                                     fontWeight: sel
                                         ? FontWeight.w700
                                         : FontWeight.w500,
-                                    color: sel ? c : AppColors.darkNavy)),
+                                    color: sel
+                                        ? c
+                                        : AppColors.darkNavy)),
                             const SizedBox(height: 2),
-                            TranslatedText(f['subtitle'] as String,
+                            TranslatedText(
+                                f['subtitle'] as String,
                                 style: TextStyle(
-                                    fontSize: 11, color: AppColors.greyS500)),
+                                    fontSize: 11,
+                                    color: AppColors.greyS500)),
                           ])),
                       if (sel)
-                        Icon(Icons.check_circle_rounded, color: c, size: 20),
+                        Icon(Icons.check_circle_rounded,
+                            color: c, size: 20),
                     ]),
                   ),
                 );
@@ -1593,19 +2068,21 @@ Widget _buildFeatureRow({
                 onTap: () {
                   setState(() => _selectedFilter = tempFilter);
                   Navigator.pop(context);
-                  // Filter apply: educationLevelId=1 → original logic
                   _fetchQuizzes(_selectedCategoryId, 1);
                 },
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
+                      gradient: const LinearGradient(colors: [
+                        Color(0xFF0A1628),
+                        Color(0xFF0D4B3B)
+                      ]),
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                            color: const Color(0xFF0D4B3B).withOpacity(0.3),
+                            color:
+                                const Color(0xFF0D4B3B).withOpacity(0.3),
                             blurRadius: 10,
                             offset: const Offset(0, 4))
                       ]),

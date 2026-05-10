@@ -36,18 +36,17 @@ class CheckoutPage extends StatefulWidget {
   _CheckoutPageState createState() => _CheckoutPageState();
 }
 
-class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserver {
+class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver {
   bool _isProcessing = false;
   bool _showCouponField = false;
   bool _isLoadingCheckout = true;
   bool _isApplyingCoupon = false;
-  bool _isWebCheckoutOpen = false; // ✅ Track karo
+  bool _isWebCheckoutOpen = false;
 
   CheckoutModel? checkoutData;
   CheckoutModel? originalCheckoutData;
   CFEnvironment environment = CFEnvironment.PRODUCTION;
 
-  // Store coupon details separately
   String? appliedCouponCode;
   double? couponDiscount;
 
@@ -58,16 +57,15 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
   @override
   void initState() {
     super.initState();
-     WidgetsBinding.instance.addObserver(this); // ✅ Register
+    WidgetsBinding.instance.addObserver(this);
     _initialize();
   }
 
   Future<void> _initialize() async {
-    await _getUserData(); // pehle user lao
-    await fetchCheckoutDetails(); // phir API call
-
+    await _getUserData();
+    await fetchCheckoutDetails();
     if (!mounted) return;
-    setState(() {}); // 🔥 ek hi baar UI update
+    setState(() {});
   }
 
   Future<void> _getUserData() async {
@@ -77,7 +75,6 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
   Future<void> fetchCheckoutDetails() async {
     try {
       setState(() => _isLoadingCheckout = true);
-
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {
         'user_id': _user?.id,
@@ -86,10 +83,8 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
         'package_id': widget.package_id,
       };
       final response = await authRepository.fetchCheckoutDetails(data);
-
       if (response.statusCode == 200) {
         final jsonResponse = response.data is String ? jsonDecode(response.data) : response.data;
-
         if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
           checkoutData = CheckoutModel.fromJson(jsonResponse['data']);
           originalCheckoutData = checkoutData;
@@ -111,10 +106,8 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
       _showErrorSnackbar('Please enter a coupon code');
       return;
     }
-
     try {
       setState(() => _isApplyingCoupon = true);
-
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {
         'user_id': _user?.id,
@@ -122,22 +115,15 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
         'order_id': widget.contentId,
         'final_price': originalCheckoutData?.finalPrice.toString(),
       };
-
       final response = await authRepository.applyCoupon(data);
-
       if (response.statusCode == 200) {
         final jsonResponse = response.data is String ? jsonDecode(response.data) : response.data;
-
         if (jsonResponse['success'] == true) {
-          // Extract coupon code
           appliedCouponCode = jsonResponse['coupon_code']?.toString() ?? '';
-
-          // Parse discount safely
           final discountValue = jsonResponse['discount'];
           if (discountValue != null) {
             couponDiscount = double.parse(discountValue.toString());
           }
-
           _showSuccessSnackbar('Coupon applied successfully!');
           setState(() {});
         } else {
@@ -163,16 +149,32 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
 
   void _showErrorSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: TranslatedText(message), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Row(children: [
+          const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: TranslatedText(message)),
+        ]),
+        backgroundColor: const Color(0xFFE53935),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
   void _showSuccessSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: TranslatedText(message),
+        content: Row(children: [
+          const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: TranslatedText(message)),
+        ]),
         backgroundColor: AppColors.tealGreen,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
@@ -180,10 +182,12 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
   @override
   void dispose() {
     _couponController.dispose();
-      WidgetsBinding.instance.removeObserver(this); // ✅ Cleanup
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
-  // ✅ Yeh function add karo
+
+  // ── EXACT SAME LOGIC AS ORIGINAL ─────────────────────────────────
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _isWebCheckoutOpen) {
@@ -193,10 +197,10 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
       }
     }
   }
-  
+
   void _processPayment() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-     setState(() => _isProcessing = true);
+    setState(() => _isProcessing = true);
     final data = {
       'user_id': _user?.id,
       'product_id': widget.contentId,
@@ -218,23 +222,15 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
         String paymentLink = jsonResponse['payment_link'];
         String cfToken = jsonResponse['payment_session_id'];
         String payMode = jsonResponse['PAYmode'] ?? '0';
-
-        // Proceed with Cashfree payment using orderId
-        _startCashfreePayment(orderId, paymentLink, cfToken,payMode);
+        _startCashfreePayment(orderId, paymentLink, cfToken, payMode);
       } else {
-         setState(() => _isProcessing = false); // ✅ Error pe false
+        setState(() => _isProcessing = false);
         _showErrorSnackbar('Failed to create payment order');
       }
-
-     
-
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => PaymentFailedPage()));
     }
   }
 
-  void _startCashfreePayment(String orderId, String paymentlink, String cfToken,String payMode) {
-    // Implement Cashfree payment integration here
-    // On successful payment, call _showPaymentSuccessDialog()
+  void _startCashfreePayment(String orderId, String paymentlink, String cfToken, String payMode) {
     try {
       final service = CFPaymentGatewayService();
       service.setCallback(_verifyPayment, onError);
@@ -244,40 +240,15 @@ class _CheckoutPageState extends State<CheckoutPage>  with WidgetsBindingObserve
         return;
       }
 
-      if(payMode=="0"){
+      if (payMode == "0") {
         var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
         var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
         service.doPayment(upiPayment);
-        
-      }else{
-        _isWebCheckoutOpen = true; // ✅ Yeh add karo
-  var cfWebCheckout = CFWebCheckoutPaymentBuilder()
-    .setSession(session)
-    .build();
-
-service.doPayment(cfWebCheckout);
+      } else {
+        _isWebCheckoutOpen = true;
+        var cfWebCheckout = CFWebCheckoutPaymentBuilder().setSession(session).build();
+        service.doPayment(cfWebCheckout);
       }
-
-
-      // final cfPaymentService = CFPaymentGatewayService();
-
-      // final payment = CFDropCheckoutPaymentBuilder().setSession(session).build();
-
-      // cfPaymentService.doPayment(payment);
-      // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
-      // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
-
-      // service.doPayment(upiPayment);
-
-      // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT_WITH_UI).build();
-      // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
-      // service.doPayment(upiPayment);
-
-      // var upi = CFUPIBuilder().setChannel(CFUPIChannel.INTENT).build();
-
-      // var upiPayment = CFUPIPaymentBuilder().setSession(session).setUPI(upi).build();
-
-      // service.doPayment(upiPayment);
     } catch (e) {
       _showErrorSnackbar('Payment failed to start');
     }
@@ -286,62 +257,57 @@ service.doPayment(cfWebCheckout);
   CFSession? createSession(String orderId, String cfToken) {
     try {
       String oid = orderId;
-      var session = CFSessionBuilder().setEnvironment(environment).setOrderId(oid).setPaymentSessionId(cfToken).build();
+      var session = CFSessionBuilder()
+          .setEnvironment(environment)
+          .setOrderId(oid)
+          .setPaymentSessionId(cfToken)
+          .build();
       return session;
     } catch (e) {}
     return null;
   }
 
   void onError(CFErrorResponse errorResponse, String orderId) async {
-      if (mounted) {
-    setState(() => _isProcessing = false);
-  }
-
+    if (mounted) {
+      setState(() => _isProcessing = false);
+    }
     final String combinedError =
         "Message: ${errorResponse.getMessage()}, "
         "Status: ${errorResponse.getStatus()}, "
         "Type: ${errorResponse.getType()}";
-
     Authrepository authRepository = Authrepository(Api_Client.dio);
     final data = {'error_message': combinedError, 'order_id': orderId, 'user_id': _user?.id};
-
     final responseCreate = await authRepository.save_CF_error_response(data);
   }
 
   void _verifyPayment(String orderId) async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
     final data = {'order_id': orderId};
-
     try {
       final responseCreate = await authRepository.savePaymentStatus(data);
-
-      // ✅ Dio already Map dega — koi parse nahi karna
       final Map<String, dynamic> resp = Map<String, dynamic>.from(responseCreate.data);
-
       if (resp['success'] == true && resp['order_status'] == 'PAID') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (_) => PaymentStatusScreen(
-                  amount: resp['cf_response']?['order_amount']?.toString() ?? '',
-                  status: PaymentStatus.success,
-                  orderId: resp['payment_id']?.toString() ?? '',
-                  paymentMethod: resp['payment_method']?.toString() ?? '',
-                ),
+            builder: (_) => PaymentStatusScreen(
+              amount: resp['cf_response']?['order_amount']?.toString() ?? '',
+              status: PaymentStatus.success,
+              orderId: resp['payment_id']?.toString() ?? '',
+              paymentMethod: resp['payment_method']?.toString() ?? '',
+            ),
           ),
         );
       } else {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (_) => PaymentStatusScreen(
-                  amount: resp['cf_response']?['order_amount']?.toString() ?? '',
-                  status: PaymentStatus.failed,
-                  orderId: resp['payment_id']?.toString() ?? '',
-                  paymentMethod: resp['payment_method']?.toString() ?? '',
-                ),
+            builder: (_) => PaymentStatusScreen(
+              amount: resp['cf_response']?['order_amount']?.toString() ?? '',
+              status: PaymentStatus.failed,
+              orderId: resp['payment_id']?.toString() ?? '',
+              paymentMethod: resp['payment_method']?.toString() ?? '',
+            ),
           ),
         );
       }
@@ -350,77 +316,125 @@ service.doPayment(cfWebCheckout);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder:
-                (_) =>
-                    PaymentStatusScreen(orderId: orderId, amount: '', paymentMethod: '', status: PaymentStatus.failed),
+            builder: (_) => PaymentStatusScreen(
+              orderId: orderId,
+              amount: '',
+              paymentMethod: '',
+              status: PaymentStatus.failed,
+            ),
           ),
         );
       }
     }
   }
 
-  // Calculate price after discount (base price - discount)
   double _getPriceAfterDiscount() {
     if (originalCheckoutData == null) return 0;
     if (couponDiscount == null) return originalCheckoutData!.basePrice;
     return originalCheckoutData!.basePrice - couponDiscount!;
   }
 
-  // Calculate GST on discounted price
   double _getGstAmount() {
     if (originalCheckoutData == null) return 0;
     final priceAfterDiscount = _getPriceAfterDiscount();
     return (priceAfterDiscount * originalCheckoutData!.gstRate) / 100;
   }
 
-  // Calculate final total
   double _getFinalPrice() {
     final priceAfterDiscount = _getPriceAfterDiscount();
     final gstAmount = _getGstAmount();
     return priceAfterDiscount + gstAmount;
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // BUILD — sirf UI changes hain yahan se
+  // ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.greyS1,
+      backgroundColor: const Color(0xFFF0F2F8),
       appBar: _buildAppBar(),
-      body:
-          _isLoadingCheckout
-              ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(AppColors.tealGreen)))
-              : checkoutData == null
+      body: _isLoadingCheckout
+          ? Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.tealGreen.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen),
+                    strokeWidth: 3,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('Loading checkout...',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.greyS600,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w500)),
+              ]),
+            )
+          : checkoutData == null
               ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: AppColors.greyS500),
-                    SizedBox(height: 16),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      'Failed to load checkout details',
-                      16,
-                      AppColors.greyS600,
-                      FontWeight.w600,
-                      1,
-                      TextAlign.center,
-                      0.0,
-                    ),
-                    SizedBox(height: 16),
-                    ElevatedButton(onPressed: fetchCheckoutDetails, child: TranslatedText('Retry')),
-                  ],
-                ),
-              )
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                            color: Colors.red.shade50, shape: BoxShape.circle),
+                        child: Icon(Icons.error_outline_rounded,
+                            size: 48, color: Colors.red.shade300),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text('Failed to Load',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.darkNavy,
+                              fontFamily: 'Poppins')),
+                      const SizedBox(height: 8),
+                      Text('Could not load checkout details.',
+                          style: TextStyle(fontSize: 13, color: AppColors.greyS600)),
+                      const SizedBox(height: 24),
+                      GestureDetector(
+                        onTap: fetchCheckoutDetails,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                            SizedBox(width: 8),
+                            Text('Retry',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    fontFamily: 'Poppins')),
+                          ]),
+                        ),
+                      ),
+                    ]),
+                  ),
+                )
               : SingleChildScrollView(
-                child: Column(
-                  children: [
-                    SizedBox(height: 16),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(children: [
+                    const SizedBox(height: 16),
                     _buildOrderSummary(),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     _buildCouponSection(),
-                    SizedBox(height: 100),
-                  ],
+                    const SizedBox(height: 100),
+                  ]),
                 ),
-              ),
       bottomNavigationBar: checkoutData != null ? _buildBottomBar() : null,
     );
   }
@@ -428,156 +442,202 @@ service.doPayment(cfWebCheckout);
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       elevation: 0,
-      backgroundColor: AppColors.darkNavy,
+      backgroundColor: Colors.transparent,
+      automaticallyImplyLeading: false,
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)],
+          ),
+        ),
+      ),
       leading: IconButton(
         icon: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
         ),
         onPressed: () => Navigator.pop(context),
       ),
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [AppColors.darkNavy, AppColors.tealGreen],
+      title: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
           ),
+          child: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 18),
         ),
-      ),
-      title: Row(
-        children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
-            'Checkout',
-            18,
-            AppColors.white,
-            FontWeight.w900,
-            1,
-            TextAlign.left,
-            0.0,
+        const SizedBox(width: 10),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Checkout',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Poppins')),
+          Text('Secure Payment',
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.65),
+                  fontSize: 10,
+                  fontFamily: 'Poppins')),
+        ]),
+      ]),
+      actions: [
+        Container(
+          margin: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(20),
           ),
-        ],
-      ),
+          child: Row(children: [
+            const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 12),
+            const SizedBox(width: 4),
+            Text('SSL',
+                style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Poppins')),
+          ]),
+        ),
+      ],
     );
   }
 
   Widget _buildOrderSummary() {
-    if (checkoutData == null) return SizedBox.shrink();
+    if (checkoutData == null) return const SizedBox.shrink();
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 5)),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
+      child: Column(children: [
+        Container(
+          height: 5,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
               Container(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.receipt_long, color: AppColors.lightGold, size: 18),
+                child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 16),
               ),
-              SizedBox(width: 12),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                'Order Summary',
-                16,
-                AppColors.darkNavy,
-                FontWeight.w800,
-                1,
-                TextAlign.left,
-                0.0,
-              ),
-            ],
-          ),
-          SizedBox(height: 20),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.tealGreen.withOpacity(0.1), AppColors.darkNavy.withOpacity(0.05)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.tealGreen.withOpacity(0.2)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.school, color: AppColors.white, size: 30),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppRichText.setTextPoppinsStyle(
-                        context,
-                        checkoutData!.title,
-                        14,
-                        AppColors.darkNavy,
-                        FontWeight.w700,
-                        2,
-                        TextAlign.left,
-                        0.0,
-                      ),
-                      SizedBox(height: 6),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightGold.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: AppRichText.setTextPoppinsStyle(
-                          context,
-                          checkoutData!.description,
-                          11,
-                          AppColors.darkNavy,
-                          FontWeight.w700,
-                          3,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.greyS1, borderRadius: BorderRadius.circular(12)),
-            child: Column(
-              children: [
-                _buildPriceRow('Base Price', '₹${originalCheckoutData!.basePrice.toStringAsFixed(2)}', false),
+              const SizedBox(width: 10),
+              const Text('Order Summary',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkNavy,
+                      fontFamily: 'Poppins')),
+            ]),
 
-                // Show discount right after base price
+            const SizedBox(height: 16),
+
+            // Product card
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F2F8),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: AppColors.tealGreen.withOpacity(0.15), width: 1.5),
+              ),
+              child: Row(children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(checkoutData!.title,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkNavy,
+                            fontFamily: 'Poppins',
+                            height: 1.3),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.tealGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(checkoutData!.description,
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.tealGreen,
+                              fontFamily: 'Poppins'),
+                          maxLines: 10,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ]),
+                ),
+              ]),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Price breakdown
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FC),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(children: [
+                _buildPriceRow(
+                    'Base Price',
+                    '₹${originalCheckoutData!.basePrice.toStringAsFixed(2)}',
+                    false),
+
                 if (appliedCouponCode != null && couponDiscount != null) ...[
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildPriceRow(
                     'Discount ($appliedCouponCode)',
                     '- ₹${couponDiscount!.toStringAsFixed(2)}',
                     false,
                     color: AppColors.tealGreen,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildPriceRow(
                     'Price after Discount',
                     '₹${_getPriceAfterDiscount().toStringAsFixed(2)}',
@@ -586,372 +646,398 @@ service.doPayment(cfWebCheckout);
                   ),
                 ],
 
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 _buildPriceRow(
                   'GST (${originalCheckoutData!.gstRate}%)',
                   '₹${_getGstAmount().toStringAsFixed(2)}',
                   false,
                 ),
-                SizedBox(height: 16),
-                Container(height: 1, color: AppColors.greyS300),
-                SizedBox(height: 16),
-                _buildPriceRow('Total Amount', '₹${_getFinalPrice().toStringAsFixed(2)}', true),
-              ],
+
+                const SizedBox(height: 14),
+                Divider(color: Colors.grey.shade200, height: 1),
+                const SizedBox(height: 14),
+
+                // Total highlighted
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total Amount',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontFamily: 'Poppins')),
+                        Text('₹${_getFinalPrice().toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                fontFamily: 'Poppins')),
+                      ]),
+                ),
+              ]),
             ),
-          ),
-        ],
-      ),
+          ]),
+        ),
+      ]),
     );
   }
 
   Widget _buildPriceRow(String label, String value, bool isBold, {Color? color}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        AppRichText.setTextPoppinsStyle(
-          context,
-          label,
-          isBold ? 16 : 14,
-          color ?? (isBold ? AppColors.darkNavy : AppColors.greyS700),
-          isBold ? FontWeight.w800 : FontWeight.w600,
-          1,
-          TextAlign.left,
-          0.0,
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(label,
+          style: TextStyle(
+              fontSize: isBold ? 15 : 13,
+              fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
+              color: color ?? (isBold ? AppColors.darkNavy : AppColors.greyS700),
+              fontFamily: 'Poppins')),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color != null
+              ? color.withOpacity(0.08)
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
         ),
-        AppRichText.setTextPoppinsStyle(
-          context,
-          value,
-          isBold ? 20 : 15,
-          color ?? (isBold ? AppColors.darkNavy : AppColors.greyS800),
-          isBold ? FontWeight.w900 : FontWeight.w700,
-          1,
-          TextAlign.left,
-          0.0,
-        ),
-      ],
-    );
+        child: Text(value,
+            style: TextStyle(
+                fontSize: isBold ? 20 : 13,
+                fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
+                color: color ?? (isBold ? AppColors.darkNavy : AppColors.greyS800),
+                fontFamily: 'Poppins')),
+      ),
+    ]);
   }
 
   Widget _buildCouponSection() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      padding: EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 5)),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.lightGold, AppColors.lightGoldS2]),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.local_offer, color: AppColors.darkNavy, size: 18),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(10),
               ),
-              SizedBox(width: 12),
-              AppRichText.setTextPoppinsStyle(
-                context,
-                'Have a Coupon Code?',
-                16,
-                AppColors.darkNavy,
-                FontWeight.w800,
-                1,
-                TextAlign.left,
-                0.0,
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
+              child: const Icon(Icons.local_offer_rounded,
+                  color: Color(0xFFD97706), size: 16),
+            ),
+            const SizedBox(width: 10),
+            const Text('Have a Coupon Code?',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkNavy,
+                    fontFamily: 'Poppins')),
+          ]),
+
+          const SizedBox(height: 14),
+
           if (appliedCouponCode != null) ...[
             Container(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.tealGreen.withOpacity(0.15), AppColors.darkNavy.withOpacity(0.1)],
+                color: AppColors.tealGreen.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: AppColors.tealGreen.withOpacity(0.3), width: 1.5),
+              ),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.tealGreen,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.check_rounded, color: Colors.white, size: 16),
                 ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.tealGreen, width: 2),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.tealGreen, borderRadius: BorderRadius.circular(8)),
-                    child: Icon(Icons.check_circle, color: AppColors.white, size: 20),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Coupon Applied: $appliedCouponCode',
-                          14,
-                          AppColors.darkNavy,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                        SizedBox(height: 4),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'You saved ₹${couponDiscount!.toStringAsFixed(2)}',
-                          12,
-                          AppColors.tealGreen,
-                          FontWeight.w600,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                      ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Coupon Applied: $appliedCouponCode',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.darkNavy,
+                            fontFamily: 'Poppins')),
+                    const SizedBox(height: 3),
+                    Text('You saved ₹${couponDiscount!.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.tealGreen,
+                            fontFamily: 'Poppins')),
+                  ]),
+                ),
+                GestureDetector(
+                  onTap: _removeCoupon,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: Icon(Icons.close_rounded,
+                        color: Colors.red.shade400, size: 16),
                   ),
-                  IconButton(icon: Icon(Icons.close, color: Colors.red), onPressed: _removeCoupon),
-                ],
-              ),
+                ),
+              ]),
             ),
           ] else if (_showCouponField) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _couponController,
-                    textCapitalization: TextCapitalization.characters,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.darkNavy),
-                    decoration: InputDecoration(
-                      hintText: 'Enter coupon code',
-                      hintStyle: TextStyle(color: AppColors.greyS500, fontSize: 14),
-                      prefixIcon: Icon(Icons.discount, color: AppColors.tealGreen, size: 20),
-                      filled: true,
-                      fillColor: AppColors.greyS1,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.greyS300!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.greyS300!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.tealGreen, width: 2),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _isApplyingCoupon ? null : _applyCoupon,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.transparent,
-                    shadowColor: AppColors.transparent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: EdgeInsets.zero,
-                  ),
-                  child: Ink(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _couponController,
+                  textCapitalization: TextCapitalization.characters,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkNavy,
+                      fontFamily: 'Poppins',
+                      letterSpacing: 1.5),
+                  decoration: InputDecoration(
+                    hintText: 'Enter coupon code',
+                    hintStyle: TextStyle(
+                        color: AppColors.greyS400,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0),
+                    prefixIcon: const Icon(Icons.discount_outlined,
+                        color: AppColors.tealGreen, size: 18),
+                    filled: true,
+                    fillColor: const Color(0xFFF0F2F8),
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      child:
-                          _isApplyingCoupon
-                              ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(AppColors.white),
-                                ),
-                              )
-                              : AppRichText.setTextPoppinsStyle(
-                                context,
-                                'Apply',
-                                14,
-                                AppColors.white,
-                                FontWeight.w700,
-                                1,
-                                TextAlign.center,
-                                0.0,
-                              ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Colors.grey.shade200, width: 1.5),
                     ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.tealGreen, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: _isApplyingCoupon ? null : _applyCoupon,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                          color: const Color(0xFF0D4B3B).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3)),
+                    ],
+                  ),
+                  child: _isApplyingCoupon
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white)))
+                      : const Text('Apply',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              fontFamily: 'Poppins')),
+                ),
+              ),
+            ]),
           ] else ...[
-            InkWell(
-              onTap: () {
-                setState(() {
-                  _showCouponField = true;
-                });
-              },
+            GestureDetector(
+              onTap: () => setState(() => _showCouponField = true),
               child: Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.tealGreen.withOpacity(0.1), AppColors.darkNavy.withOpacity(0.05)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 1.5),
+                  color: const Color(0xFFF0F2F8),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: AppColors.tealGreen.withOpacity(0.2), width: 1.5),
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.add_circle_outline, color: AppColors.tealGreen, size: 22),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Click here to apply coupon code',
-                        14,
-                        AppColors.darkNavy,
-                        FontWeight.w600,
-                        1,
-                        TextAlign.left,
-                        0.0,
-                      ),
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3CD),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.greyS600),
-                  ],
-                ),
+                    child: const Icon(Icons.add_rounded,
+                        color: Color(0xFFD97706), size: 16),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('Click here to apply coupon code',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.darkNavy,
+                            fontFamily: 'Poppins')),
+                  ),
+                  Icon(Icons.arrow_forward_ios_rounded,
+                      size: 14, color: AppColors.greyS500),
+                ]),
               ),
             ),
           ],
-        ],
+        ]),
       ),
     );
   }
 
   Widget _buildBottomBar() {
-    if (checkoutData == null) return SizedBox.shrink();
+    if (checkoutData == null) return const SizedBox.shrink();
 
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [BoxShadow(color: AppColors.black.withOpacity(0.1), blurRadius: 20, offset: Offset(0, -5))],
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.09),
+              blurRadius: 20,
+              offset: const Offset(0, -5)),
+        ],
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      'Total Amount',
-                      13,
-                      AppColors.greyS600,
-                      FontWeight.normal,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                    SizedBox(height: 4),
-                    AppRichText.setTextPoppinsStyle(
-                      context,
-                      '₹${_getFinalPrice().toStringAsFixed(2)}',
-                      25,
-                      AppColors.darkNavy,
-                      FontWeight.w900,
-                      1,
-                      TextAlign.left,
-                      0.0,
-                    ),
-                  ],
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Total Payable',
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.greyS500,
+                      fontFamily: 'Poppins')),
+              const SizedBox(height: 2),
+              Text('₹${_getFinalPrice().toStringAsFixed(2)}',
+                  style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.darkNavy,
+                      fontFamily: 'Poppins')),
+            ]),
+            if (appliedCouponCode != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.tealGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                if (appliedCouponCode != null)
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.tealGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.local_offer, size: 16, color: AppColors.tealGreen),
-                        SizedBox(width: 6),
-                        AppRichText.setTextPoppinsStyle(
-                          context,
-                          'Saved ₹${couponDiscount!.toStringAsFixed(2)}',
-                          12,
-                          AppColors.tealGreen,
-                          FontWeight.w700,
-                          1,
-                          TextAlign.left,
-                          0.0,
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-            SizedBox(height: 16),
-            SizedBox(
+                child: Row(children: [
+                  const Icon(Icons.savings_outlined,
+                      size: 14, color: AppColors.tealGreen),
+                  const SizedBox(width: 5),
+                  Text('Saved ₹${couponDiscount!.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.tealGreen,
+                          fontFamily: 'Poppins')),
+                ]),
+              ),
+          ]),
+
+          const SizedBox(height: 12),
+
+          GestureDetector(
+            onTap: _isProcessing ? null : _processPayment,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
               width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isProcessing ? null : _processPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.transparent,
-                  shadowColor: AppColors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: EdgeInsets.zero,
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [AppColors.tealGreen, AppColors.darkNavy]),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Container(
-                    alignment: Alignment.center,
-                    child:
-                        _isProcessing
-                            ? SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation(AppColors.white),
-                              ),
-                            )
-                            : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.lock, color: AppColors.white, size: 20),
-                                SizedBox(width: 12),
-                                AppRichText.setTextPoppinsStyle(
-                                  context,
-                                  'Proceed to Pay',
-                                  16,
-                                  AppColors.white,
-                                  FontWeight.w700,
-                                  1,
-                                  TextAlign.left,
-                                  0.0,
-                                ),
-                              ],
-                            ),
-                  ),
-                ),
+              height: 54,
+              decoration: BoxDecoration(
+                gradient: _isProcessing
+                    ? LinearGradient(
+                        colors: [Colors.grey.shade400, Colors.grey.shade500])
+                    : const LinearGradient(
+                        colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: _isProcessing
+                    ? []
+                    : [
+                        BoxShadow(
+                            color: const Color(0xFF0D4B3B).withOpacity(0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5)),
+                      ],
+              ),
+              child: Center(
+                child: _isProcessing
+                    ? const Row(mainAxisSize: MainAxisSize.min, children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation(Colors.white)),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Processing...',
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontFamily: 'Poppins')),
+                      ])
+                    : const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.lock_rounded, color: Colors.white, size: 18),
+                        SizedBox(width: 10),
+                        Text('Proceed to Pay',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                fontFamily: 'Poppins')),
+                      ]),
               ),
             ),
-          ],
-        ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.flash_on_rounded, size: 11, color: Colors.grey.shade400),
+            const SizedBox(width: 4),
+            Text('Powered by Cashfree Payments',
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey.shade400,
+                    fontFamily: 'Poppins')),
+          ]),
+        ]),
       ),
     );
   }

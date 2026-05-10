@@ -254,7 +254,7 @@ class _Home_live_testState extends State<Home_live_test>
           context,
           MaterialPageRoute(
             builder: (context) =>
-                QuizDetailPage(pageType_data: '7', quizId: quiz.quizId, is_subscribed: false),
+                QuizDetailPage(pageType_data: '7', quizId: quiz.quizId, is_subscribed: false, courseId: quiz.subscription_id.toString()),
           ),
         );
         }
@@ -455,7 +455,7 @@ class _Home_live_testState extends State<Home_live_test>
           context,
           MaterialPageRoute(
             builder: (context) =>
-                QuizDetailPage(pageType_data: '7', quizId: quiz.quizId, is_subscribed: false),
+                QuizDetailPage(pageType_data: '7', quizId: quiz.quizId, is_subscribed: false, courseId: quiz.subscription_id.toString()),
           ),
         );
         }

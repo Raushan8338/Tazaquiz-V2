@@ -16,8 +16,9 @@ class MockTestScreen extends StatefulWidget {
   final String subject;
   final String Quiz_id;
   final int timeLimit;
+  final String courseId;
 
-  MockTestScreen({required this.testTitle, required this.subject, required this.Quiz_id, required this.timeLimit});
+  MockTestScreen({required this.testTitle, required this.subject, required this.Quiz_id, required this.timeLimit, required this.courseId});
 
   @override
   _MockTestScreenState createState() => _MockTestScreenState();
@@ -100,7 +101,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   }
 
   void loadQuizData() async {
-    final data = {'user_id': _user?.id, 'quiz_id': widget.Quiz_id, 'score': ''};
+    final data = {'user_id': _user?.id, 'quiz_id': widget.Quiz_id, 'score': '', 'course_id': widget.courseId};
     final responseFuture = await Authrepository(Api_Client.dio).fetchQuizQuestion(data);
     final Map<String, dynamic> apiResponse =
         responseFuture.data is String

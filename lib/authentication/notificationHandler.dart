@@ -61,9 +61,10 @@ class NotificationPlatformHandler {
         case 'start_quiz':
         case 'quiz':
           final quizId = data['quiz_id'] as String? ?? '';
+          final courseId = data['course_id'] as String? ?? '';
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => QuizDetailPage(pageType_data: '7', quizId: quizId, is_subscribed: false)),
+            MaterialPageRoute(builder: (context) => QuizDetailPage(pageType_data: '7', quizId: quizId, is_subscribed: false, courseId: courseId)),
           );
           //_showQuizJoinSheet(context, data);
           break;

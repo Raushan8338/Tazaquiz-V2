@@ -84,9 +84,9 @@ class _HomeBannerState extends State<HomeBanner> {
                         builder:
                             (context) => QuizDetailPage(
                               pageType_data: '7',
-                              quizId: widget.imgLists[index]['url'], is_subscribed: false),
+                              quizId: widget.imgLists[index]['url'], is_subscribed: false, courseId: widget.imgLists[index]['course_id'].toString(),
                       ),
-                    );
+                    ),);
                     // Handle URL tap, e.g., open in browser
                   } else if (widget.imgLists[index]['banner_type'] == 'course') {
                     Navigator.push(

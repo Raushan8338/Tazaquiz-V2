@@ -13,7 +13,7 @@ class QuizInstructionPage extends StatefulWidget {
   final num passingMarks;
   final String instruction;
   final String negativeMark;
-
+  final String courseId;
   const QuizInstructionPage({
     super.key,
     required this.testTitle,
@@ -25,7 +25,7 @@ class QuizInstructionPage extends StatefulWidget {
     required this.totalMarks,
     required this.passingMarks,
     required this.instruction,
-    required this.negativeMark,
+    required this.negativeMark, required this.courseId,
   });
 
   @override
@@ -278,6 +278,7 @@ class _QuizInstructionPageState extends State<QuizInstructionPage> {
                 subject: widget.subject,
                 Quiz_id: widget.Quiz_id,
                 timeLimit: widget.timeLimit,
+                courseId: widget.courseId,
               ),
         ),
       );
@@ -291,6 +292,7 @@ class _QuizInstructionPageState extends State<QuizInstructionPage> {
                 subject: widget.subject,
                 Quiz_id: widget.Quiz_id,
                 timeLimit: widget.timeLimit,
+                courseId: widget.courseId,
               ),
         ),
       );

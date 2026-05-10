@@ -40,6 +40,7 @@ class QuizItem {
   final String? passing_score;
   final String? questionCount;
   final int? pyps_year;
+  final String? phase;
 
   // ✅ NEW
   final bool dailyLimitExceeded;
@@ -86,6 +87,7 @@ class QuizItem {
     this.negative_mark = '0',
     this.attempt_status = '',
     this.pyps_year,
+    this.phase,
   });
 
   factory QuizItem.fromJson(Map<String, dynamic> json) {
@@ -143,6 +145,7 @@ class QuizItem {
       negative_mark: json['negative_mark']?.toString() ?? '0',
       attempt_status: json['attempt_status']?.toString() ?? '',
       pyps_year: _toInt(json['pyps_year']),
+      phase: json['phase']?.toString(),
     );
   }
 
@@ -183,6 +186,7 @@ class QuizItem {
       'passing_score': passing_score,
       'question_count': questionCount,
       'pyps_year': pyps_year,
+      'phase': phase,
       // ✅ NEW
       'daily_limit_exceeded': dailyLimitExceeded,
       'negative_mark': negative_mark,

@@ -61,8 +61,9 @@ class QuizDetailPage extends StatefulWidget {
   final String pageType_data;
   final String quizId;
   final bool is_subscribed;
+  final String courseId;
 
-  QuizDetailPage({required this.pageType_data, required this.quizId, required this.is_subscribed});
+  QuizDetailPage({required this.pageType_data, required this.quizId, required this.is_subscribed, required this.courseId});
 
   @override
   _QuizDetailPageState createState() => _QuizDetailPageState();
@@ -203,16 +204,23 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   Future<void> fetchQuizDetails(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
+      final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString(), 'course_id': widget.courseId.toString()};
+      print('Fetching quiz details with data: $data');
 
       final responseFuture = await authRepository
           .get_quizId_wise_details(data)
           .timeout(const Duration(seconds: 15), onTimeout: () => throw TimeoutException('Request timed out'));
 
+       print('Quiz details response: ${responseFuture.data}');
+
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
         if (responseData['status'] == true && responseData['data'] != null) {
           _currentQuiz = QuizItem.fromJson(responseData['data']);
+             print('isPurchased: ${responseData['data']['isPurchased']}');
+print('c: ${responseData['data']['isAccessible']}');
+print('access_status: ${responseData['data']['access_status']}');
+print('access_error: ${responseData['data']['access_error']}');
           setState(() {
             _isPurchased = _currentQuiz!.isPurchased;
             _isAccessible = _currentQuiz!.accessStatus;
@@ -428,6 +436,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               passingMarks: int.parse(_currentQuiz!.passing_score ?? '0'),
               instruction: _currentQuiz!.instruction.toString(),
               negativeMark: _currentQuiz!.negative_mark.toString(),
+              courseId: widget.courseId.toString()
             ),
       ),
     );

@@ -57,8 +57,9 @@ class _DS {
 
 class MockTestDetailPage extends StatefulWidget {
   final String quizId;
+  final String courseId;
 
-  MockTestDetailPage({required this.quizId});
+  MockTestDetailPage({required this.quizId, required this.courseId});
 
   @override
   _MockTestDetailPageState createState() => _MockTestDetailPageState();
@@ -140,7 +141,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
   Future<void> fetchQuizDetails(String userid) async {
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
-      final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString()};
+      final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString(), 'course_id': widget.courseId.toString()};
       print('Fetching mock test details: $data');
       final responseFuture = await authRepository.get_quizId_wise_details(data);
 
@@ -201,6 +202,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
               passingMarks: int.parse(_currentQuiz!.passing_score ?? '0'),
               instruction: _currentQuiz!.instruction.toString(),
               negativeMark: _currentQuiz!.negative_mark.toString(),
+              courseId: widget.courseId.toString()
             ),
       ),
     );

@@ -16,12 +16,14 @@ class LiveTestScreen extends StatefulWidget {
   final String subject;
   final String Quiz_id;
   final int timeLimit;
+  final String courseId;
 
   LiveTestScreen({
     required this.testTitle,
     required this.subject,
     required this.Quiz_id,
     required this.timeLimit,
+    required this.courseId,
   });
 
   @override
@@ -112,8 +114,10 @@ class _LiveTestScreenState extends State<LiveTestScreen>
         final data = {
           'user_id': _user?.id,
           'quiz_id': widget.Quiz_id,
-          'score': ''
+          'score': '',
+          'course_id': widget.courseId,
         };
+        print('📡 Fetching quiz data with: $data');
         final responseFuture =
             await Authrepository(Api_Client.dio).fetchQuizQuestion(data);
         final Map<String, dynamic> apiResponse =

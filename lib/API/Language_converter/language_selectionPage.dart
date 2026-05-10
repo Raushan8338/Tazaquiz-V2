@@ -39,8 +39,8 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> with Sing
     {'code': 'te', 'native': 'తెలుగు', 'label': 'Telugu'},
     {'code': 'gu', 'native': 'ગુજરાતી', 'label': 'Gujarati'},
     {'code': 'kn', 'native': 'ಕನ್ನಡ', 'label': 'Kannada'},
-    {'code': 'ml', 'native': 'മലയാളം', 'label': 'Malayalam'},
-    {'code': 'pa', 'native': 'ਪੰਜਾਬੀ', 'label': 'Punjabi'},
+    {'code': 'ml', 'native': 'മലയാളം', 'label': 'Malayalam- Coming soon'},
+    {'code': 'pa', 'native': 'ਪੰਜਾਬੀ', 'label': 'Punjabi- Coming soon'},
     {'code': 'ur', 'native': 'اردو', 'label': 'Urdu'},
   ];
 
@@ -411,6 +411,7 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       'kn': TranslateLanguage.kannada,
       'ur': TranslateLanguage.urdu,
       'en': TranslateLanguage.english,
+      
     };
     return map[code] ?? TranslateLanguage.english;
   }

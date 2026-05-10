@@ -188,6 +188,7 @@ class _QuizListScreenState extends State<QuizListScreen>
           pageType_data: widget.PageType,
           quizId: quiz.quizId,
           is_subscribed: quiz.isPurchased || !quiz.isAccessible,
+            courseId: widget.pageId.toString()
         ),
       ),
     );
