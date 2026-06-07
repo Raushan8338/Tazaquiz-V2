@@ -113,6 +113,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                       email: '',
                       referalCode: '',
                       pageId: 1,
+                      source_url: '',
                     ),
               ),
             );
@@ -140,7 +141,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         // Not registered
         else if (status == "not_register") {
           setState(() => _isLoading = false);
-          Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage()));
+          Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage(mobile: _phoneController.text)));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: AppRichText.setTextPoppinsStyle(
@@ -162,7 +163,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         // Unknown response
         else {
           setState(() => _isLoading = false);
-          Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage()));
+          Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage(mobile: _phoneController.text)));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: AppRichText.setTextPoppinsStyle(
@@ -290,7 +291,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
                 SizedBox(height: 24),
                 AppRichText.setTextPoppinsStyle(
                   context,
-                  'QuizMaster',
+                  'Exam Prep Hub',
                   25,
                   AppColors.white,
                   FontWeight.w900,
@@ -583,7 +584,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
 
           SizedBox(width: 6),
           AppButton.setGestureDetectorButtonStyle(context, 'Sign Up', () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => RegistrationPage(mobile: '',)));
           }),
         ],
       ),

@@ -49,4 +49,5 @@ class BaseUrl {
   static String fetch_daily_quiz_attempt_details = "daily_get_quiz_detail.php";
   static String app_features = "app_features.php";
   static String fetch_topics = "topic.php";
+  static String check_session = "check_session.php";
 }

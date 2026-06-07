@@ -17,6 +17,7 @@ class OTPBasedVerificationPage extends StatefulWidget {
   final String phoneNumber, name, email;
   final String? referalCode;
   int pageId;
+  final String source_url;
 
   OTPBasedVerificationPage({
     super.key,
@@ -25,6 +26,7 @@ class OTPBasedVerificationPage extends StatefulWidget {
     required this.email,
     this.referalCode,
     required this.pageId,
+    required this.source_url,
   });
 
   @override
@@ -144,8 +146,9 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         'name': widget.name,
         'email': widget.email,
         'device_id': fcmToken ?? '',
-        'referalCode': 'widget.referalCode',
-        'androidInfo': '',
+        'referalCode': widget.referalCode ?? '',
+        'androidInfo': 'App',
+        'source_url': widget.source_url ?? '',
       };
 
       final responseFuture = await authRepository.signupVerifyOTP(data);

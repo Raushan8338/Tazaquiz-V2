@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   //hyggtt
   int _selectedNavIndex = 0;
-
+bool _hasNavigatedAway = false;
   final List<Widget> _pages = [
     HomePage(),
     StudyMaterialScreen('0'),
@@ -25,11 +25,14 @@ class _HomeScreenState extends State<HomeScreen> {
     StudentProfilePage(),
   ];
   //QuizListScreen('0', '0')
-  void _onNavItemTapped(int index) {
-    setState(() {
-      _selectedNavIndex = index;
-    });
-  }
+
+
+void _onNavItemTapped(int index) {
+  setState(() {
+    if (index != 0) _hasNavigatedAway = true;
+    _selectedNavIndex = index;
+  });
+}
 
   @override
   void initState() {
@@ -73,32 +76,38 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (_selectedNavIndex != 0) {
-          setState(() {
-            _selectedNavIndex = 0;
-          });
-          return false;
-        } else {
-          final shouldExit = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return _buildExitDialog(context);
-            },
-          );
-          return shouldExit ?? false;
+ @override
+Widget build(BuildContext context) {
+  return PopScope(
+    canPop: false,
+    onPopInvokedWithResult: (didPop, result) {
+      if (didPop) return;
+
+      if (_selectedNavIndex != 0) {
+        setState(() {
+          _selectedNavIndex = 0;
+        });
+        return;
+      }
+
+      showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return _buildExitDialog(context);
+        },
+      ).then((shouldExit) {
+        if (shouldExit ?? false) {
+          SystemNavigator.pop();
         }
-      },
-      child: Scaffold(
-        body: IndexedStack(index: _selectedNavIndex, children: _pages),
-        bottomNavigationBar: _buildBottomNav(),
-      ),
-    );
-  }
+      });
+    },
+    child: Scaffold(
+      body: IndexedStack(index: _selectedNavIndex, children: _pages),
+      bottomNavigationBar: _buildBottomNav(),
+    ),
+  );
+}
 
   // Widget _buildBottomNav() {
   //   return Container(
@@ -154,6 +163,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () {
         setState(() {
+          if (index == 0) _hasNavigatedAway = false; // ✅ Home tap pe reset
+          if (index != 0) _hasNavigatedAway = true;
           _selectedNavIndex = index;
         });
       },

@@ -44,7 +44,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
   getData() async {
     final user = await SessionManager.getUser();
     setState(() {
-      userId = user?.id.toString() ?? "";
+      userId = user?.referalId.toString() ?? "";
       isLoading = false;
     });
     _animController.forward();
@@ -75,7 +75,24 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
 
   void _shareReferral(String platform) async {
     final url = "https://www.tazaquiz.com/app_opn_url.php?referrel=$userId";
-    final String message = "Join TazaQuiz! Use my code $userId and get rewards. Download: $url";
+    final String message = """
+🚀 Welcome to TazaQuiz – Your Ultimate Exam Preparation Partner! 🎯
+
+Accelerate your preparation and secure your dream government job with India's upcoming premium practice platform. Get comprehensive, exam-oriented access to everything you need:
+
+🏆 Full-Length Mock Tests – Experience real exam simulations.
+🎯 Topic & Chapter-wise Tests – Master every single concept.
+📝 Authentic PYPs – Practice actual Previous Year Papers with insights.
+⚡ Daily Live Quizzes – Keep your speed and accuracy sharp.
+📚 Curated Study Material – High-quality PDF Notes & Current Affairs.
+
+Get 360-degree preparation designed by experts to help you crack your exam on the very first attempt! 💪🔥
+
+📲 Download the App Now: $url
+🌐 Visit Our Website: https://tazaquiz.com/
+
+Your journey from preparation to selection starts here. 🎓
+""";
 
     try {
       if (platform == 'whatsapp') {
@@ -93,7 +110,6 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
           await Share.share(message);
         }
       } else if (platform == 'instagram') {
-        // Instagram doesn't support direct text share, open app
         const instagramUrl = "instagram://app";
         if (await canLaunchUrl(Uri.parse(instagramUrl))) {
           await launchUrl(Uri.parse(instagramUrl));

@@ -57,6 +57,7 @@ dependencies:
   google_mlkit_translation: ^0.13.1
   google_mlkit_language_id: ^0.13.1
   image_picker: ^1.2.1
+  app_links: ^7.0.0
 
 dev_dependencies:
   flutter_test:
@@ -65,7 +66,7 @@ dev_dependencies:
 flutter_icons:  
   android: true
   ios: true
-  image_path: "assets/images/logo.png"
+  image_path: "assets/images/playstore.png"
   background_color: "0xFFF8F9FD"    
 
 

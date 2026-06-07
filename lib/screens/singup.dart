@@ -10,14 +10,19 @@ import 'package:tazaquiznew/screens/login.dart';
 import 'package:tazaquiznew/screens/otpVerificationPage.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/widgets/custom_button.dart';
+import 'package:app_links/app_links.dart';
 
 class RegistrationPage extends StatefulWidget {
+  final String? mobile; // ✅ Mobile number receive karo
+   RegistrationPage({
+    super.key,
+    required this.mobile,
+  });
   @override
   _RegistrationPageState createState() => _RegistrationPageState();
 }
 
 class _RegistrationPageState extends State<RegistrationPage> {
-  //hyggtt
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -25,6 +30,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final TextEditingController _referralController = TextEditingController();
   bool _isLoading = false;
   bool _hasReferralCode = false;
+  String _sourceUrl = ''; // ✅ Full source URL
+
+  @override
+  void initState() {
+    super.initState();
+    _handleIncomingLink(); // ✅ Deep link check
+     if (widget.mobile != null && widget.mobile!.isNotEmpty) {
+    _phoneController.text = widget.mobile!;
+  }
+  }
 
   @override
   void dispose() {
@@ -35,24 +50,70 @@ class _RegistrationPageState extends State<RegistrationPage> {
     super.dispose();
   }
 
+  // ✅ Deep link handle karo
+  Future<void> _handleIncomingLink() async {
+    final appLinks = AppLinks();
+    try {
+      // App band thi tab — initial link
+      final initialLink = await appLinks.getInitialLink();
+      if (initialLink != null) {
+        _processLink(initialLink.toString());
+      }
+
+      // App open thi tab — stream
+      appLinks.uriLinkStream.listen((uri) {
+        if (mounted) {
+          _processLink(uri.toString());
+        }
+      });
+    } catch (e) {
+      print('Deep link error: $e');
+    }
+  }
+
+  // ✅ Link process karo — referCode + sourceUrl nikalo
+  void _processLink(String link) {
+    print('📦 INCOMING LINK: $link');
+
+    final uri = Uri.tryParse(link);
+    if (uri == null) return;
+
+    // Full source URL save karo
+    final sourceUrl = uri.queryParameters['source_url'] ?? '';
+    _sourceUrl = sourceUrl.isNotEmpty ? Uri.decodeComponent(sourceUrl) : link;
+    print('✅ SOURCE URL: $_sourceUrl');
+
+    // referrer/referCode nikalo
+    final referrer = uri.queryParameters['referrer'] ?? 
+                     uri.queryParameters['referCode'] ?? '';
+
+    if (referrer.isNotEmpty && mounted) {
+      setState(() {
+        _referralController.text = referrer;
+        _hasReferralCode = true; // ✅ Checkbox auto tick
+      });
+      print('✅ REFERRAL CODE SET: $referrer');
+    }
+  }
+
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       Authrepository authRepository = Authrepository(Api_Client.dio);
-       String? fcmToken;
+      String? fcmToken;
 
-    try {
-      // 🔥 SAFE TOKEN FETCH (non-blocking)
-      await Future.delayed(const Duration(seconds: 1));
-      fcmToken = await FirebaseMessaging.instance.getToken();
-      print("FCM TOKEN: $fcmToken");
-    } catch (e) {
-      print("FCM ERROR: $e");
-      fcmToken = null; // 👈 IMPORTANT
-    }
+      try {
+        await Future.delayed(const Duration(seconds: 1));
+        fcmToken = await FirebaseMessaging.instance.getToken();
+        print("FCM TOKEN: $fcmToken");
+      } catch (e) {
+        print("FCM ERROR: $e");
+        fcmToken = null;
+      }
+
       setState(() => _isLoading = true);
       final data = {
-        'mobile': _phoneController.text.trim(),
+        'mobile': widget.mobile ?? _phoneController.text.trim(),
         'OTP': '',
         'name': '',
         'email': '',
@@ -60,9 +121,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
         'referalCode': '',
         'androidInfo': '',
       };
-      //
+
       final responseFuture = await authRepository.signupVerifyOTP(data);
       print('Signup Response: ${responseFuture.data}');
+
       if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);
         final Map<String, dynamic> dataRes = responseFuture.data;
@@ -71,14 +133,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder:
-                  (context) => OTPBasedVerificationPage(
-                    phoneNumber: _phoneController.text.trim(),
-                    name: _nameController.text.trim(),
-                    email: _emailController.text.trim(),
-                    referalCode: _referralController.text.trim(),
-                    pageId: 0,
-                  ),
+              builder: (context) => OTPBasedVerificationPage(
+                phoneNumber: _phoneController.text.trim(),
+                name: _nameController.text.trim(),
+                email: _emailController.text.trim(),
+                referalCode: _referralController.text.trim(),
+                pageId: 0,
+                source_url: _sourceUrl, // ✅ Full URL pass karo
+              ),
             ),
           );
         } else {
@@ -157,12 +219,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 hint: 'Enter your full name',
                 icon: Icons.person_outline,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  if (value.length < 3) {
-                    return 'Name must be at least 3 characters';
-                  }
+                  if (value == null || value.isEmpty) return 'Please enter your name';
+                  if (value.length < 3) return 'Name must be at least 3 characters';
                   return null;
                 },
               ),
@@ -174,9 +232,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter email';
-                  }
+                  if (value == null || value.isEmpty) return 'Please enter email';
                   if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                     return 'Please enter valid email';
                   }
@@ -193,23 +249,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     onChanged: (value) {
                       setState(() {
                         _hasReferralCode = value ?? false;
-                        if (!_hasReferralCode) {
-                          _referralController.clear();
-                        }
+                        if (!_hasReferralCode) _referralController.clear();
                       });
                     },
                     activeColor: AppColors.tealGreen,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   ),
                   AppRichText.setTextPoppinsStyle(
-                    context,
-                    'I have a referral code',
-                    14,
-                    AppColors.darkNavy,
-                    FontWeight.w500,
-                    1,
-                    TextAlign.left,
-                    0.0,
+                    context, 'I have a referral code', 14,
+                    AppColors.darkNavy, FontWeight.w500, 1, TextAlign.left, 0.0,
                   ),
                 ],
               ),
@@ -237,14 +285,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     SizedBox(width: 12),
                     Expanded(
                       child: AppRichText.setTextPoppinsStyle(
-                        context,
-                        'Your data is secure and encrypted',
-                        12,
-                        AppColors.darkNavy,
-                        FontWeight.w600,
-                        2,
-                        TextAlign.left,
-                        1.4,
+                        context, 'Your data is secure and encrypted', 12,
+                        AppColors.darkNavy, FontWeight.w600, 2, TextAlign.left, 1.4,
                       ),
                     ),
                   ],
@@ -252,7 +294,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
               SizedBox(height: 28),
               AppButton.setButtonStyle(context, "Create Account", _isLoading ? null : _handleRegister, _isLoading),
-
               SizedBox(height: 24),
               _buildTermsAndConditions(),
               SizedBox(height: 20),
@@ -276,55 +317,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppRichText.setTextPoppinsStyle(
-          context,
-          label,
-          14,
-          AppColors.darkNavy,
-          FontWeight.w700,
-          1,
-          TextAlign.left,
-          0.0,
-        ),
+        AppRichText.setTextPoppinsStyle(context, label, 14, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
         SizedBox(height: 10),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 16,
-            fontWeight: FontWeight.normal,
-            color: AppColors.darkNavy,
-          ),
+          style: TextStyle(fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.normal, color: AppColors.darkNavy),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: AppColors.tealGreen, size: 22),
             hintText: hint,
-            hintStyle: TextStyle(
-              fontFamily: 'Poppins',
-              color: AppColors.greyS400,
-              fontWeight: FontWeight.w500,
-              fontSize: 15,
-            ),
-
+            hintStyle: TextStyle(fontFamily: 'Poppins', color: AppColors.greyS400, fontWeight: FontWeight.w500, fontSize: 15),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             filled: true,
             fillColor: AppColors.greyS50,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.greyS200),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.greyS200),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.tealGreen, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.red),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.greyS200)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.greyS200)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.tealGreen, width: 2)),
+            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.red)),
           ),
           validator: validator,
         ),
@@ -336,16 +345,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppRichText.setTextPoppinsStyle(
-          context,
-          'Phone Number',
-          14,
-          AppColors.darkNavy,
-          FontWeight.w700,
-          1,
-          TextAlign.left,
-          0.0,
-        ),
+        AppRichText.setTextPoppinsStyle(context, 'Phone Number', 14, AppColors.darkNavy, FontWeight.w700, 1, TextAlign.left, 0.0),
         SizedBox(height: 10),
         TextFormField(
           controller: _phoneController,
@@ -354,26 +354,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
           decoration: InputDecoration(
             hintText: 'Enter mobile number',
-            hintStyle: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.greyS700,
-              fontFamily: "Poppins",
-            ),
+            hintStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.greyS700, fontFamily: "Poppins"),
             prefixIcon: Padding(
               padding: const EdgeInsets.only(left: 15, right: 10),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    '+91',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.greyS700,
-                      fontFamily: "Poppins",
-                    ),
-                  ),
+                  Text('+91', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.greyS700, fontFamily: "Poppins")),
                   const SizedBox(width: 8),
                   Container(width: 1, height: 24, color: AppColors.greyS300),
                 ],
@@ -381,31 +368,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
             ),
             filled: true,
             fillColor: AppColors.greyS50,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.greyS200),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.greyS200),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.tealGreen, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.red),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.greyS200)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.greyS200)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.tealGreen, width: 2)),
+            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.red)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter mobile number';
-            }
-            if (value.length != 10) {
-              return 'Enter valid 10 digit number';
-            }
+            if (value == null || value.isEmpty) return 'Please enter mobile number';
+            if (value.length != 10) return 'Enter valid 10 digit number';
             return null;
           },
         ),
@@ -417,28 +388,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        AppRichText.setTextPoppinsStyle(
-          context,
-          'By signing up, you agree to our ',
-          12,
-          AppColors.greyS600,
-          FontWeight.w500,
-          1,
-          TextAlign.center,
-          1.5,
-        ),
+        AppRichText.setTextPoppinsStyle(context, 'By signing up, you agree to our ', 12, AppColors.greyS600, FontWeight.w500, 1, TextAlign.center, 1.5),
         GestureDetector(
           onTap: () {},
-          child: AppRichText.setTextPoppinsStyle(
-            context,
-            'Terms',
-            12,
-            AppColors.tealGreen,
-            FontWeight.w700,
-            1,
-            TextAlign.center,
-            1.5,
-          ),
+          child: AppRichText.setTextPoppinsStyle(context, 'Terms', 12, AppColors.tealGreen, FontWeight.w700, 1, TextAlign.center, 1.5),
         ),
       ],
     );
@@ -449,28 +402,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AppRichText.setTextPoppinsStyle(
-            context,
-            'Already have an account? ',
-            14,
-            AppColors.greyS600,
-            FontWeight.w500,
-            1,
-            TextAlign.center,
-            0.0,
-          ),
+          AppRichText.setTextPoppinsStyle(context, 'Already have an account? ', 14, AppColors.greyS600, FontWeight.w500, 1, TextAlign.center, 0.0),
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => OtpLoginPage())),
-            child: AppRichText.setTextPoppinsStyle(
-              context,
-              'Sign In',
-              14,
-              AppColors.tealGreen,
-              FontWeight.w800,
-              1,
-              TextAlign.center,
-              0.0,
-            ),
+            child: AppRichText.setTextPoppinsStyle(context, 'Sign In', 14, AppColors.tealGreen, FontWeight.w800, 1, TextAlign.center, 0.0),
           ),
         ],
       ),
@@ -482,41 +417,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
       height: 200,
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.darkNavy, AppColors.tealGreen],
-        ),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [AppColors.darkNavy, AppColors.tealGreen]),
       ),
       child: Stack(
         children: [
-          Positioned(
-            top: -60,
-            right: -60,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
-            ),
-          ),
-          Positioned(
-            bottom: -40,
-            left: -40,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle),
-            ),
-          ),
-          Positioned(
-            top: 100,
-            right: 40,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(color: AppColors.lightGold.withOpacity(0.3), shape: BoxShape.circle),
-            ),
-          ),
+          Positioned(top: -60, right: -60, child: Container(width: 200, height: 200, decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle))),
+          Positioned(bottom: -40, left: -40, child: Container(width: 150, height: 150, decoration: BoxDecoration(color: AppColors.white.withOpacity(0.1), shape: BoxShape.circle))),
+          Positioned(top: 100, right: 40, child: Container(width: 80, height: 80, decoration: BoxDecoration(color: AppColors.lightGold.withOpacity(0.3), shape: BoxShape.circle))),
           Padding(
             padding: EdgeInsets.fromLTRB(24, 20, 24, 0),
             child: Column(
@@ -527,37 +434,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   constraints: BoxConstraints(),
                   icon: Container(
                     padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    decoration: BoxDecoration(color: AppColors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
                     child: Icon(Icons.arrow_back, color: AppColors.white, size: 20),
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 SizedBox(height: 32),
-
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  'Create Account',
-                  24,
-                  AppColors.white,
-                  FontWeight.w900,
-                  1,
-                  TextAlign.left,
-                  1.2,
-                ),
+                AppRichText.setTextPoppinsStyle(context, 'Create Account', 24, AppColors.white, FontWeight.w900, 1, TextAlign.left, 1.2),
                 SizedBox(height: 8),
-                AppRichText.setTextPoppinsStyle(
-                  context,
-                  'Sign up to get started',
-                  14,
-                  AppColors.white.withOpacity(0.9),
-                  FontWeight.w500,
-                  1,
-                  TextAlign.left,
-                  1.5,
-                ),
+                AppRichText.setTextPoppinsStyle(context, 'Sign up to get started', 14, AppColors.white.withOpacity(0.9), FontWeight.w500, 1, TextAlign.left, 1.5),
               ],
             ),
           ),

@@ -292,6 +292,9 @@ class _LiveTestScreenState extends State<LiveTestScreen>
 
   void _submitAnswer() async {
     if (_selectedOption == null || _answered) return;
+     // ✅ Selected answer ka actual answer_id nikalo
+    final answers = _questions[_currentQuestion]['answers'] as List;
+    final selectedAnswerId = answers[_selectedOption!]['answer_id'];
     setState(() {
       _answered = true;
       _timer?.cancel();
@@ -301,7 +304,7 @@ class _LiveTestScreenState extends State<LiveTestScreen>
     final data = {
       'attempt_id': _currentQuestionData['attempt_id'].toString(),
       'question_id': _currentQuestionData['question_id'].toString(),
-      'answer_id': _currentQuestionData['question_ans_id'].toString(),
+      'answer_id':  selectedAnswerId.toString(),
       'score': (_selectedOption == _correctAnswer
               ? _currentQuestionData['points']
               : 0)

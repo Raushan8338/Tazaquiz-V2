@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/screens/homeSceen.dart';
@@ -36,6 +40,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Foreground: ${message.notification?.title}');
     });
+    _checkloggedin();
 
     _mainController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
 
@@ -74,7 +79,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     ).animate(CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut));
 
     _mainController.forward();
-    _checkloggedin();
+   
   }
 
   Future<void> requestPermission() async {
@@ -82,17 +87,54 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     print('Permission: ${settings.authorizationStatus}');
   }
 
-  void _checkloggedin() async {
-    final bool isLoggedIn = await SessionManager.isLoggedIn();
-    Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => isLoggedIn ? HomeScreen() : OtpLoginPage()),
-      );
-    });
+
+void _checkloggedin() async {
+  print('🚀 CHECK LOGIN CALLED');
+  final bool isLoggedIn = await SessionManager.isLoggedIn();
+  print('🚀 IS LOGGED IN: $isLoggedIn');
+
+  if (isLoggedIn) {
+    try {
+      final user = await SessionManager.getUser();
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      print('✅ USER ID: ${user?.id}');
+      print('✅ FCM TOKEN: $fcmToken');
+
+      final response = await Authrepository(Api_Client.dio).checkSession({
+        'user_id': user!.id.toString(),
+        'device_token': fcmToken ?? '',
+      });
+      print('✅ Session response: ${response.data}');
+
+      final data = response.data is String
+          ? jsonDecode(response.data)
+          : response.data;
+
+      if (data['valid'] == false) {
+        await SessionManager.logout();
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => OtpLoginPage()),
+        );
+        return;
+      }
+    } catch (e) {
+      print('❌ SESSION ERROR: $e');
+    }
   }
 
+  Timer(const Duration(seconds: 3), () {
+    print('🚀 TIMER FIRED');
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => isLoggedIn ? HomeScreen() : OtpLoginPage(),
+      ),
+    );
+  });
+}
   @override
   void dispose() {
     _mainController.dispose();

@@ -298,7 +298,22 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
             ),
           ),
         );
-      } else {
+      } 
+      else if (resp['order_status'] == 'PENDING') {
+        // ✅ Pending dikhao — webhook handle karega
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentStatusScreen(
+              amount: resp['cf_response']?['order_amount']?.toString() ?? '',
+              status: PaymentStatus.pending,
+              orderId: resp['payment_id']?.toString() ?? '',
+              paymentMethod: resp['payment_method']?.toString() ?? '',
+            ),
+          ),
+        );
+      }
+      else {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
