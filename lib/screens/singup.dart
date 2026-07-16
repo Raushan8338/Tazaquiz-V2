@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -51,25 +52,51 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   // ✅ Deep link handle karo
-  Future<void> _handleIncomingLink() async {
-    final appLinks = AppLinks();
-    try {
-      // App band thi tab — initial link
-      final initialLink = await appLinks.getInitialLink();
-      if (initialLink != null) {
-        _processLink(initialLink.toString());
-      }
-
-      // App open thi tab — stream
-      appLinks.uriLinkStream.listen((uri) {
-        if (mounted) {
-          _processLink(uri.toString());
-        }
-      });
-    } catch (e) {
-      print('Deep link error: $e');
+Future<void> _handleIncomingLink() async {
+  final appLinks = AppLinks();
+  try {
+    final initialLink = await appLinks.getInitialLink();
+    if (initialLink != null) {
+      _processLink(initialLink.toString());
+      return;
     }
+    appLinks.uriLinkStream.listen((uri) {
+      if (mounted) _processLink(uri.toString());
+    });
+  } catch (e) {
+    print('Deep link error: $e');
   }
+
+  // ✅ Play Store referrer check
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final savedReferrer = prefs.getString('install_referrer') ?? '';
+    print('📦 SAVED REFERRER: $savedReferrer');
+
+    if (savedReferrer.isNotEmpty) {
+      final params = Uri.splitQueryString(savedReferrer);
+      final referCode = params['referCode'] ?? '';
+      final sourceUrl = params['source_url'] ?? savedReferrer; // ✅ source_url ya pura string
+
+      // ✅ Source URL hamesha save karo
+      _sourceUrl = Uri.decodeComponent(sourceUrl);
+
+      // ✅ referCode sirf tab fill karo jab ho
+      if (referCode.isNotEmpty && mounted) {
+        setState(() {
+          _referralController.text = referCode;
+          _hasReferralCode = true;
+        });
+        print('✅ Play Store referral: $referCode');
+      } else {
+        // ✅ referCode nahi — sirf source track karo
+        print('✅ Source tracked (no referCode): $_sourceUrl');
+      }
+    }
+  } catch (e) {
+    print('Referrer read error: $e');
+  }
+}
 
   // ✅ Link process karo — referCode + sourceUrl nikalo
   void _processLink(String link) {

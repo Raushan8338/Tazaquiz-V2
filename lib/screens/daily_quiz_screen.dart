@@ -179,7 +179,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
         responseFuture.data is String
             ? jsonDecode(responseFuture.data)
             : Map<String, dynamic>.from(responseFuture.data);
-
+    print('Daily Quiz API Response: $apiResponse');
     if (apiResponse['success'] != true) {
       _showSnackbar(apiResponse['message'] ?? 'Quiz load nahi hua');
       return;
@@ -308,6 +308,8 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
         responseFuture.data is String
             ? jsonDecode(responseFuture.data)
             : Map<String, dynamic>.from(responseFuture.data);
+
+    print('Daily Quiz API Response: $apiResponse');
 
     if (apiResponse['success'] == true) {
       _showResultDialog(apiResponse['data']);
