@@ -117,7 +117,6 @@ class _LiveTestScreenState extends State<LiveTestScreen>
           'score': '',
           'course_id': widget.courseId,
         };
-        print('📡 Fetching quiz data with: $data');
         final responseFuture =
             await Authrepository(Api_Client.dio).fetchQuizQuestion(data);
         final Map<String, dynamic> apiResponse =
@@ -134,7 +133,6 @@ class _LiveTestScreenState extends State<LiveTestScreen>
         break;
       } catch (e) {
         retryCount++;
-        print('❌ Retry $retryCount/$maxRetries failed: $e');
       }
     }
   }
@@ -148,6 +146,21 @@ class _LiveTestScreenState extends State<LiveTestScreen>
     _perQuestionTime = (totalSeconds / totalQuestions).floor().clamp(10, 120);
   }
 
+  // question table's `imgs` and answer table's `img` columns may hold a
+  // plain URL string or (for `imgs`) a JSON array — normalize both to a
+  // single nullable URL so the UI only ever deals with String?.
+  String? _extractImageUrl(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) {
+      final trimmed = raw.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    if (raw is List && raw.isNotEmpty) {
+      return _extractImageUrl(raw.first);
+    }
+    return null;
+  }
+
   void setQuestionFromApi(int index) {
     final question = _questions[index];
     final List answers = question['answers'] ?? [];
@@ -159,7 +172,9 @@ class _LiveTestScreenState extends State<LiveTestScreen>
       _selectedOption = _savedAnswers[index]; // restore saved answer
       _currentQuestionData = {
         'question': question['question_text'],
+        'questionImage': _extractImageUrl(question['imgs']),
         'options': answers.map((a) => a['answer_text']).toList(),
+        'optionImages': answers.map((a) => _extractImageUrl(a['img'])).toList(),
         'correctAnswer': correctIndex == -1 ? 0 : correctIndex,
         'difficulty': question['difficulty_level'] ?? 'Medium',
         'points': question['points'] ?? 0,
@@ -314,9 +329,7 @@ class _LiveTestScreenState extends State<LiveTestScreen>
     };
     try {
       await Authrepository(Api_Client.dio).submitQuizAnswers(data);
-    } catch (e) {
-      print('Submit error: $e');
-    }
+    } catch (e) {}
     Future.delayed(Duration(milliseconds: 500), () => _nextQuestion());
   }
 
@@ -335,9 +348,7 @@ class _LiveTestScreenState extends State<LiveTestScreen>
       final r = await Authrepository(Api_Client.dio).submitQuizAnswers(data);
       if (r.statusCode == 200)
         Future.delayed(Duration(milliseconds: 500), () => _nextQuestion());
-    } catch (e) {
-      print('AutoSubmit error: $e');
-    }
+    } catch (e) {}
   }
 
   void _nextQuestion() {
@@ -871,13 +882,51 @@ class _LiveTestScreenState extends State<LiveTestScreen>
                       fontWeight: FontWeight.w700,
                       height: 1.4),
                 ),
+          if (_currentQuestionData['questionImage'] != null) ...[
+            SizedBox(height: 12),
+            _buildNetworkImage(
+              _currentQuestionData['questionImage'] as String,
+              maxHeight: 220,
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  // Shared network-image renderer for question/option images — shows a
+  // loading spinner while fetching and quietly collapses to nothing if the
+  // URL fails, instead of leaving a broken-image icon in the layout.
+  Widget _buildNetworkImage(String url,
+      {double maxHeight = 140, double borderRadius = 14}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        color: AppColors.greyS1,
+        child: Image.network(
+          url,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return SizedBox(
+              height: maxHeight * 0.6,
+              child: Center(
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: AppColors.tealGreen),
+              ),
+            );
+          },
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
       ),
     );
   }
 
   Widget _buildOptionsSection() {
     final options = _currentQuestionData['options'] as List? ?? [];
+    final optionImages = _currentQuestionData['optionImages'] as List? ?? [];
     final isTranslationAllowed =
         _currentQuestionData['is_translation_allowed'] == '1';
     return Container(
@@ -889,14 +938,15 @@ class _LiveTestScreenState extends State<LiveTestScreen>
               String.fromCharCode(65 + i),
               options[i].toString(),
               i,
-              isTranslationAllowed),
+              isTranslationAllowed,
+              i < optionImages.length ? optionImages[i] as String? : null),
         ),
       ),
     );
   }
 
-  Widget _buildOptionCard(
-      String letter, String text, int index, bool isTranslationAllowed) {
+  Widget _buildOptionCard(String letter, String text, int index,
+      bool isTranslationAllowed, String? imageUrl) {
     bool isSelected = _selectedOption == index;
     Color backgroundColor = AppColors.white;
     Color borderColor = AppColors.greyS300;
@@ -950,22 +1000,33 @@ class _LiveTestScreenState extends State<LiveTestScreen>
             ),
             SizedBox(width: 16),
             Expanded(
-              // Key includes _activeLang — forces rebuild when language changes
-              child: isTranslationAllowed
-                  ? Text(text,
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: textColor,
-                          fontWeight: FontWeight.w600))
-                  : TranslatedText(
-                      text,
-                      key: ValueKey(
-                          'opt_${_activeLang}_${_currentQuestion}_$index'),
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: textColor,
-                          fontWeight: FontWeight.w600),
-                    ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (imageUrl != null) ...[
+                    _buildNetworkImage(imageUrl, maxHeight: 130, borderRadius: 12),
+                    if (text.trim().isNotEmpty) SizedBox(height: 8),
+                  ],
+                  if (text.trim().isNotEmpty)
+                    // Key includes _activeLang — forces rebuild when language changes
+                    isTranslationAllowed
+                        ? Text(text,
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: textColor,
+                                fontWeight: FontWeight.w600))
+                        : TranslatedText(
+                            text,
+                            key: ValueKey(
+                                'opt_${_activeLang}_${_currentQuestion}_$index'),
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: textColor,
+                                fontWeight: FontWeight.w600),
+                          ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1167,8 +1228,6 @@ class _ModelDownloadPopupState extends State<_ModelDownloadPopup>
   late AnimationController _iconCtrl;
   late Animation<double> _iconAnim;
 
-  double _progress = 0.0;
-  Timer? _fakeProgressTimer;
   bool _downloadDone = false;
 
   // ✅ ML code map — popup ko directly chahiye model download ke liye
@@ -1188,19 +1247,6 @@ class _ModelDownloadPopupState extends State<_ModelDownloadPopup>
     _iconAnim = Tween<double>(begin: 0.4, end: 1.0)
         .animate(CurvedAnimation(parent: _iconCtrl, curve: Curves.easeInOut));
 
-    _fakeProgressTimer = Timer.periodic(
-      const Duration(milliseconds: 250),
-      (t) {
-        if (!mounted) return;
-        setState(() {
-          if (!_downloadDone && _progress < 0.88) {
-            _progress += 0.013 + (_progress * 0.007);
-            if (_progress > 0.88) _progress = 0.88;
-          }
-        });
-      },
-    );
-
     _startDownload();
   }
 
@@ -1213,18 +1259,19 @@ class _ModelDownloadPopupState extends State<_ModelDownloadPopup>
       final mlCode = _mlCodeMap[widget.langCode];
       if (mlCode != null) {
         final modelManager = OnDeviceTranslatorModelManager();
-        await modelManager.downloadModel(mlCode);
+        // isWifiRequired: false — package defaults to WiFi-only, which
+        // silently never starts on mobile data. Weak network can also hang
+        // this forever with no error/completion, so bound it with a timeout.
+        await modelManager
+            .downloadModel(mlCode, isWifiRequired: false)
+            .timeout(const Duration(seconds: 30));
       }
-    } catch (e) {
-      print('Download error: $e');
-    }
+    } catch (e) {}
 
     if (!mounted) return;
 
-    _fakeProgressTimer?.cancel();
     setState(() {
       _downloadDone = true;
-      _progress = 1.0;
     });
 
     await Future.delayed(const Duration(milliseconds: 500));
@@ -1238,7 +1285,6 @@ class _ModelDownloadPopupState extends State<_ModelDownloadPopup>
   @override
   void dispose() {
     _iconCtrl.dispose();
-    _fakeProgressTimer?.cancel();
     super.dispose();
   }
 
@@ -1313,7 +1359,7 @@ class _ModelDownloadPopupState extends State<_ModelDownloadPopup>
                         fontSize: 10,
                         color: Colors.white.withOpacity(0.5))),
                 Text(
-                  '${(_progress * 100).toInt()}%',
+                  _downloadDone ? 'Complete' : 'In progress…',
                   style: TextStyle(
                       fontSize: 11,
                       color: _downloadDone
@@ -1326,16 +1372,20 @@ class _ModelDownloadPopupState extends State<_ModelDownloadPopup>
             const SizedBox(height: 6),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                child: LinearProgressIndicator(
-                  value: _progress,
-                  backgroundColor: const Color(0x33FFFFFF),
-                  valueColor:
-                      const AlwaysStoppedAnimation(Color(0xFF14A3A3)),
-                  minHeight: 10,
-                ),
-              ),
+              // No real byte-level progress is exposed by the ML Kit plugin —
+              // showing an indeterminate bar instead of a fabricated %.
+              child: _downloadDone
+                  ? const LinearProgressIndicator(
+                      value: 1.0,
+                      backgroundColor: Color(0x33FFFFFF),
+                      valueColor: AlwaysStoppedAnimation(Color(0xFF14A3A3)),
+                      minHeight: 10,
+                    )
+                  : const LinearProgressIndicator(
+                      backgroundColor: Color(0x33FFFFFF),
+                      valueColor: AlwaysStoppedAnimation(Color(0xFF14A3A3)),
+                      minHeight: 10,
+                    ),
             ),
             const SizedBox(height: 16),
             Container(

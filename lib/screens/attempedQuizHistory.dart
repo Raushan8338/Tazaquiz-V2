@@ -57,7 +57,6 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Error: $e');
       setState(() => _isLoading = false);
     }
   }

@@ -37,9 +37,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     super.initState();
     requestPermission();
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Foreground: ${message.notification?.title}');
-    });
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {});
     _checkloggedin();
 
     _mainController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
@@ -83,28 +81,22 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   Future<void> requestPermission() async {
-    NotificationSettings settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
-    print('Permission: ${settings.authorizationStatus}');
+    await messaging.requestPermission(alert: true, badge: true, sound: true);
   }
 
 
 void _checkloggedin() async {
-  print('🚀 CHECK LOGIN CALLED');
   final bool isLoggedIn = await SessionManager.isLoggedIn();
-  print('🚀 IS LOGGED IN: $isLoggedIn');
 
   if (isLoggedIn) {
     try {
       final user = await SessionManager.getUser();
       final fcmToken = await FirebaseMessaging.instance.getToken();
-      print('✅ USER ID: ${user?.id}');
-      print('✅ FCM TOKEN: $fcmToken');
 
       final response = await Authrepository(Api_Client.dio).checkSession({
         'user_id': user!.id.toString(),
         'device_token': fcmToken ?? '',
       });
-      print('✅ Session response: ${response.data}');
 
       final data = response.data is String
           ? jsonDecode(response.data)
@@ -119,13 +111,10 @@ void _checkloggedin() async {
         );
         return;
       }
-    } catch (e) {
-      print('❌ SESSION ERROR: $e');
-    }
+    } catch (e) {}
   }
 
   Timer(const Duration(seconds: 3), () {
-    print('🚀 TIMER FIRED');
     if (!mounted) return;
     Navigator.pushReplacement(
       context,

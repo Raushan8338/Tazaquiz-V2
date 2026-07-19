@@ -132,9 +132,7 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
       // 🔥 SAFE TOKEN FETCH (non-blocking)
       await Future.delayed(const Duration(seconds: 1));
       fcmToken = await FirebaseMessaging.instance.getToken();
-      print("FCM TOKEN: $fcmToken");
     } catch (e) {
-      print("FCM ERROR: $e");
       fcmToken = null; // 👈 IMPORTANT
     }
     String otp = _otpControllers.map((controller) => controller.text).join();
@@ -151,28 +149,47 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
         'source_url': widget.source_url ?? '',
       };
 
-      final responseFuture = await authRepository.signupVerifyOTP(data);
+      try {
+        final responseFuture = await authRepository.signupVerifyOTP(data);
+        final userJson = responseFuture.data is Map ? responseFuture.data['series'] : null;
 
-      print('Signup Response: ${responseFuture.data}');
-
-      if (responseFuture.statusCode == 200) {
-        setState(() => _isLoading = false);
-        final userJson = responseFuture.data['series'];
-        final user = UserModel.fromJson(userJson);
-        await SessionManager.saveUser(user);
-        if (widget.pageId == 0) {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId: 1)));
+        if (responseFuture.statusCode == 200 && userJson is Map<String, dynamic>) {
+          setState(() => _isLoading = false);
+          final user = UserModel.fromJson(userJson);
+          await SessionManager.saveUser(user);
+          if (widget.pageId == 0) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => MyCoursesSelection(pageId: 1)));
+          } else {
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
+          }
         } else {
-          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false);
-        }
-      } else {
-        setState(() => _isLoading = false);
+          setState(() => _isLoading = false);
 
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: AppRichText.setTextPoppinsStyle(
+                context,
+                'Invalid OTP. Please try again.',
+                12,
+                AppColors.white,
+                FontWeight.normal,
+                1,
+                TextAlign.left,
+                0.0,
+              ),
+              backgroundColor: AppColors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: AppRichText.setTextPoppinsStyle(
               context,
-              'Invalid OTP. Please try again.',
+              'Something went wrong. Please try again.',
               12,
               AppColors.white,
               FontWeight.normal,

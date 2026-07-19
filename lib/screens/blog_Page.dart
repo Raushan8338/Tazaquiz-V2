@@ -52,7 +52,6 @@ class _NewsPageState extends State<NewsPage> with TickerProviderStateMixin {
       final authRepository = Authrepository(Api_Client.dio);
 
       final response = await authRepository.fetchBlogPosts();
-      print('Blog posts response: ${response.data}');
       final data = response.data;
 
       if (data['success'] == true) {

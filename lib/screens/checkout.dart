@@ -24,13 +24,33 @@ import 'package:tazaquiznew/screens/payment_response.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
+class PlanFeatureDisplay {
+  final String text;
+  final bool isIncluded;
+  const PlanFeatureDisplay(this.text, this.isIncluded);
+}
+
 class CheckoutPage extends StatefulWidget {
   final String contentType;
   final String contentId;
   final String package_id;
+  final String? packageName;
+  final String? packageDetails;
+  final List<PlanFeatureDisplay>? packageFeatures;
+  final double? packageOldPrice;
+  final String? courseImage;
 
-  const CheckoutPage({Key? key, required this.contentType, required this.contentId, required this.package_id})
-    : super(key: key);
+  const CheckoutPage({
+    Key? key,
+    required this.contentType,
+    required this.contentId,
+    required this.package_id,
+    this.packageName,
+    this.packageDetails,
+    this.packageFeatures,
+    this.packageOldPrice,
+    this.courseImage,
+  }) : super(key: key);
 
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
@@ -42,6 +62,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
   bool _isLoadingCheckout = true;
   bool _isApplyingCoupon = false;
   bool _isWebCheckoutOpen = false;
+  bool _courseImageFailed = false;
 
   CheckoutModel? checkoutData;
   CheckoutModel? originalCheckoutData;
@@ -210,6 +231,8 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
       'name': _user?.username,
       'email': _user?.email,
       'phone': _user?.phone,
+      'coupon_code': appliedCouponCode ?? '',
+      'coupon_discount': couponDiscount?.toString() ?? '',
     };
 
     final responseCreate = await authRepository.createPaymentOrder(data);
@@ -299,8 +322,22 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
           ),
         );
       } 
-      else if (resp['order_status'] == 'PENDING') {
-        // ✅ Pending dikhao — webhook handle karega
+      else if (resp['order_status'] == 'FAILED') {
+        // ✅ Sirf backend explicitly FAILED bole tabhi Failed dikhao
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentStatusScreen(
+              amount: resp['cf_response']?['order_amount']?.toString() ?? '',
+              status: PaymentStatus.failed,
+              orderId: resp['payment_id']?.toString() ?? '',
+              paymentMethod: resp['payment_method']?.toString() ?? '',
+            ),
+          ),
+        );
+      }
+      else {
+        // PENDING ya koi bhi unknown status — Failed mat bolo, Pending dikhao
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -313,20 +350,9 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
           ),
         );
       }
-      else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PaymentStatusScreen(
-              amount: resp['cf_response']?['order_amount']?.toString() ?? '',
-              status: PaymentStatus.failed,
-              orderId: resp['payment_id']?.toString() ?? '',
-              paymentMethod: resp['payment_method']?.toString() ?? '',
-            ),
-          ),
-        );
-      }
     } catch (e) {
+      // Network/timeout error — humein actually pata nahi ki payment fail
+      // hui ya nahi, isliye Failed nahi, Pending dikhao.
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -335,7 +361,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
               orderId: orderId,
               amount: '',
               paymentMethod: '',
-              status: PaymentStatus.failed,
+              status: PaymentStatus.pending,
             ),
           ),
         );
@@ -360,6 +386,24 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
     final gstAmount = _getGstAmount();
     return priceAfterDiscount + gstAmount;
   }
+
+  // Reference base price: package MRP (if it's higher than the current base
+  // price) so the plan's own discount always shows, even without a coupon.
+  double _getReferenceBasePrice() {
+    if (originalCheckoutData == null) return 0;
+    final basePrice = originalCheckoutData!.basePrice;
+    if (widget.packageOldPrice != null && widget.packageOldPrice! > basePrice) {
+      return widget.packageOldPrice!;
+    }
+    return basePrice;
+  }
+
+  // Shown as the struck-through "original price" — plain MRP, no GST added,
+  // so it stays simple next to the GST-inclusive final price and doesn't
+  // confuse users about what the tax breakdown means.
+  double _getOriginalTotal() => _getReferenceBasePrice();
+
+  bool get _hasDiscount => _getOriginalTotal() > _getFinalPrice();
 
   // ─────────────────────────────────────────────────────────────────
   // BUILD — sirf UI changes hain yahan se
@@ -447,6 +491,12 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                     _buildOrderSummary(),
                     const SizedBox(height: 16),
                     _buildCouponSection(),
+                    if (_displayFeatures.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _buildPlanDetailsSection(),
+                    ],
+                    const SizedBox(height: 16),
+                    _buildTrustRow(),
                     const SizedBox(height: 100),
                   ]),
                 ),
@@ -526,82 +576,168 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
     );
   }
 
+  List<PlanFeatureDisplay> get _displayFeatures =>
+      (widget.packageFeatures ?? []).where((f) => f.text.trim().isNotEmpty).toList();
+
+  Widget _buildCourseLogo() {
+    final String? imageUrl = widget.courseImage?.trim();
+    final bool hasImage = imageUrl != null && imageUrl.isNotEmpty && !_courseImageFailed;
+
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: hasImage
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                imageUrl,
+                width: 58,
+                height: 58,
+                fit: BoxFit.cover,
+                alignment: Alignment.centerLeft,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white70)),
+                    ),
+                  );
+                },
+                errorBuilder: (_, __, ___) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted && !_courseImageFailed) {
+                      setState(() => _courseImageFailed = true);
+                    }
+                  });
+                  return const Icon(Icons.school_rounded, color: Colors.white, size: 27);
+                },
+              ),
+            )
+          : const Icon(Icons.school_rounded, color: Colors.white, size: 27),
+    );
+  }
+
   Widget _buildOrderSummary() {
     if (checkoutData == null) return const SizedBox.shrink();
+
+    final bool hasCoupon = appliedCouponCode != null && couponDiscount != null;
+    final String displayCourseName = checkoutData!.title;
+    final String displayPackageLabel =
+        (widget.packageName?.trim().isNotEmpty ?? false) ? widget.packageName!.trim() : checkoutData!.description;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFF)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE8ECF5), width: 1),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 5)),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
       child: Column(children: [
         Container(
-          height: 5,
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
           decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)],
+            ),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Container(
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 16),
               ),
               const SizedBox(width: 10),
-              const Text('Order Summary',
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.darkNavy,
-                      fontFamily: 'Poppins')),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Order Summary',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          fontFamily: 'Poppins')),
+                  const SizedBox(height: 2),
+                  Text('Clean, secure, and ready to checkout',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withOpacity(0.75),
+                          fontFamily: 'Poppins')),
+                ]),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.lock_rounded, color: Colors.white, size: 12),
+                  const SizedBox(width: 4),
+                  Text('Secure',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          fontFamily: 'Poppins')),
+                ]),
+              ),
             ]),
-
-            const SizedBox(height: 16),
-
-            // Product card
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F2F8),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: AppColors.tealGreen.withOpacity(0.15), width: 1.5),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF0A1628).withOpacity(0.05),
+                    const Color(0xFF0D4B3B).withOpacity(0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF0D4B3B).withOpacity(0.13), width: 1),
               ),
               child: Row(children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 28),
-                ),
+                _buildCourseLogo(),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(checkoutData!.title,
+                    Text(displayCourseName,
                         style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.w800,
                             color: AppColors.darkNavy,
                             fontFamily: 'Poppins',
@@ -610,15 +746,15 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                         overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.tealGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        color: AppColors.tealGreen.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(checkoutData!.description,
+                      child: Text(displayPackageLabel,
                           style: const TextStyle(
                               fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                               color: AppColors.tealGreen,
                               fontFamily: 'Poppins'),
                           maxLines: 10,
@@ -629,73 +765,142 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
               ]),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            // Price breakdown
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8F9FC),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200, width: 1),
               ),
               child: Column(children: [
+                if (_getReferenceBasePrice() > originalCheckoutData!.basePrice) ...[
+                  _buildPriceRow(
+                    'Original Price',
+                    '₹${_getReferenceBasePrice().toStringAsFixed(2)}',
+                    false,
+                    color: Colors.grey.shade400,
+                    icon: Icons.sell_outlined,
+                    strikethrough: true,
+                  ),
+                  const SizedBox(height: 10),
+                  Divider(color: Colors.grey.shade200, height: 1),
+                  const SizedBox(height: 10),
+                ],
                 _buildPriceRow(
-                    'Base Price',
-                    '₹${originalCheckoutData!.basePrice.toStringAsFixed(2)}',
-                    false),
+                  'Current Price',
+                  '₹${originalCheckoutData!.basePrice.toStringAsFixed(2)}',
+                  false,
+                  icon: Icons.sell_outlined,
+                ),
 
-                if (appliedCouponCode != null && couponDiscount != null) ...[
-                  const SizedBox(height: 12),
+                if (hasCoupon) ...[
+                  const SizedBox(height: 10),
+                  Divider(color: Colors.grey.shade200, height: 1),
+                  const SizedBox(height: 10),
                   _buildPriceRow(
                     'Discount ($appliedCouponCode)',
                     '- ₹${couponDiscount!.toStringAsFixed(2)}',
                     false,
                     color: AppColors.tealGreen,
+                    icon: Icons.local_offer_rounded,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
+                  Divider(color: Colors.grey.shade200, height: 1),
+                  const SizedBox(height: 10),
                   _buildPriceRow(
                     'Price after Discount',
                     '₹${_getPriceAfterDiscount().toStringAsFixed(2)}',
                     false,
                     color: AppColors.darkNavy,
+                    icon: Icons.trending_down_rounded,
                   ),
                 ],
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
+                Divider(color: Colors.grey.shade200, height: 1),
+                const SizedBox(height: 10),
                 _buildPriceRow(
                   'GST (${originalCheckoutData!.gstRate}%)',
                   '₹${_getGstAmount().toStringAsFixed(2)}',
                   false,
+                  icon: Icons.receipt_outlined,
                 ),
 
                 const SizedBox(height: 14),
-                Divider(color: Colors.grey.shade200, height: 1),
-                const SizedBox(height: 14),
 
-                // Total highlighted
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                        colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)]),
-                    borderRadius: BorderRadius.circular(12),
+                      colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0D4B3B).withOpacity(0.25),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.account_balance_wallet_rounded,
+                              color: Colors.white, size: 14),
+                        ),
+                        const SizedBox(width: 8),
                         const Text('Total Amount',
                             style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                                 color: Colors.white,
                                 fontFamily: 'Poppins')),
+                      ]),
+                      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                     
+                       
                         Text('₹${_getFinalPrice().toStringAsFixed(2)}',
                             style: const TextStyle(
-                                fontSize: 22,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w900,
                                 color: Colors.white,
                                 fontFamily: 'Poppins')),
                       ]),
+                    ],
+                  ),
+                ),
+                
+              ]),
+            ),
+
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.tealGreen.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(children: [
+                Icon(Icons.verified_rounded, size: 16, color: AppColors.tealGreen),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Safe checkout with trusted payment processing and instant access after payment.',
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.greyS700,
+                          fontFamily: 'Poppins')),
                 ),
               ]),
             ),
@@ -705,27 +910,198 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildPriceRow(String label, String value, bool isBold, {Color? color}) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+  Widget _buildTrustRow() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Row(children: [
+        Expanded(child: _buildTrustItem(Icons.flash_on_rounded, 'Instant\nAccess')),
+        _trustDivider(),
+        Expanded(child: _buildTrustItem(Icons.shield_outlined, 'Encrypted\nPayment')),
+        _trustDivider(),
+        Expanded(child: _buildTrustItem(Icons.support_agent_rounded, '24/7\nSupport')),
+      ]),
+    );
+  }
+
+  Widget _trustDivider() => Container(width: 1, height: 32, color: Colors.grey.shade200);
+
+  Widget _buildTrustItem(IconData icon, String label) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: AppColors.tealGreen.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, size: 15, color: AppColors.tealGreen),
+      ),
+      const SizedBox(height: 6),
       Text(label,
+          textAlign: TextAlign.center,
           style: TextStyle(
-              fontSize: isBold ? 15 : 13,
-              fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
-              color: color ?? (isBold ? AppColors.darkNavy : AppColors.greyS700),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              height: 1.2,
+              color: AppColors.greyS700,
               fontFamily: 'Poppins')),
+    ]);
+  }
+
+  Widget _buildPlanDetailsSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: _buildFeaturesCard(_displayFeatures),
+    );
+  }
+
+  Widget _buildFeaturesCard(List<PlanFeatureDisplay> features) {
+    final sorted = [...features]..sort((a, b) => (b.isIncluded ? 1 : 0) - (a.isIncluded ? 1 : 0));
+    final includedCount = features.where((f) => f.isIncluded).length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.tealGreen.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.tealGreen.withOpacity(0.18), width: 1),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.tealGreen.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.stars_rounded, size: 14, color: AppColors.tealGreen),
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text("Plan Details",
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.darkNavy,
+                    fontFamily: 'Poppins')),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.tealGreen.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text('$includedCount/${features.length} included',
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.tealGreen,
+                    fontFamily: 'Poppins')),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        _buildFeatureChipsGrid(sorted),
+      ]),
+    );
+  }
+
+  Widget _buildFeatureChipsGrid(List<PlanFeatureDisplay> features) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final w = (constraints.maxWidth - 8) / 2;
+      final List<Widget> rows = [];
+      for (int i = 0; i < features.length; i += 2) {
+        if (rows.isNotEmpty) rows.add(const SizedBox(height: 8));
+        rows.add(Row(children: [
+          _buildFeatureChip(features[i], w),
+          const SizedBox(width: 8),
+          if (i + 1 < features.length) _buildFeatureChip(features[i + 1], w) else SizedBox(width: w),
+        ]));
+      }
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
+    });
+  }
+
+  Widget _buildFeatureChip(PlanFeatureDisplay feature, double width) {
+    final Color color = feature.isIncluded ? AppColors.tealGreen : Colors.grey.shade400;
+    return SizedBox(
+      width: width,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+        decoration: BoxDecoration(
+          color: feature.isIncluded ? AppColors.tealGreen.withOpacity(0.10) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: feature.isIncluded ? AppColors.tealGreen.withOpacity(0.25) : Colors.grey.shade200, width: 1),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Icon(feature.isIncluded ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 13, color: color),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(feature.text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: feature.isIncluded ? AppColors.darkNavy : Colors.grey.shade400,
+                    decoration: feature.isIncluded ? TextDecoration.none : TextDecoration.lineThrough,
+                    fontFamily: 'Poppins')),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(String label, String value, bool isBold,
+      {Color? color, IconData? icon, bool strikethrough = false}) {
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Expanded(
+        child: Row(children: [
+          if (icon != null) ...[
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: (color ?? AppColors.tealGreen).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 13, color: color ?? AppColors.tealGreen),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: isBold ? 15 : 13,
+                    fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
+                    color: color ?? (isBold ? AppColors.darkNavy : AppColors.greyS700),
+                    fontFamily: 'Poppins'),
+                overflow: TextOverflow.ellipsis),
+          ),
+        ]),
+      ),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: color != null
-              ? color.withOpacity(0.08)
-              : Colors.grey.shade100,
+          color: color != null ? color.withOpacity(0.08) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(value,
             style: TextStyle(
-                fontSize: isBold ? 20 : 13,
+                fontSize: isBold ? 16 : 13,
                 fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
                 color: color ?? (isBold ? AppColors.darkNavy : AppColors.greyS800),
+                decoration: strikethrough ? TextDecoration.lineThrough : TextDecoration.none,
                 fontFamily: 'Poppins')),
       ),
     ]);
@@ -964,7 +1340,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                       color: AppColors.darkNavy,
                       fontFamily: 'Poppins')),
             ]),
-            if (appliedCouponCode != null)
+            if (_hasDiscount)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -975,7 +1351,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                   const Icon(Icons.savings_outlined,
                       size: 14, color: AppColors.tealGreen),
                   const SizedBox(width: 5),
-                  Text('Saved ₹${couponDiscount!.toStringAsFixed(2)}',
+                  Text('Saved ₹${(_getOriginalTotal() - _getFinalPrice()).toStringAsFixed(2)}',
                       style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,

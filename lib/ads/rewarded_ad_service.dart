@@ -13,18 +13,14 @@ class RewardedAdService {
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
           _rewardedAd = ad;
-          print('✅ Rewarded Ad Loaded');
         },
-        onAdFailedToLoad: (error) {
-          print('❌ Failed to load: ${error.message}');
-        },
+        onAdFailedToLoad: (error) {},
       ),
     );
   }
 
   void showAd(VoidCallback onReward) {
     if (_rewardedAd == null) {
-      print('⚠️ Ad not ready');
       return;
     }
 

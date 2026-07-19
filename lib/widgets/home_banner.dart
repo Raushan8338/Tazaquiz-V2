@@ -30,6 +30,9 @@ class _HomeBannerState extends State<HomeBanner> {
 
   void _startBannerAutoPlay() {
     _bannerTimer = Timer.periodic(Duration(seconds: 4), (timer) {
+      if (widget.imgLists.isEmpty || !_bannerController.hasClients) {
+        return;
+      }
       if (_currentBannerIndex < widget.imgLists.length - 1) {
         _currentBannerIndex++;
       } else {

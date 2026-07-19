@@ -116,6 +116,21 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
     setState(() => _isLoading = false);
   }
 
+  // question table's `imgs` and answer table's `img` columns may hold a
+  // plain URL string or (for `imgs`) a JSON array — normalize both to a
+  // single nullable URL so the UI only ever deals with String?.
+  String? _extractImageUrl(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) {
+      final trimmed = raw.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    if (raw is List && raw.isNotEmpty) {
+      return _extractImageUrl(raw.first);
+    }
+    return null;
+  }
+
   void setQuestionFromApi(int index) {
     final question = _questions[index];
     final List answers = question['answers'] ?? [];
@@ -127,7 +142,9 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
       _selectedOption = _savedAnswers[index];
       _currentQuestionData = {
         'question': question['question_text'],
+        'questionImage': _extractImageUrl(question['imgs']),
         'options': answers.map((a) => a['answer_text']).toList(),
+        'optionImages': answers.map((a) => _extractImageUrl(a['img'])).toList(),
         'correctAnswer': correctIndex == -1 ? 0 : correctIndex,
         'difficulty': question['difficulty_level'] ?? 'Medium',
         'points': question['points'] ?? 0,
@@ -180,6 +197,15 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             barrierDismissible: false,
             builder: (_) => _ModelDownloadPopup(langName: langName),
           );
+          try {
+            // Actually wait for the model to download (isWifiRequired: false
+            // so it works on mobile data too) — otherwise the dialog just
+            // flashes and closes instantly since setLanguage() itself
+            // doesn't download anything.
+            await modelManager
+                .downloadModel(mlCode, isWifiRequired: false)
+                .timeout(const Duration(seconds: 30));
+          } catch (e) {}
           await TranslationService.instance.setLanguage(code);
           if (mounted) Navigator.of(context, rootNavigator: true).pop();
         } else {
@@ -350,9 +376,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
           'is_correct': isCorrect ? '1' : '0',
           'time_spent': '1',
         });
-      } catch (e) {
-        print('Error Q$i: $e');
-      }
+      } catch (e) {}
       setState(() {
         _submittedCount = i + 1;
         _submitProgress = (i + 1) / totalQuestions;
@@ -400,7 +424,6 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
         );
       }
     } catch (e) {
-      print('Error final submit: $e');
       if (mounted) {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(
@@ -945,26 +968,64 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                 key: ValueKey('mock_q_${_effectiveLang}_$_currentQuestion'),
                 style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700, height: 1.4),
               ),
+          if (_currentQuestionData['questionImage'] != null) ...[
+            const SizedBox(height: 12),
+            _buildNetworkImage(_currentQuestionData['questionImage'] as String, maxHeight: 220),
+          ],
         ],
+      ),
+    );
+  }
+
+  // Shared network-image renderer for question/option images — shows a
+  // loading spinner while fetching and quietly collapses to nothing if the
+  // URL fails, instead of leaving a broken-image icon in the layout.
+  Widget _buildNetworkImage(String url, {double maxHeight = 140, double borderRadius = 14}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        color: AppColors.greyS1,
+        child: Image.network(
+          url,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return SizedBox(
+              height: maxHeight * 0.6,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.tealGreen)),
+            );
+          },
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
       ),
     );
   }
 
   Widget _buildOptionsSection() {
     final options = _currentQuestionData['options'] as List? ?? [];
+    final optionImages = _currentQuestionData['optionImages'] as List? ?? [];
     final isTranslationAllowed = _currentQuestionData['is_translation_allowed'] == '1';
     return Container(
       margin: EdgeInsets.all(16),
       child: Column(
         children: List.generate(
           options.length,
-          (i) => _buildOptionCard(String.fromCharCode(65 + i), options[i].toString(), i, isTranslationAllowed),
+          (i) => _buildOptionCard(
+            String.fromCharCode(65 + i),
+            options[i].toString(),
+            i,
+            isTranslationAllowed,
+            i < optionImages.length ? optionImages[i] as String? : null,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildOptionCard(String letter, String text, int index, bool isTranslationAllowed) {
+  Widget _buildOptionCard(
+      String letter, String text, int index, bool isTranslationAllowed, String? imageUrl) {
     bool isSelected = _selectedOption == index;
     bool isSaved = _savedAnswers[_currentQuestion] == index;
     Color backgroundColor = AppColors.white, borderColor = AppColors.greyS200, letterBgColor = AppColors.greyS1;
@@ -1016,18 +1077,28 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
             ),
             const SizedBox(width: 12),
             Expanded(
-              // ── ONLY option text translates ──────────────────────────────
-              child:
-                  isTranslationAllowed
-                      ? Text(
-                        text,
-                        style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w500),
-                      )
-                      : TranslatedText(
-                        text,
-                        key: ValueKey('mock_opt_${_effectiveLang}_${_currentQuestion}_$index'),
-                        style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w500),
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (imageUrl != null) ...[
+                    _buildNetworkImage(imageUrl, maxHeight: 130, borderRadius: 12),
+                    if (text.trim().isNotEmpty) const SizedBox(height: 8),
+                  ],
+                  if (text.trim().isNotEmpty)
+                    // ── ONLY option text translates ──────────────────────
+                    isTranslationAllowed
+                        ? Text(
+                          text,
+                          style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w500),
+                        )
+                        : TranslatedText(
+                          text,
+                          key: ValueKey('mock_opt_${_effectiveLang}_${_currentQuestion}_$index'),
+                          style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w500),
+                        ),
+                ],
+              ),
             ),
             if (isSaved)
               Container(

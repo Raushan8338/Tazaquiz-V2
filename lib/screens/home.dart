@@ -79,11 +79,15 @@ class _HomePageState extends State<HomePage> {
   Future<void> _refreshHome() async => await _loadHome();
 
   Future<void> _getUserData() async {
-    _user = await SessionManager.getUser();
-    setState(() {});
-    getNotificationCount();
-    await getDailyQuizCheckHome();
-     _app_future();
+    try {
+      _user = await SessionManager.getUser();
+      setState(() {});
+      getNotificationCount();
+      await getDailyQuizCheckHome();
+      _app_future();
+    } catch (e) {
+      // User session failed to load — home still renders in logged-out state.
+    }
   }
   // HomePage ke _HomePageState mein isPremium add karo:
 bool isPremium = false; // ya API se fetch karo
@@ -92,28 +96,30 @@ bool isPremium = false; // ya API se fetch karo
  List<Map<String, dynamic>> actions=[];
 
 Future<void> _app_future() async {
-  Authrepository authRepository = Authrepository(Api_Client.dio);
+  try {
+    Authrepository authRepository = Authrepository(Api_Client.dio);
 
-  final responseFuture = await authRepository.fetchAppFeatures();
+    final responseFuture = await authRepository.fetchAppFeatures();
 
-  final Map<String, dynamic> apiResponse =
-      responseFuture.data is String
-          ? jsonDecode(responseFuture.data)
-          : responseFuture.data;
+    final Map<String, dynamic> apiResponse =
+        responseFuture.data is String
+            ? jsonDecode(responseFuture.data)
+            : responseFuture.data;
 
-  if (apiResponse['success'] == true) {
-    final List list = apiResponse['package_features'] ?? [];
-    print("Package Features from API:");
-    print(list);
+    if (apiResponse['success'] == true) {
+      final List list = apiResponse['package_features'] ?? [];
 
-    final features = list
-        .map((e) => PackageFeatureItem.fromJson(e))
-        .toList();
+      final features = list
+          .map((e) => PackageFeatureItem.fromJson(e))
+          .toList();
 
-    // ✅ yaha set karna hai
-    setActionsFromApi(features);
+      // ✅ yaha set karna hai
+      setActionsFromApi(features);
 
-    setState(() {}); // UI refresh
+      setState(() {}); // UI refresh
+    }
+  } catch (e) {
+    // Feature actions row is non-critical — silently skip on failure.
   }
 }
 void setActionsFromApi(List<PackageFeatureItem> features) {
@@ -164,102 +170,123 @@ IconData _getIcon(String text) {
 }
 
   Future<void> fetchNoticeBoard() async {
-    Authrepository authRepository = Authrepository(Api_Client.dio);
-    final responseFuture = await authRepository.fetchNoticeBord();
-    final Map<String, dynamic> apiResponse =
-        responseFuture.data is String ? jsonDecode(responseFuture.data) : responseFuture.data;
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final responseFuture = await authRepository.fetchNoticeBord();
+      final Map<String, dynamic> apiResponse =
+          responseFuture.data is String ? jsonDecode(responseFuture.data) : responseFuture.data;
 
-    // if (apiResponse['success'] == true) {
-    setState(() {
-      noticeMessage = apiResponse['message'] ?? '';
-    });
-    print("Notice Board Message:");
-    // }
+      // if (apiResponse['success'] == true) {
+      setState(() {
+        noticeMessage = apiResponse['message'] ?? '';
+      });
+      // }
+    } catch (e) {
+      // Notice board is non-critical — silently skip on failure.
+    }
   }
 
   Future<void> getDailyQuizCheckHome() async {
-    Authrepository authRepository = Authrepository(Api_Client.dio);
-    final data = {'user_id': _user?.id};
-    final responseFuture = await authRepository.fetchDailyQuizCheckHome(data);
-    final Map<String, dynamic> apiResponse =
-        responseFuture.data is String ? jsonDecode(responseFuture.data) : responseFuture.data;
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final data = {'user_id': _user?.id};
+      final responseFuture = await authRepository.fetchDailyQuizCheckHome(data);
+      final Map<String, dynamic> apiResponse =
+          responseFuture.data is String ? jsonDecode(responseFuture.data) : responseFuture.data;
 
-    if (apiResponse['success'] == true) {
-      final d = apiResponse['data'];
-      setState(() {
-        _quizTitle = d['title'] ?? "Today's Quiz";
-        _quizSubtitle = d['subtitle'] ?? '';
-        _quizTotalQuestions = d['total_questions'] ?? 0;
-        _quizTimeMinutes = d['time_minutes'] ?? 0;
-        _quizAlreadyDone = d['already_done'] ?? false;
-      });
+      if (apiResponse['success'] == true) {
+        final d = apiResponse['data'];
+        setState(() {
+          _quizTitle = d['title'] ?? "Today's Quiz";
+          _quizSubtitle = d['subtitle'] ?? '';
+          _quizTotalQuestions = d['total_questions'] ?? 0;
+          _quizTimeMinutes = d['time_minutes'] ?? 0;
+          _quizAlreadyDone = d['already_done'] ?? false;
+        });
+      }
+    } catch (e) {
+      // Daily quiz card is non-critical — silently skip on failure.
     }
   }
 
   Future<void> getAppBanner() async {
-    final authRepository = Authrepository(Api_Client.dio);
-    final response = await authRepository.fetchAppBanner();
-    final jsonResponses = jsonDecode(response.data);
-    _banners = jsonResponses['slider'] ?? [];
-    setState(() {});
+    try {
+      final authRepository = Authrepository(Api_Client.dio);
+      final response = await authRepository.fetchAppBanner();
+      final jsonResponses = jsonDecode(response.data);
+      _banners = jsonResponses['slider'] ?? [];
+      setState(() {});
+    } catch (e) {
+      // Banner is non-critical — silently skip on failure.
+    }
   }
 
   Future<void> getNotificationCount() async {
-    final authRepository = Authrepository(Api_Client.dio);
-    final data = {'user_id': _user?.id};
-    final response = await authRepository.fetchNotificationCount(data);
-    final jsonResponses = jsonDecode(response.data);
-    setState(() {
-      notificationCount = jsonResponses['count'] ?? 0;
-    });
+    try {
+      final authRepository = Authrepository(Api_Client.dio);
+      final data = {'user_id': _user?.id};
+      final response = await authRepository.fetchNotificationCount(data);
+      final jsonResponses = jsonDecode(response.data);
+      setState(() {
+        notificationCount = jsonResponses['count'] ?? 0;
+      });
+    } catch (e) {
+      // Notification count is non-critical — silently skip on failure.
+    }
   }
 
   Future<void> getNewsPoints() async {
-    final authRepository = Authrepository(Api_Client.dio);
+    try {
+      final authRepository = Authrepository(Api_Client.dio);
 
-    final response = await authRepository.fetchDailyNewsPoints();
+      final response = await authRepository.fetchDailyNewsPoints();
 
-    var jsonResponses = response.data;
+      var jsonResponses = response.data;
 
-    setState(() {
-      dailyNews = DailyNewsModel.fromJson(jsonResponses);
-    });
-
-    print(dailyNews!.points.length);
+      setState(() {
+        dailyNews = DailyNewsModel.fromJson(jsonResponses);
+      });
+    } catch (e) {
+      // Daily news is non-critical — silently skip on failure.
+    }
   }
 
   Future<void> get_home_page_data() async {
-    final authRepository = Authrepository(Api_Client.dio);
-    final data_user = {'user_id': _user?.id};
-    final response = await authRepository.fetchHomePageData(data_user);
+    try {
+      final authRepository = Authrepository(Api_Client.dio);
+      final data_user = {'user_id': _user?.id};
+      final response = await authRepository.fetchHomePageData(data_user);
 
-    if (response.statusCode == 200) {
-      HomeDataResponse res = HomeDataResponse.fromJson(response.data);
-      homePageItemData = res.data;
+      if (response.statusCode == 200) {
+        HomeDataResponse res = HomeDataResponse.fromJson(response.data);
+        homePageItemData = res.data;
 
-      liveTests.clear();
-      mockTests.clear(); // 👈 add karo
-      popularCourses.clear();
-      coachingProfiles.clear();
+        liveTests.clear();
+        mockTests.clear(); // 👈 add karo
+        popularCourses.clear();
+        coachingProfiles.clear();
 
-      for (var section in homePageItemData) {
-        switch (section.section) {
-          case 'quiz':
-            quizSection = section;
-            final allQuizzes = section.items.cast<QuizItem>();
-            liveTests = allQuizzes.where((q) => q.pageType ==7 ).toList();
-           
-          case 'course':
-            courseSection = section;
-            popularCourses = section.items.cast<CourseItem>();
-            break;
-          case 'coaching':
-            coachingSection = section;
-            coachingProfiles = section.items.cast<CoachingItem>();
-            break;
+        for (var section in homePageItemData) {
+          switch (section.section) {
+            case 'quiz':
+              quizSection = section;
+              final allQuizzes = section.items.cast<QuizItem>();
+              liveTests = allQuizzes.where((q) => q.pageType ==7 ).toList();
+
+            case 'course':
+              courseSection = section;
+              popularCourses = section.items.cast<CourseItem>();
+              break;
+            case 'coaching':
+              coachingSection = section;
+              coachingProfiles = section.items.cast<CoachingItem>();
+              break;
+          }
         }
+        setState(() {});
       }
-      setState(() {});
+    } catch (e) {
+      // Home feed failed to load — leave existing/empty state, no crash.
     }
   }
 

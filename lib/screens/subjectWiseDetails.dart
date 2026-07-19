@@ -151,8 +151,6 @@ class _SubjectContentPageState extends State<SubjectContentPage>
         'user_id': _user!.id.toString(),
         if (topicId != 0) 'topic_id': topicId.toString(),
       };
-      print('fetchStudyCategory data: $data');
-
       final responseFuture =
           await authRepository.fetch_non_paid_materials(data);
 

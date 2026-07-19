@@ -13,11 +13,9 @@ class BannerAdService {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          print('✅ Banner Ad Loaded');
           onLoaded();
         },
         onAdFailedToLoad: (ad, error) {
-          print('❌ Banner failed: ${error.message}');
           ad.dispose();
         },
       ),

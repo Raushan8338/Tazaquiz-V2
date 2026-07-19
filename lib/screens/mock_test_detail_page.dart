@@ -132,7 +132,7 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
 
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
-    await fetchQuizDetails(_user!.id);
+    await fetchQuizDetails(_user?.id ?? '');
     if (!mounted) return;
     _fadeController.forward();
     setState(() {});
@@ -142,7 +142,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString(), 'course_id': widget.courseId.toString()};
-      print('Fetching mock test details: $data');
       final responseFuture = await authRepository.get_quizId_wise_details(data);
 
       if (responseFuture.statusCode == 200) {
@@ -163,7 +162,6 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Error fetching mock test details: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -1616,7 +1614,7 @@ Widget _buildBottomBar() {
           MaterialPageRoute(
             builder: (_) => QuizReviewPage(
               attemptId: quiz.completedAttemptId ?? 0,
-              userId: int.tryParse(_user!.id.toString()) ?? 0,
+              userId: int.tryParse(_user?.id.toString() ?? '') ?? 0,
               quizTitle: quiz.title,
               pageType: 4,
             ),

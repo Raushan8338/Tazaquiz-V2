@@ -89,9 +89,7 @@ class _ReferralListPageState extends State<ReferralListPage> {
       } else {
         return [];
       }
-    } catch (e, stackTrace) {
-      print('Error fetching referral list: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       return [];
     }
   }

@@ -139,7 +139,16 @@ class TranslationService {
 
   Future<void> _ensureModel(TranslateLanguage lang) async {
     final isDownloaded = await _modelManager.isModelDownloaded(lang.bcpCode);
-    if (!isDownloaded) await _modelManager.downloadModel(lang.bcpCode);
+    // isWifiRequired defaults to true in the plugin — that silently never
+    // starts the download at all on mobile data. Also, the download has no
+    // built-in timeout, so a weak/unstable network can hang it indefinitely;
+    // bound it so callers' try/catch can recover instead of the whole
+    // translation pipeline getting stuck forever.
+    if (!isDownloaded) {
+      await _modelManager
+          .downloadModel(lang.bcpCode, isWifiRequired: false)
+          .timeout(const Duration(seconds: 30));
+    }
   }
 
   TranslateLanguage? _mlKitLang(String code) {

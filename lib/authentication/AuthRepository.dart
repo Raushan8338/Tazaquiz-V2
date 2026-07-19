@@ -99,6 +99,8 @@ class Authrepository {
       options: Options(
         contentType: Headers.formUrlEncodedContentType,
         responseType: ResponseType.json, // ✅ auto Map conversion
+        sendTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
   }

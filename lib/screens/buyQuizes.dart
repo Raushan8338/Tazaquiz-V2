@@ -184,7 +184,6 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
       _fadeController.forward();
       setState(() {});
     } catch (e) {
-      print('getUserData error: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -205,22 +204,15 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'quiz_id': widget.quizId.toString(), 'user_id': userid.toString(), 'course_id': widget.courseId.toString()};
-      print('Fetching quiz details with data: $data');
 
       final responseFuture = await authRepository
           .get_quizId_wise_details(data)
           .timeout(const Duration(seconds: 15), onTimeout: () => throw TimeoutException('Request timed out'));
 
-       print('Quiz details response: ${responseFuture.data}');
-
       if (responseFuture.statusCode == 200) {
         final responseData = responseFuture.data;
         if (responseData['status'] == true && responseData['data'] != null) {
           _currentQuiz = QuizItem.fromJson(responseData['data']);
-             print('isPurchased: ${responseData['data']['isPurchased']}');
-print('c: ${responseData['data']['isAccessible']}');
-print('access_status: ${responseData['data']['access_status']}');
-print('access_error: ${responseData['data']['access_error']}');
           setState(() {
             _isPurchased = _currentQuiz!.isPurchased;
             _isAccessible = _currentQuiz!.accessStatus;
@@ -256,7 +248,6 @@ print('access_error: ${responseData['data']['access_error']}');
         });
       }
     } on TimeoutException {
-      print('Quiz fetch timed out');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -265,7 +256,6 @@ print('access_error: ${responseData['data']['access_error']}');
         });
       }
     } catch (e) {
-      print('Error fetching quiz details: $e');
       final msg = e.toString().toLowerCase();
       if (mounted) {
         setState(() {
@@ -1495,6 +1485,9 @@ print('access_error: ${responseData['data']['access_error']}');
   }
 
   Widget _buildBannerAd() {
+    if (!isBannerLoaded || bannerService.bannerAd == null) {
+      return const SizedBox.shrink();
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: ClipRRect(

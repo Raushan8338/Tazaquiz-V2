@@ -209,7 +209,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         'user_id': userid.toString(),
         'page_API_call': widget.page_API_call,
       };
-      print('Fetching study material with data: $data');
       final responseFuture = await authRepository
           .get_study_wise_details(data)
           .timeout(const Duration(seconds: 15), onTimeout: () => throw TimeoutException('Request timed out'));
@@ -299,6 +298,15 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
               contentType: 'Subscription',
               contentId: _currentMaterial!.subscription_id.toString(),
               package_id: _selectedPackage?.packageId.toString() ?? '',
+              packageName: _selectedPackage?.name,
+              packageDetails: _selectedPackage != null
+                  ? '${_selectedPackage!.name} • ${_selectedPackage!.validityDays} Days • ₹${_selectedPackage!.price.toStringAsFixed(0)}'
+                  : null,
+              packageFeatures: _selectedPackage?.features
+                  .map((f) => PlanFeatureDisplay(f.text, f.isIncluded))
+                  .toList(),
+              packageOldPrice: _selectedPackage?.oldPrice,
+              courseImage: _currentMaterial!.thumbnail,
             ),
       ),
     );
@@ -1243,7 +1251,6 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
 
   // ── Content Sections ────────────────────────────────────────────────────────
   Widget _contentSectionsCard() {
-    print('Creating content sections card for material: ${_currentMaterial?.materialId}');
     final sections = [
       _SectionData(
         title: 'Chapter Test',

@@ -105,8 +105,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         final body = await response.stream.bytesToString();
         final json = jsonDecode(body);
 
-        print("API RESPONSE: $json");
-
         /// ✅ Correct key
         String newImage = json['file'] ?? '';
 
@@ -126,7 +124,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
             /// ✅ Re-fetch (safe)
             final refreshedUser = await SessionManager.getUser();
-            print("AFTER SAVE USER IMAGE: ${refreshedUser?.profileImage}");
 
             /// ✅ SINGLE setState (IMPORTANT)
             if (mounted) {
@@ -147,8 +144,6 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
         throw Exception("Upload failed with status ${response.statusCode}");
       }
     } catch (e) {
-      print("UPLOAD ERROR: $e");
-
       if (mounted) {
         setState(() {
           _profileImage = null;

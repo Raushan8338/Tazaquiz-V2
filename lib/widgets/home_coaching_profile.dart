@@ -150,9 +150,7 @@ class CoachingProfileWidget extends StatelessWidget {
                                         ? DecorationImage(
                                           image: NetworkImage(Api_Client.baseUrl + coachingProfiles[index].bannerImg!),
                                           fit: BoxFit.cover,
-                                          onError: (error, stackTrace) {
-                                            print('Banner image load failed: $error');
-                                          },
+                                          onError: (error, stackTrace) {},
                                         )
                                         : null,
                               ),

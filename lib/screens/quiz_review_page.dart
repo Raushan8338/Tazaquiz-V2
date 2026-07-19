@@ -115,7 +115,6 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Review error: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -446,6 +445,31 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
     );
   }
 
+  // Shows a loading spinner while fetching and quietly collapses to nothing
+  // if the URL fails, instead of leaving a broken-image icon in the layout.
+  Widget _buildNetworkImage(String url, {double maxHeight = 140, double borderRadius = 10}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        color: const Color(0xFFF0F2F8),
+        child: Image.network(
+          url,
+          fit: BoxFit.contain,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return SizedBox(
+              height: maxHeight * 0.6,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.tealGreen)),
+            );
+          },
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+
   // ─── QUESTION CARD ───────────────────────────────────────────────────────
 
   Widget _buildQuestionCard(QuizReviewQuestion q, int index) {
@@ -557,6 +581,13 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
             ),
           ),
 
+          // ── Question image ──
+          if (q.imageUrl != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+              child: _buildNetworkImage(q.imageUrl!, maxHeight: 220),
+            ),
+
           // ── Options ──
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
@@ -597,18 +628,30 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
                         border: Border.all(color: optBorder, width: 1.5),
                       ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            // ── Option text — TRANSLATED with ValueKey ──
-                            child: TranslatedText(
-                              opt.answerText,
-                              key: ValueKey('review_opt_${_effectiveLang}_${opt.answerId}'),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: optText,
-                                fontWeight: isCorrectAnswer || isUserAnswer ? FontWeight.w700 : FontWeight.w500,
-                                fontFamily: 'Poppins',
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (opt.imageUrl != null) ...[
+                                  _buildNetworkImage(opt.imageUrl!, maxHeight: 130, borderRadius: 8),
+                                  if (opt.answerText.trim().isNotEmpty) const SizedBox(height: 6),
+                                ],
+                                if (opt.answerText.trim().isNotEmpty)
+                                  // ── Option text — TRANSLATED with ValueKey ──
+                                  TranslatedText(
+                                    opt.answerText,
+                                    key: ValueKey('review_opt_${_effectiveLang}_${opt.answerId}'),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: optText,
+                                      fontWeight: isCorrectAnswer || isUserAnswer ? FontWeight.w700 : FontWeight.w500,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                           if (trailingIcon != null) ...[const SizedBox(width: 8), trailingIcon],

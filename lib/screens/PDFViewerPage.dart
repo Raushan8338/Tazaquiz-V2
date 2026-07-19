@@ -167,9 +167,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
                             onViewCreated: (PDFViewController pdfViewController) {
                               _controller.complete(pdfViewController);
                             },
-                            onLinkHandler: (String? uri) {
-                              print('Clicked link: $uri');
-                            },
+                            onLinkHandler: (String? uri) {},
                             onPageChanged: (int? page, int? total) {
                               setState(() {
                                 currentPage = page;

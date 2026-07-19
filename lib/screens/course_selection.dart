@@ -58,7 +58,6 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final data = {'user_id': _user!.id.toString()};
       final response = await authRepository.getUserSelected_non_Courses(data);
-      print("Course fetch response: ${response.data}");
 
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
@@ -113,7 +112,6 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
       }
 
       final response = await Api_Client.dio.post(BaseUrl.save_update_user_courses, data: formData);
-      print("RESPONSE: ${response.data}");
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,15 +1,37 @@
+// question table's `imgs` and answer table's `img` columns may hold a plain
+// URL string or (for `imgs`) a JSON array — normalize both to a single
+// nullable URL so callers only ever deal with String?.
+String? _extractImageUrl(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is String) {
+    final trimmed = raw.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+  if (raw is List && raw.isNotEmpty) {
+    return _extractImageUrl(raw.first);
+  }
+  return null;
+}
+
 class QuizReviewOption {
   final int answerId;
   final String answerText;
   final bool isCorrect;
+  final String? imageUrl;
 
-  QuizReviewOption({required this.answerId, required this.answerText, required this.isCorrect});
+  QuizReviewOption({
+    required this.answerId,
+    required this.answerText,
+    required this.isCorrect,
+    this.imageUrl,
+  });
 
   factory QuizReviewOption.fromJson(Map<String, dynamic> j) {
     return QuizReviewOption(
       answerId: (j['answer_id'] ?? 0).toInt(),
       answerText: j['answer_text'] ?? '',
       isCorrect: j['is_correct'] == true || j['is_correct'] == 1,
+      imageUrl: _extractImageUrl(j['img']),
     );
   }
 }
@@ -25,6 +47,7 @@ class QuizReviewQuestion {
   final String status; // correct / wrong / skipped
   final int timeSpent;
   final List<QuizReviewOption> options;
+  final String? imageUrl;
 
   QuizReviewQuestion({
     required this.questionId,
@@ -37,6 +60,7 @@ class QuizReviewQuestion {
     required this.status,
     required this.timeSpent,
     required this.options,
+    this.imageUrl,
   });
 
   factory QuizReviewQuestion.fromJson(Map<String, dynamic> j) {
@@ -51,6 +75,7 @@ class QuizReviewQuestion {
       status: j['status'] ?? 'skipped',
       timeSpent: (j['time_spent'] ?? 0).toInt(),
       options: (j['options'] as List? ?? []).map((e) => QuizReviewOption.fromJson(e)).toList(),
+      imageUrl: _extractImageUrl(j['imgs']),
     );
   }
 }

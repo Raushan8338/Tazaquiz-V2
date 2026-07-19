@@ -59,7 +59,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Future<void> _fetchAttempts() async {
-    if (_isLoading) return;
+    if (_isLoading || _user == null) return;
     setState(() => _isLoading = true);
     try {
       Authrepository authRepository = Authrepository(Api_Client.dio);

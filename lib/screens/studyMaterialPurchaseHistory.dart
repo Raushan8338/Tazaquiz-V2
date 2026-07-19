@@ -37,7 +37,6 @@ class _StudyMaterialPurchaseHistoryScreenState
   bool _isLoading = true;
   List<StudyMaterialDetailsItem> _allStudyMaterials = [];
   UserModel? _user;
-  bool isExpired = false;
 
   @override
   void initState() {
@@ -57,7 +56,7 @@ class _StudyMaterialPurchaseHistoryScreenState
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
     setState(() {});
-    await fetchStudyMaterials(_user!.id);
+    await fetchStudyMaterials(_user?.id ?? '');
   }
 
   Future<void> fetchStudyMaterials(String user_id) async {
@@ -187,7 +186,7 @@ leading: pageId == '1'
         ? DateTime.tryParse(material.access_valid_until)
         : null;
 
-  isExpired = expiryDate != null ? DateTime.now().isAfter(expiryDate) : false;
+  final bool isExpired = expiryDate != null ? DateTime.now().isAfter(expiryDate) : false;
 
     final String pkgLabel = material.package_name.isNotEmpty
         ? material.package_name.toUpperCase()
@@ -281,7 +280,7 @@ leading: pageId == '1'
                     ),
                   const SizedBox(height: 12),
                   isSubscription
-                      ? _buildStartNowButton(material)
+                      ? _buildStartNowButton(material, isExpired)
                       : _buildSingleButton(material),
                   const SizedBox(height: 10),
                   TranslatedText(
@@ -304,7 +303,7 @@ leading: pageId == '1'
 
   // ─── START NOW BUTTON (clean — no pills) ──────────────────────────────────
 
-  Widget _buildStartNowButton(StudyMaterialDetailsItem material) {
+  Widget _buildStartNowButton(StudyMaterialDetailsItem material, bool isExpired) {
   final Map<String, Map<String, dynamic>> featureMeta = {
     'chapter test': {'icon': Icons.menu_book_rounded,            'color': AppColors.tealGreen},
     'subject test': {'icon': Icons.assignment_rounded,           'color': const Color(0xFF3949AB)},

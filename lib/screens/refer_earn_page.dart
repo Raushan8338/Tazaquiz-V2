@@ -74,7 +74,7 @@ class _ReferEarnPageState extends State<ReferEarnPage> with SingleTickerProvider
   }
 
   void _shareReferral(String platform) async {
-    final url = "https://www.tazaquiz.com/app_opn_url.php?referrel=$userId";
+    final url = "https://www.tazaquiz.com/app_opn_url.php?referCode=$userId";
     final String message = """
 🚀 Welcome to TazaQuiz – Your Ultimate Exam Preparation Partner! 🎯
 

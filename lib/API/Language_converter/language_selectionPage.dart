@@ -383,7 +383,6 @@ class _DownloadProgressDialog extends StatefulWidget {
 }
 
 class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
-  double _progress = 0.0;
   bool _isDone = false;
   bool _hasFailed = false;
   String _statusText = 'Preparing download...';
@@ -393,6 +392,12 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
   static const _tealBg = Color(0xFFE1F5EE);
   static const _tealDark = Color(0xFF0F6E56);
   static const _tealDeep = Color(0xFF085041);
+
+  static const _mlCodeMap = {
+    'hi': 'hi', 'mr': 'mr', 'bn': 'bn', 'ta': 'ta',
+    'te': 'te', 'gu': 'gu', 'kn': 'kn', 'ml': 'ml',
+    'pa': 'pa', 'ur': 'ur',
+  };
 
   @override
   void initState() {
@@ -411,34 +416,38 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       'kn': TranslateLanguage.kannada,
       'ur': TranslateLanguage.urdu,
       'en': TranslateLanguage.english,
-      
+
     };
     return map[code] ?? TranslateLanguage.english;
   }
 
   Future<void> _startDownload() async {
     try {
-      if (mounted) setState(() => _statusText = 'Identifying language...');
-      await Future.delayed(const Duration(milliseconds: 400));
-      _updateProgress(0.05);
-
       if (mounted) setState(() => _statusText = 'Downloading translation model...');
 
-      // Simulate progress up to 85% while real download happens
-      _simulateProgress();
+      final mlCode = _mlCodeMap[widget.languageCode];
+      if (mlCode != null) {
+        final modelManager = OnDeviceTranslatorModelManager();
+        // isWifiRequired: false — package defaults to WiFi-only, which
+        // silently never downloads on mobile data. Bound with a timeout so
+        // a weak/stuck network can't hang this dialog forever.
+        await modelManager
+            .downloadModel(mlCode, isWifiRequired: false)
+            .timeout(const Duration(seconds: 30));
+      }
+
+      if (mounted) setState(() => _statusText = 'Finishing up...');
 
       final translator = OnDeviceTranslator(
         sourceLanguage: TranslateLanguage.english,
         targetLanguage: _getTargetLanguage(widget.languageCode),
       );
 
-      // This call triggers the actual model download on first run
       await translator.translateText('hello');
       await translator.close();
 
       if (mounted) {
         setState(() {
-          _progress = 1.0;
           _isDone = true;
           _statusText = 'Download complete!';
         });
@@ -453,28 +462,8 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
     }
   }
 
-  void _simulateProgress() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(milliseconds: 350));
-      if (!mounted || _isDone || _hasFailed) return false;
-      if (_progress < 0.85) {
-        final increment = _progress < 0.4 ? 0.045 : (_progress < 0.7 ? 0.02 : 0.008);
-        _updateProgress(_progress + increment);
-        return true;
-      }
-      return true;
-    });
-  }
-
-  void _updateProgress(double val) {
-    if (!mounted) return;
-    setState(() => _progress = val.clamp(0.0, 1.0));
-  }
-
   @override
   Widget build(BuildContext context) {
-    final pct = (_progress * 100).round();
-
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
@@ -524,32 +513,37 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
             ),
             const SizedBox(height: 20),
 
-            // Progress % label row
+            // Status label row
             if (!_hasFailed)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _statusText,
-                      style: const TextStyle(fontSize: 12, color: _tealDark, fontWeight: FontWeight.w500),
-                    ),
-                    Text('$pct%', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  ],
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _statusText,
+                    style: const TextStyle(fontSize: 12, color: _tealDark, fontWeight: FontWeight.w500),
+                  ),
                 ),
               ),
 
-            // Progress bar
+            // Progress bar — no real byte-level progress is exposed by the
+            // ML Kit plugin, so this is an honest indeterminate bar until
+            // done, rather than a fabricated percentage.
             if (!_hasFailed)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: _progress,
-                  minHeight: 8,
-                  backgroundColor: _tealBg,
-                  valueColor: const AlwaysStoppedAnimation<Color>(_teal),
-                ),
+                child: _isDone
+                    ? const LinearProgressIndicator(
+                        value: 1.0,
+                        minHeight: 8,
+                        backgroundColor: _tealBg,
+                        valueColor: AlwaysStoppedAnimation<Color>(_teal),
+                      )
+                    : const LinearProgressIndicator(
+                        minHeight: 8,
+                        backgroundColor: _tealBg,
+                        valueColor: AlwaysStoppedAnimation<Color>(_teal),
+                      ),
               ),
 
             const SizedBox(height: 16),
@@ -592,7 +586,6 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
                       ? () {
                         setState(() {
                           _hasFailed = false;
-                          _progress = 0.0;
                           _statusText = 'Preparing download...';
                         });
                         _startDownload();

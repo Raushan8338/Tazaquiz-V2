@@ -63,15 +63,12 @@ Future<void> _handleIncomingLink() async {
     appLinks.uriLinkStream.listen((uri) {
       if (mounted) _processLink(uri.toString());
     });
-  } catch (e) {
-    print('Deep link error: $e');
-  }
+  } catch (e) {}
 
   // ✅ Play Store referrer check
   try {
     final prefs = await SharedPreferences.getInstance();
     final savedReferrer = prefs.getString('install_referrer') ?? '';
-    print('📦 SAVED REFERRER: $savedReferrer');
 
     if (savedReferrer.isNotEmpty) {
       final params = Uri.splitQueryString(savedReferrer);
@@ -87,28 +84,21 @@ Future<void> _handleIncomingLink() async {
           _referralController.text = referCode;
           _hasReferralCode = true;
         });
-        print('✅ Play Store referral: $referCode');
       } else {
         // ✅ referCode nahi — sirf source track karo
-        print('✅ Source tracked (no referCode): $_sourceUrl');
       }
     }
-  } catch (e) {
-    print('Referrer read error: $e');
-  }
+  } catch (e) {}
 }
 
   // ✅ Link process karo — referCode + sourceUrl nikalo
   void _processLink(String link) {
-    print('📦 INCOMING LINK: $link');
-
     final uri = Uri.tryParse(link);
     if (uri == null) return;
 
     // Full source URL save karo
     final sourceUrl = uri.queryParameters['source_url'] ?? '';
     _sourceUrl = sourceUrl.isNotEmpty ? Uri.decodeComponent(sourceUrl) : link;
-    print('✅ SOURCE URL: $_sourceUrl');
 
     // referrer/referCode nikalo
     final referrer = uri.queryParameters['referrer'] ?? 
@@ -119,7 +109,6 @@ Future<void> _handleIncomingLink() async {
         _referralController.text = referrer;
         _hasReferralCode = true; // ✅ Checkbox auto tick
       });
-      print('✅ REFERRAL CODE SET: $referrer');
     }
   }
 
@@ -132,9 +121,7 @@ Future<void> _handleIncomingLink() async {
       try {
         await Future.delayed(const Duration(seconds: 1));
         fcmToken = await FirebaseMessaging.instance.getToken();
-        print("FCM TOKEN: $fcmToken");
       } catch (e) {
-        print("FCM ERROR: $e");
         fcmToken = null;
       }
 
@@ -150,7 +137,6 @@ Future<void> _handleIncomingLink() async {
       };
 
       final responseFuture = await authRepository.signupVerifyOTP(data);
-      print('Signup Response: ${responseFuture.data}');
 
       if (responseFuture.statusCode == 200) {
         setState(() => _isLoading = false);

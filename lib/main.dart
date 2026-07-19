@@ -32,14 +32,11 @@ Future<void> _saveInstallReferrer() async {
 
     final ReferrerDetails referrerDetails = await PlayInstallReferrer.installReferrer;
     final referrer = referrerDetails.installReferrer ?? '';
-    print('📦 INSTALL REFERRER: $referrer');
 
     if (referrer.isNotEmpty) {
       await prefs.setString('install_referrer', referrer);
     }
-  } catch (e) {
-    print('Referrer error: $e');
-  }
+  } catch (e) {}
 }
 
 bool isPushSupported() {

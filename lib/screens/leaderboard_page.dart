@@ -88,7 +88,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
       }
 
       final res = await auth.fetchLeaderboard(data);
-      print('Leaderboard fetch: ${res.data}');
       if (res.statusCode == 200) {
         setState(() {
           _data = LeaderboardResponse.fromJson(res.data);
@@ -98,7 +97,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> with SingleTickerProv
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('Leaderboard error: $e');
       setState(() => _isLoading = false);
     }
   }

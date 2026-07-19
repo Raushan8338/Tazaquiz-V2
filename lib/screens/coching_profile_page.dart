@@ -70,9 +70,7 @@ class _CoachingProfileCardState extends State<CoachingProfileCard> {
                                 ? DecorationImage(
                                   image: NetworkImage(Api_Client.baseUrl + widget.bannerImg!),
                                   fit: BoxFit.cover,
-                                  onError: (error, stackTrace) {
-                                    print('Banner image load failed: $error');
-                                  },
+                                  onError: (error, stackTrace) {},
                                 )
                                 : null,
                       ),

@@ -365,6 +365,9 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                               contentType: 'Subscription',
                               contentId: widget.CourseIds,
                               package_id: pkg.id.toString(),
+                              packageName: pkg.name,
+                              packageDetails: '${pkg.name} • ${pkg.billingLabel} • ${pkg.priceDisplay}',
+                              packageFeatures: pkg.features.map((f) => PlanFeatureDisplay(f.text, f.isIncluded)).toList(),
                             ),
                       ),
                     );
@@ -529,6 +532,9 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                                   contentType: 'Subscription',
                                   contentId: widget.CourseIds,
                                   package_id: pkg.id.toString(),
+                                  packageName: pkg.name,
+                                  packageDetails: '${pkg.name} • ${pkg.billingLabel} • ${pkg.priceDisplay}',
+                              packageFeatures: pkg.features.map((f) => PlanFeatureDisplay(f.text, f.isIncluded)).toList(),
                                 ),
                           ),
                         );
@@ -1057,8 +1063,13 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                 context,
                 MaterialPageRoute(
                   builder:
-                      (context) =>
-                          CheckoutPage(contentType: 'Subscription', contentId: courseId, package_id: pkg.id.toString()),
+                      (context) => CheckoutPage(
+                        contentType: 'Subscription',
+                        contentId: courseId,
+                        package_id: pkg.id.toString(),
+                        packageName: pkg.name,
+                        packageDetails: '${pkg.name} • ${pkg.billingLabel} • ${pkg.priceDisplay}',
+                      ),
                 ),
               );
             },
@@ -1083,8 +1094,13 @@ class _PricingPageState extends State<PricingPage> with TickerProviderStateMixin
                 context,
                 MaterialPageRoute(
                   builder:
-                      (context) =>
-                          CheckoutPage(contentType: 'Subscription', contentId: courseId, package_id: pkg.id.toString()),
+                      (context) => CheckoutPage(
+                        contentType: 'Subscription',
+                        contentId: courseId,
+                        package_id: pkg.id.toString(),
+                        packageName: pkg.name,
+                        packageDetails: '${pkg.name} • ${pkg.billingLabel} • ${pkg.priceDisplay}',
+                      ),
                 ),
               );
             },

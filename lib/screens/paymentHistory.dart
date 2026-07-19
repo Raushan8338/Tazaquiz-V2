@@ -30,10 +30,18 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   Future<void> _getUserData() async {
     _user = await SessionManager.getUser();
     setState(() {});
+    if (_user == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
     await fetchPaymentHistory(_user!.id);
   }
 
   Future<void> fetchPaymentHistory(String userId) async {
+    if (_user == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
     setState(() {
       _isLoading = true;
     });
@@ -55,7 +63,6 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         });
       }
     } catch (e) {
-      print('Error fetching payment history: $e');
       setState(() {
         _isLoading = false;
       });

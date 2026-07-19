@@ -54,9 +54,6 @@ class NotificationService {
 
   // Handle notification click
   static void _handleNotificationClick(NotificationResponse response) {
-    print('Notification clicked!');
-    print('Payload: ${response.payload}');
-
     // Yaha pe navigation kar sakte ho
     // Example: Navigator.push(...) quiz page pe
   }
@@ -252,20 +249,13 @@ class NotificationService {
       if (response.statusCode == 200) {
         return ByteArrayAndroidBitmap(Uint8List.fromList(response.bodyBytes));
       }
-    } catch (e) {
-      print('Image download error: $e');
-    }
+    } catch (e) {}
     return null;
   }
 
   // Listen foreground messages
   static void listenForegroundMessages() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Foreground message received');
-      print('Title: ${message.notification?.title}');
-      print('Body: ${message.notification?.body}');
-      print('Data: ${message.data}');
-
       // Check notification type from data
       final String type = message.data['type'] ?? 'default';
       final String? imageUrl = message.data['image'];

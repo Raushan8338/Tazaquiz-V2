@@ -203,6 +203,10 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
   }
 
   Future<void> _fetchQuizzes(int categoryId, int educationLevelId) async {
+    if (_user == null) {
+      setState(() => _errorMessage = 'Session expired. Please log in again.');
+      return;
+    }
     setState(() {
       _isFetchingQuizzes = true;
       _errorMessage = null;
@@ -234,10 +238,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
           'topic_id': _selectedChapterId.toString(),
       };
 
-      print('_fetchQuizzes payload: $data');
-
       final response = await auth.get_paid_quizes_api(data);
-      print('_fetchQuizzes response: ${response.data}');
 
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
@@ -1601,7 +1602,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                     color: Colors.orange.shade900,
                     fontWeight: FontWeight.w500))),
         GestureDetector(
-          onTap: () => _fetchQuizzes(_selectedCategoryId, 1),
+          onTap: () => _user == null ? _getUserData() : _fetchQuizzes(_selectedCategoryId, 1),
           child: Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

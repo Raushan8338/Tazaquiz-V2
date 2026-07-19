@@ -62,9 +62,7 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       // 🔥 SAFE TOKEN FETCH (non-blocking)
       await Future.delayed(const Duration(seconds: 1));
       fcmToken = await FirebaseMessaging.instance.getToken();
-      print("FCM TOKEN: $fcmToken");
     } catch (e) {
-      print("FCM ERROR: $e");
       fcmToken = null; // 👈 IMPORTANT
     }
 
@@ -83,7 +81,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
       final response = await authRepository.loginUser(data);
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.data);
-        print(responseData);
 
         final status = responseData['status'];
 
@@ -184,7 +181,6 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
         }
       }
     } catch (e) {
-      print('Login error: $e');
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -209,9 +205,29 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
   }
 
   Future<void> signIn() async {
-    final user = await GoogleSignInApi.login();
-
-    _handleLogin(user?.email);
+    try {
+      final user = await GoogleSignInApi.login();
+      _handleLogin(user?.email);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: AppRichText.setTextPoppinsStyle(
+            context,
+            'Google sign-in failed. Please try again.',
+            12,
+            AppColors.white,
+            FontWeight.normal,
+            1,
+            TextAlign.left,
+            0.0,
+          ),
+          backgroundColor: AppColors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   @override
