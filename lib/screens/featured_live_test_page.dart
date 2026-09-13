@@ -658,7 +658,18 @@ class _FeaturedLiveTestPageState extends State<FeaturedLiveTestPage> {
   }
 
   Widget _buildButton() {
-    if (_isRegistered) {
+    final bool isPaidQuiz = _quiz?.isPaid ?? false;
+    // For a paid quiz, whether to show the registered/countdown/Join-Now
+    // state must be driven by the LIVE access check (quiz.isAccessible,
+    // re-verified against purchase_history on every fetch) — not by
+    // _isRegistered, which is a one-time notification-table record that
+    // stays true forever once set and would otherwise keep showing access
+    // even if the underlying purchase is later removed/refunded. Free
+    // quizzes have no purchase to re-check, so _isRegistered (did they tap
+    // Notify) is the correct signal there.
+    final bool hasAccess = isPaidQuiz ? (_quiz?.isAccessible ?? false) : _isRegistered;
+
+    if (hasAccess) {
       final bool isLive = _quiz?.quizStatus.toLowerCase() == 'live';
 
       if (isLive) {
@@ -677,11 +688,14 @@ class _FeaturedLiveTestPageState extends State<FeaturedLiveTestPage> {
                 onTap: _navigateToJoinQuiz,
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 15),
-                  child: Center(
-                    child: TranslatedText(
-                      'Join Now',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TranslatedText(
+                        'Join Now',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -716,8 +730,6 @@ class _FeaturedLiveTestPageState extends State<FeaturedLiveTestPage> {
         ),
       );
     }
-
-    final bool isPaidQuiz = _quiz?.isPaid ?? false;
 
     final actionButton = Container(
       decoration: BoxDecoration(

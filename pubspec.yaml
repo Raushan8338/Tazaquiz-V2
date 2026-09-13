@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.4.0+45
+version: 1.4.1+46
 
 environment:
   sdk: ^3.7.2
@@ -82,7 +82,7 @@ msix_config:
   publisher_display_name: TazaQuiz
   identity_name: TazaQuiz.TazaQuiz
   publisher: CN=9C023F81-45C0-48BF-BD3E-9AB9F8C160B9
-  msix_version: 1.4.0.0
+  msix_version: 1.4.1.0
   logo_path: assets/images/playstore.png
   capabilities: internetClient
   architecture: x64
