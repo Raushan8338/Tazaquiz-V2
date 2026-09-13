@@ -77,11 +77,12 @@ flutter_icons:
   background_color: "0xFFF8F9FD"
 
 msix_config:
+  output_name: TazaQuiz
   display_name: TazaQuiz
   publisher_display_name: TazaQuiz
   identity_name: TazaQuiz.TazaQuiz
   publisher: CN=9C023F81-45C0-48BF-BD3E-9AB9F8C160B9
-  msix_version: 1.0.1.0
+  msix_version: 1.4.0.0
   logo_path: assets/images/playstore.png
   capabilities: internetClient
   architecture: x64

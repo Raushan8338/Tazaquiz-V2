@@ -115,10 +115,15 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
     }
   }
 
+  // Windows shows a wider grid with more columns visible at once, so the
+  // mobile-tuned page size of 6 looks sparse and triggers a reload almost
+  // immediately on scroll — bump it to 20 there.
+  static int get _pageLimit => Platform.isWindows ? 20 : 6;
+
   Future<void> fetchStudyCategory(int categoryId, {int page = 1}) async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
     Response response = await authRepository.fetchStudyCategory(
-        {'category_id': categoryId, 'page': page, 'limit': 6, 'user_id': _user?.id});
+        {'category_id': categoryId, 'page': page, 'limit': _pageLimit, 'user_id': _user?.id});
     if (response.statusCode == 200) {
       final List list = response.data['data'] ?? [];
       final bool hasMore = response.data['hasMore'] ?? false;

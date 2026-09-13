@@ -239,7 +239,14 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(24),
-          child: Column(
+          // maxWidth is wider than any real phone screen, so this is a
+          // no-op on Android/iOS — it only kicks in on a wide desktop
+          // window (Windows), where the OTP boxes/rows below would
+          // otherwise stretch edge-to-edge with huge gaps.
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(height: 20),
@@ -355,6 +362,8 @@ class _OTPBasedVerificationPageState extends State<OTPBasedVerificationPage> {
                 ),
               ),
             ],
+              ),
+            ),
           ),
         ),
       ),
