@@ -7,6 +7,8 @@ class BannerAdService {
   BannerAd? get bannerAd => _bannerAd;
 
   void loadAd(Function onLoaded) {
+    if (!AdHelper.isSupported) return;
+
     _bannerAd = BannerAd(
       adUnitId: AdHelper.bannerAdUnitId,
       size: AdSize.banner,

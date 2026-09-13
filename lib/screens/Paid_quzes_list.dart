@@ -1197,6 +1197,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
     final bool isMissed = isLiveTest && quiz.quizStatus == 'missed';
     final bool isLocked = !quiz.isAccessible;
 
+    // Thin left accent strip replaces the old bulky icon side-panel — a
+    // touch of state colour without the heavy block.
     final List<Color> panelColors = isLocked
         ? [const Color(0xFF263238), const Color(0xFF37474F)]
         : isLive
@@ -1207,16 +1209,22 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                     ? [const Color(0xFF1A237E), const Color(0xFF3949AB)]
                     : colors;
 
+    // Actionable states (Start Test / Resume / Join Now) get an inviting
+    // green "go" button; already-attempted/inspect states (View Result /
+    // View Details) get the calmer navy — previously both looked identical.
+    final bool isActionable =
+        quiz.attempt_status == 'in_progress' || (!isLiveTest && !isAttempted);
     final List<Color> btnColors = isLocked
         ? [const Color(0xFFBF360C), const Color(0xFFE64A19)]
         : isLive
             ? [const Color(0xFFB71C1C), const Color(0xFFE53935)]
             : isMissed
                 ? [const Color(0xFF283593), const Color(0xFF3949AB)]
-                : [const Color(0xFF0A1628), const Color(0xFF0D4B3B)];
+                : isActionable
+                    ? [const Color(0xFF00695C), AppColors.tealGreen]
+                    : [const Color(0xFF0A1628), const Color(0xFF0D4B3B)];
 
     String dateDisplay = '';
-    String monthDisplay = '';
     if (isLiveTest && quiz.startDateTime.isNotEmpty) {
       try {
         final dt = DateTime.parse(quiz.startDateTime);
@@ -1224,8 +1232,7 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
           'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
           'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
         ];
-        dateDisplay = '${dt.day}';
-        monthDisplay = months[dt.month - 1];
+        dateDisplay = '${dt.day} ${months[dt.month - 1]}';
       } catch (_) {}
     }
 
@@ -1253,284 +1260,162 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                         ? const Color(0xFF00897B)
                         : const Color(0xFF3949AB);
 
-    final String panelEmoji = isLocked
-        ? '🔒'
-        : isLive
-            ? '⚡'
-            : isUpcoming
-                ? '⏰'
-                : isMissed
-                    ? '📋'
-                    : isMockTest
-                        ? '📝'
-                        : isFullMockTest
-                            ? '🎯'
-                            : isChapterTest
-                                ? '📖'
-                                : isPYP
-                                    ? '📜'
-                                    : '⚡';
-
     return GestureDetector(
       onTap: () => _goToDetail(quiz),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          color: isLive ? const Color(0xFFFFF5F5) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border(left: BorderSide(color: panelColors.first, width: 4)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 14,
-              offset: const Offset(0, 5),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── LEFT PANEL ──────────────────────────────────
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
-                ),
-                child: Container(
-                  width: 78,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: panelColors,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TranslatedText(
+                    quiz.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkNavy,
+                      height: 1.3,
+                      fontFamily: 'Poppins',
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Stack(
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: badgeColor,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Positioned.fill(
-                          child: CustomPaint(
-                              painter: _DotPatternPainter())),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 7),
-                        child: Column(
-                          mainAxisAlignment:
-                              MainAxisAlignment.center,
-                          children: [
-                            Text(panelEmoji,
-                                style:
-                                    const TextStyle(fontSize: 22)),
-                            const SizedBox(height: 5),
-                            if (dateDisplay.isNotEmpty) ...[
-                              Text(dateDisplay,
-                                  style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      fontFamily: 'Poppins',
-                                      height: 1.1)),
-                              Text(monthDisplay,
-                                  style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white
-                                          .withOpacity(0.8),
-                                      fontFamily: 'Poppins')),
-                              const SizedBox(height: 6),
-                            ] else
-                              const SizedBox(height: 4),
-                            // Status Badge
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 3, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: badgeColor,
-                                borderRadius:
-                                    BorderRadius.circular(7),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (isLive)
-                                    Container(
-                                      width: 5,
-                                      height: 5,
-                                      margin: const EdgeInsets.only(
-                                          right: 3),
-                                      decoration:
-                                          const BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  Flexible(
-                                    child: Text(
-                                      badgeLabel,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white,
-                                        fontFamily: 'Poppins',
-                                        letterSpacing: 0.2,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                      if (isLive)
+                        Container(
+                          width: 5,
+                          height: 5,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: const BoxDecoration(
+                              color: Colors.white, shape: BoxShape.circle),
+                        ),
+                      Text(
+                        badgeLabel,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          fontFamily: 'Poppins',
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ],
                   ),
                 ),
+              ],
+            ),
+            if (quiz.description.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              TranslatedText(
+                quiz.description,
+                style:
+                    TextStyle(fontSize: 11, color: AppColors.greyS600, height: 1.35),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-
-              // ── RIGHT CONTENT ────────────────────────────────
-              Expanded(
-                child: Container(
-                  decoration: isLive
-                      ? const BoxDecoration(
-                          color: Color(0xFFFFF5F5),
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(18),
-                            bottomRight: Radius.circular(18),
-                          ),
-                        )
-                      : null,
-                  child: Padding(
+            ],
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Wrap(
+                    spacing: 5,
+                    runSpacing: 4,
+                    children: [
+                      if (dateDisplay.isNotEmpty)
+                        _chip(Icons.event_rounded, dateDisplay, AppColors.darkNavy),
+                      if (quiz.timeLimit.isNotEmpty && quiz.timeLimit != '0')
+                        _chip(Icons.timer_outlined, '${quiz.timeLimit} min',
+                            AppColors.greyS600),
+                      if (quiz.totalQuestions > 0)
+                        _chip(Icons.help_outline_rounded,
+                            '${quiz.totalQuestions} Qs', AppColors.greyS600),
+                      if (isLiveTest &&
+                          quiz.startsInText.isNotEmpty &&
+                          !isLive)
+                        _chip(Icons.schedule_rounded, quiz.startsInText,
+                            Colors.orange.shade700),
+                      if (isMissed)
+                        _chip(Icons.assignment_late_outlined, 'Assessment',
+                            const Color(0xFF6366F1)),
+                      // ── PHASE chip on card (NEW) ─────
+                      if (quiz.phase != null && quiz.phase!.isNotEmpty)
+                        _chip(Icons.layers_rounded, quiz.phase!,
+                            const Color(0xFF7C3AED)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _goToDetail(quiz),
+                  child: Container(
                     padding:
-                        const EdgeInsets.fromLTRB(12, 11, 12, 11),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: btnColors),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: btnColors[1].withOpacity(0.3),
+                          blurRadius: 7,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        Icon(
+                          _btnIcon(quiz, isLive, isAttempted),
+                          color: Colors.white,
+                          size: 13,
+                        ),
+                        const SizedBox(width: 4),
                         TranslatedText(
-                          quiz.title,
+                          _btnText(quiz, isLive, isMissed, isAttempted),
                           style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.darkNavy,
-                            height: 1.3,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                             fontFamily: 'Poppins',
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (quiz.description.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          TranslatedText(
-                            quiz.description,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.greyS600,
-                              height: 1.35,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Wrap(
-                                spacing: 5,
-                                runSpacing: 4,
-                                children: [
-                                  if (quiz.timeLimit.isNotEmpty &&
-                                      quiz.timeLimit != '0')
-                                    _chip(
-                                        Icons.timer_outlined,
-                                        '${quiz.timeLimit} min',
-                                        AppColors.greyS600),
-                                  if (quiz.totalQuestions > 0)
-                                    _chip(
-                                        Icons.help_outline_rounded,
-                                        '${quiz.totalQuestions} Qs',
-                                        AppColors.greyS600),
-                                  if (isLiveTest &&
-                                      quiz.startsInText.isNotEmpty &&
-                                      !isLive)
-                                    _chip(
-                                        Icons.schedule_rounded,
-                                        quiz.startsInText,
-                                        Colors.orange.shade700),
-                                  if (isMissed)
-                                    _chip(
-                                        Icons
-                                            .assignment_late_outlined,
-                                        'Assessment',
-                                        const Color(0xFF6366F1)),
-                                  // ── PHASE chip on card (NEW) ─────
-                                  if (quiz.phase != null &&
-                                      quiz.phase!.isNotEmpty)
-                                    _chip(
-                                        Icons.layers_rounded,
-                                        quiz.phase!,
-                                        const Color(0xFF7C3AED)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => _goToDetail(quiz),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                      colors: btnColors),
-                                  borderRadius:
-                                      BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: btnColors[1]
-                                          .withOpacity(0.3),
-                                      blurRadius: 7,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      _btnIcon(quiz, isLive,
-                                          isAttempted),
-                                      color: Colors.white,
-                                      size: 13,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    TranslatedText(
-                                      _btnText(quiz, isLive,
-                                          isMissed, isAttempted),
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                        fontFamily: 'Poppins',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -2102,24 +1987,4 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
       );
     });
   }
-}
-
-// ── DOT PATTERN ───────────────────────────────────────────────────────
-
-class _DotPatternPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.07)
-      ..strokeWidth = 1;
-    const spacing = 14.0;
-    for (double x = 0; x < size.width; x += spacing) {
-      for (double y = 0; y < size.height; y += spacing) {
-        canvas.drawCircle(Offset(x, y), 1.2, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

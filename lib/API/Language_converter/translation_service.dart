@@ -71,7 +71,13 @@ class TranslationService {
 
     try {
       final sourceLang = await _langIdentifier!.identifyLanguage(text);
-      final effectiveSource = (sourceLang == 'und') ? 'en' : sourceLang;
+      // When the on-device identifier can't confidently tell the language
+      // (common for short titles/labels), assume it already matches the
+      // target and skip translation — NOT English. Assuming English was
+      // wrong: it made already-correct non-English text (e.g. Hindi study
+      // material names) get force-translated as if it were English,
+      // corrupting it, instead of just being left alone.
+      final effectiveSource = (sourceLang == 'und') ? _targetLang : sourceLang;
 
       if (effectiveSource == _targetLang) {
         _cache[cacheKey] = text;

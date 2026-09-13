@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/screens/payment_response.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PlanFeatureDisplay {
   final String text;
@@ -216,8 +218,23 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
       if (mounted) {
         setState(() => _isProcessing = false);
       }
+
+      // Desktop web-redirect flow only (Android's native SDK already
+      // reports the result via its own callback set up in
+      // _startCashfreePayment) — check the order status now that the user
+      // is back from the browser.
+      if (!Platform.isAndroid && _pendingWebOrderId != null) {
+        final orderId = _pendingWebOrderId!;
+        _pendingWebOrderId = null;
+        _verifyPayment(orderId);
+      }
     }
   }
+
+  // Set only when a payment was handed off to the system browser (desktop
+  // web-redirect flow below), so we know which order to verify once the
+  // user switches back to the app.
+  String? _pendingWebOrderId;
 
   void _processPayment() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
@@ -245,11 +262,36 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
         String paymentLink = jsonResponse['payment_link'];
         String cfToken = jsonResponse['payment_session_id'];
         String payMode = jsonResponse['PAYmode'] ?? '0';
-        _startCashfreePayment(orderId, paymentLink, cfToken, payMode);
+
+        if (Platform.isAndroid) {
+          _startCashfreePayment(orderId, paymentLink, cfToken, payMode);
+        } else {
+          // No native Cashfree SDK on Windows/desktop — redirect to the
+          // same hosted checkout page the website uses, and verify once
+          // the user comes back to the app.
+          await _startWebRedirectPayment(orderId);
+        }
       } else {
         setState(() => _isProcessing = false);
         _showErrorSnackbar('Failed to create payment order');
       }
+    }
+  }
+
+  Future<void> _startWebRedirectPayment(String orderId) async {
+    final checkoutUrl = '${Api_Client.baseUrl_main}checkout?order_id=$orderId';
+    try {
+      final launched = await launchUrl(Uri.parse(checkoutUrl), mode: LaunchMode.externalApplication);
+      if (!launched) {
+        setState(() => _isProcessing = false);
+        _showErrorSnackbar('Could not open payment page');
+        return;
+      }
+      _pendingWebOrderId = orderId;
+      _isWebCheckoutOpen = true;
+    } catch (e) {
+      setState(() => _isProcessing = false);
+      _showErrorSnackbar('Could not open payment page');
     }
   }
 

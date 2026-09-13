@@ -1,5 +1,5 @@
 name: tazaquiznew
-description: "A new Flutter project."
+description: "TazaQuiz - Exam prep, live tests, and mock tests for competitive exam aspirants."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.4.0+45
 
 environment:
   sdk: ^3.7.2
@@ -61,6 +61,7 @@ dependencies:
   play_install_referrer: ^0.5.0
   firebase_analytics: ^12.4.2
   firebase_crashlytics: ^5.2.3
+  font_awesome_flutter: ^11.0.0
 
   
 
@@ -68,11 +69,24 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.14.4
-flutter_icons:  
+  msix: ^3.16.7
+flutter_icons:
   android: true
   ios: true
   image_path: "assets/images/playstore.png"
-  background_color: "0xFFF8F9FD"    
+  background_color: "0xFFF8F9FD"
+
+msix_config:
+  display_name: TazaQuiz
+  publisher_display_name: TazaQuiz
+  identity_name: TazaQuiz.TazaQuiz
+  publisher: CN=9C023F81-45C0-48BF-BD3E-9AB9F8C160B9
+  msix_version: 1.0.1.0
+  logo_path: assets/images/playstore.png
+  capabilities: internetClient
+  architecture: x64
+  store: true
+  install_certificate: false
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -119,6 +133,19 @@ flutter:
       - asset: assets/fonts/Poppins-Medium.ttf
       - asset: assets/fonts/Poppins-SemiBold.ttf
       - asset: assets/fonts/Poppins-Bold.ttf
+  - family: ReportSerif
+    fonts:
+      - asset: assets/fonts/Tinos-Regular.ttf
+      - asset: assets/fonts/Tinos-Bold.ttf
+        weight: 700
+  # Devanagari has no glyphs in Tinos — set as fontFamilyFallback alongside
+  # ReportSerif so Hindi text in the same exam screens gets a matching
+  # clean, printed-paper look instead of silently falling back to Roboto.
+  - family: ReportSerifDevanagari
+    fonts:
+      - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+      - asset: assets/fonts/NotoSansDevanagari-Bold.ttf
+        weight: 700
 
   # fonts:
   #   - family: Schyler

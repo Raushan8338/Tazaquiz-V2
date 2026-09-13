@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -29,6 +31,12 @@ class Home_courses extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Windows runs in a wide desktop window — show up to 10 popular
+    // courses in a responsive grid instead of a mobile-style horizontal
+    // scroll strip. Android/iOS keep the exact original horizontal list.
+    final bool useGrid = Platform.isWindows;
+    final int gridCount = useGrid ? (popularCourses.length > 10 ? 10 : popularCourses.length) : popularCourses.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -108,224 +116,247 @@ class Home_courses extends StatelessWidget {
         ),
 
         /// ── Cards ──
-        SizedBox(
-          height: 215,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 2, right: 4, bottom: 6, top: 2),
-            itemCount: popularCourses.length,
-            itemBuilder: (context, index) {
-              final course = popularCourses[index];
-              final gradientColors = _gradients[index % _gradients.length];
-              final hasImage = course.courseImage != null &&
-                  course.courseImage!.isNotEmpty;
-              final durationText = _durationLabel(course.duration);
-
-              return GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BuyCoursePage(
-                      contentId: course.id,
-                      page_API_call: 'SUBSCRIPTION',
-                    ),
-                  ),
+        if (useGrid)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 12.0;
+              final crossAxisCount = (constraints.maxWidth / 184).floor().clamp(2, 5);
+              final cellWidth = (constraints.maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(left: 2, right: 4, bottom: 6, top: 2),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: spacing,
+                  mainAxisSpacing: spacing,
+                  childAspectRatio: cellWidth / 215,
                 ),
-                child: Container(
-                  width: 172,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.black.withOpacity(0.07),
-                      width: 0.5,
+                itemCount: gridCount,
+                itemBuilder: (context, index) => _buildCourseCard(context, popularCourses[index], index),
+              );
+            },
+          )
+        else
+          SizedBox(
+            height: 215,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: 2, right: 4, bottom: 6, top: 2),
+              itemCount: popularCourses.length,
+              itemBuilder: (context, index) =>
+                  _buildCourseCard(context, popularCourses[index], index, width: 172),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCourseCard(BuildContext context, CourseItem course, int index, {double? width}) {
+    final gradientColors = _gradients[index % _gradients.length];
+    final hasImage = course.courseImage != null && course.courseImage!.isNotEmpty;
+    final durationText = _durationLabel(course.duration);
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BuyCoursePage(
+            contentId: course.id,
+            page_API_call: 'SUBSCRIPTION',
+          ),
+        ),
+      ),
+      child: Container(
+        width: width,
+        margin: width != null ? const EdgeInsets.only(right: 12) : EdgeInsets.zero,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.black.withOpacity(0.07),
+            width: 0.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: gradientColors[0].withOpacity(0.12),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// ── Image / Gradient ──
+              SizedBox(
+                height: 100,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: hasImage
+                          ? Image.network(
+                              course.courseImage!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  _gradientBox(gradientColors),
+                            )
+                          : _gradientBox(gradientColors),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: gradientColors[0].withOpacity(0.12),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
+
+                    /// Bottom fade
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.38),
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+
+                    /// Center icon
+                    if (!hasImage)
+                      Center(
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.school_rounded,
+                            size: 24,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+
+                    /// BESTSELLER badge — top right only
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD700),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          '⭐ BEST',
+                          style: TextStyle(
+                            fontSize: 7,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              /// ── Body ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TranslatedText(
+                      course.courseName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.darkNavy,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    TranslatedText(
+                      course.description,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        color: AppColors.greyS600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    /// Duration pill + Details
+                    Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
                       children: [
-                        /// ── Image / Gradient ──
-                        SizedBox(
-                          height: 100,
-                          child: Stack(
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: gradientColors[0].withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Positioned.fill(
-                                child: hasImage
-                                    ? Image.network(
-                                        course.courseImage!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            _gradientBox(gradientColors),
-                                      )
-                                    : _gradientBox(gradientColors),
+                              Icon(
+                                Icons.access_time_rounded,
+                                size: 9,
+                                color: gradientColors[0],
                               ),
-
-                              /// Bottom fade
-                              Positioned.fill(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.transparent,
-                                        Colors.black.withOpacity(0.38),
-                                      ],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              /// Center icon
-                              if (!hasImage)
-                                Center(
-                                  child: Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.18),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.school_rounded,
-                                      size: 24,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-
-                              /// BESTSELLER badge — top right only
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFD700),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Text(
-                                    '⭐ BEST',
-                                    style: TextStyle(
-                                      fontSize: 7,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF1A1A1A),
-                                    ),
-                                  ),
+                              const SizedBox(width: 3),
+                              Text(
+                                durationText,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  color: gradientColors[0],
                                 ),
                               ),
                             ],
                           ),
                         ),
-
-                        /// ── Body ──
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TranslatedText(
-                                course.courseName,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.darkNavy,
-                                  height: 1.3,
-                                ),
+                        Row(
+                          children: [
+                            Text(
+                              'Details',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: gradientColors[0],
                               ),
-                              const SizedBox(height: 3),
-                              TranslatedText(
-                                course.description,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 9.5,
-                                  color: AppColors.greyS600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-
-                              /// Duration pill + Details
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 7,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: gradientColors[0].withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.access_time_rounded,
-                                          size: 9,
-                                          color: gradientColors[0],
-                                        ),
-                                        const SizedBox(width: 3),
-                                        Text(
-                                          durationText,
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w600,
-                                            color: gradientColors[0],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Details',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: gradientColors[0],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 2),
-                                      Icon(
-                                        Icons.arrow_forward_ios_rounded,
-                                        size: 9,
-                                        color: gradientColors[0],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 2),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 9,
+                              color: gradientColors[0],
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 

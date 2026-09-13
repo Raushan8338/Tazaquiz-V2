@@ -8,6 +8,7 @@ import 'package:tazaquiznew/screens/profileScreen.dart';
 import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
 import 'package:tazaquiznew/screens/studyMaterial.dart';
 import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
+import 'package:tazaquiznew/widgets/whatsapp_support_button.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -105,6 +106,8 @@ Widget build(BuildContext context) {
     child: Scaffold(
       body: IndexedStack(index: _selectedNavIndex, children: _pages),
       bottomNavigationBar: _buildBottomNav(),
+      floatingActionButton: _selectedNavIndex == 0 ? const WhatsAppSupportButton() : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     ),
   );
 }

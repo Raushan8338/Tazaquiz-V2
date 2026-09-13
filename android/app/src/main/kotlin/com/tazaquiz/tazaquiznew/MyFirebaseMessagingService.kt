@@ -123,7 +123,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         // ── Build notification ────────────────────────────────────────────
         val builder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification_white)
             .setContentTitle(title)
             .setContentText(message)
             .setContentIntent(mainPending)

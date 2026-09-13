@@ -43,6 +43,8 @@ class BaseUrl {
   static String fetch_fetch_daily_quiz_check_home = "fetch_daily_quiz_check_home.php";
   static String fetch_get_packages = "get_packages.php";
   static String fetch_get_quiz_review = "get_quiz_review.php";
+  static String fetch_quiz_attempt_history = "get_quiz_attempt_history.php";
+  static String fetch_subject_wise_performance = "get_subject_wise_performance.php";
   static String fetch_get_leaderboard = "get_leaderboard.php";
   static String fetch_notice_board = "notice.php";
   static String fetch_daily_quiz_attempts = "daily_get_attempts.php";
@@ -50,4 +52,10 @@ class BaseUrl {
   static String app_features = "app_features.php";
   static String fetch_topics = "topic.php";
   static String check_session = "check_session.php";
+  static String get_featured_live_test = "pagetype10_get_featured_live_test.php";
+  static String check_featured_quiz_access = "pagetype10_check_featured_quiz_access.php";
+  static String notify_live_test = "pagetype10_notify_live_test.php";
+  static String check_live_test_registered = "pagetype10_check_live_test_registered.php";
+  static String set_live_test_reminder = "set_live_test_reminder.php";
+  static String check_live_test_reminder = "check_live_test_reminder.php";
 }

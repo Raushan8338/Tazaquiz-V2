@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/main.dart' show isPushSupported;
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
@@ -30,14 +31,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late Animation<double> _rotateAnim;
   late Animation<double> _shimmerAnim;
 
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
+  FirebaseMessaging? messaging = isPushSupported() ? FirebaseMessaging.instance : null;
 
   @override
   void initState() {
     super.initState();
-    requestPermission();
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {});
+    if (isPushSupported()) {
+      requestPermission();
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {});
+    }
     _checkloggedin();
 
     _mainController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
@@ -81,7 +84,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   Future<void> requestPermission() async {
-    await messaging.requestPermission(alert: true, badge: true, sound: true);
+    await messaging?.requestPermission(alert: true, badge: true, sound: true);
   }
 
 
@@ -91,7 +94,7 @@ void _checkloggedin() async {
   if (isLoggedIn) {
     try {
       final user = await SessionManager.getUser();
-      final fcmToken = await FirebaseMessaging.instance.getToken();
+      final fcmToken = isPushSupported() ? await FirebaseMessaging.instance.getToken() : null;
 
       final response = await Authrepository(Api_Client.dio).checkSession({
         'user_id': user!.id.toString(),

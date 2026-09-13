@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -36,6 +38,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
   bool _isSearchActive = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   late AnimationController _searchAnimController;
   late Animation<double> _searchWidthAnim;
@@ -61,17 +64,26 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
     bannerService.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _scrollController.dispose();
     _searchAnimController.dispose();
     super.dispose();
   }
 
   List<StudyMaterialItem> get _filteredMaterials {
-    if (_searchQuery.trim().isEmpty) return _studyMaterials;
-    final query = _searchQuery.toLowerCase();
-    return _studyMaterials.where((item) {
-      return item.title.toLowerCase().contains(query) ||
-          item.description.toLowerCase().contains(query);
-    }).toList();
+    List<StudyMaterialItem> list = _studyMaterials;
+    if (_searchQuery.trim().isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      list = list.where((item) {
+        return item.title.toLowerCase().contains(query) ||
+            item.description.toLowerCase().contains(query);
+      }).toList();
+    }
+    // Courses with a thumbnail look better and load in first; the rest follow.
+    final withImage =
+        list.where((e) => e.boardIcon != null && e.boardIcon!.isNotEmpty).toList();
+    final withoutImage =
+        list.where((e) => e.boardIcon == null || e.boardIcon!.isEmpty).toList();
+    return [...withImage, ...withoutImage];
   }
 
   Future<void> _getdata() async {
@@ -130,7 +142,23 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
         _hasMore = hasMore;
         _isLoading = false;
       });
+      _fillScreenIfNeeded();
     }
+  }
+
+  // On bigger screens 1 page of results may not be enough to make the list
+  // scrollable, which means the scroll-triggered pagination never fires.
+  // Keep loading more pages until the screen overflows (or there's no more).
+  void _fillScreenIfNeeded() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_searchQuery.trim().isNotEmpty) return;
+      if (_isLoadingMore || !_hasMore) return;
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.position.maxScrollExtent <= 0) {
+        _loadMore();
+      }
+    });
   }
 
   // ─── BUILD ────────────────────────────────────────────────────────
@@ -140,13 +168,23 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F8),
       appBar: _buildAppBar(),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)))
-          : _studyMaterials.isEmpty
-              ? _buildEmptyState()
-              : _buildBody(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFE3F3EE), Color(0xFFF0F2F8)],
+            stops: [0.0, 0.35],
+          ),
+        ),
+        child: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)))
+            : _studyMaterials.isEmpty
+                ? _buildEmptyState()
+                : _buildBody(),
+      ),
     );
   }
 
@@ -154,96 +192,115 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppColors.darkNavy,
+      backgroundColor: Colors.transparent,
       elevation: 0,
       automaticallyImplyLeading: false,
-      leading: widget.pageId == '1'
-          ? IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
-              ),
-              onPressed: () => Navigator.pop(context),
-            )
-          : Padding(
-              padding: const EdgeInsets.all(10),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.library_books, color: Colors.white, size: 18),
-              ),
-            ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const TranslatedText(
-            'Exam Courses',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                fontFamily: 'Poppins'),
-          ),
-          TranslatedText(
-            'Find your perfect course 🎯',
-            style: TextStyle(
-                color: Colors.white.withOpacity(0.65),
-                fontSize: 10),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const StudyMaterialSearchScreen())),
-          icon: const Icon(Icons.search, color: Colors.white, size: 22),
-        ),
-        GestureDetector(
-          onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => StudyMaterialPurchaseHistoryScreen('1'))),
-          child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  colors: [Color(0xFF1D9E75), Color(0xFF0D6E6E)]),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                    color: const Color(0xFF0D6E6E).withOpacity(0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3))
-              ],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.my_library_books_rounded, size: 13, color: Colors.white),
-                SizedBox(width: 5),
-                TranslatedText('My Courses',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'Poppins')),
-              ],
-            ),
-          ),
-        ),
-      ],
+      toolbarHeight: 84,
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (widget.pageId == '1') ...[
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.arrow_back,
+                              color: Colors.white, size: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    const Expanded(
+                      child: TranslatedText(
+                        'Courses',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: 'Poppins'),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  StudyMaterialPurchaseHistoryScreen('1'))),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.my_library_books_rounded,
+                                size: 12, color: Colors.white),
+                            SizedBox(width: 4),
+                            TranslatedText('My Courses',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Poppins')),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const StudyMaterialSearchScreen())),
+                  child: Container(
+                    height: 34,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search_rounded,
+                            color: AppColors.tealGreen, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TranslatedText(
+                            'Search courses...',
+                            style: TextStyle(
+                                color: AppColors.greyS500,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -261,11 +318,13 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
       height: 52,
       decoration: BoxDecoration(
         color: Colors.white,
+        // borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)
+        // ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
         ],
       ),
       child: ListView.builder(
@@ -291,9 +350,10 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
               await fetchStudyCategory(cat.category_id, page: 1);
             },
             child: AnimatedContainer(
+              height: 10,
               duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
                 gradient: isSelected
                     ? const LinearGradient(
@@ -365,30 +425,74 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
         }
         return false;
       },
-      child: CustomScrollView(
+      child: SingleChildScrollView(
+        controller: _scrollController,
         physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.75,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildGridCard(items[index]),
-                childCount: items.length,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+              // Windows runs in a wide desktop window — lay these out in a
+              // responsive multi-column grid instead of the fixed 2-per-row
+              // that's sized for mobile. Android/iOS keep the exact
+              // original 2-column Row layout below, untouched.
+              child: Platform.isWindows
+                  ? LayoutBuilder(
+                      builder: (context, constraints) {
+                        const spacing = 12.0;
+                        final columns = (constraints.maxWidth / 260).floor().clamp(2, 5);
+                        return Column(
+                          children: [
+                            for (int i = 0; i < items.length; i += columns)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: spacing),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (int col = 0; col < columns; col++) ...[
+                                      if (col > 0) const SizedBox(width: spacing),
+                                      Expanded(
+                                        child: i + col < items.length
+                                            ? SizedBox(height: 230, child: _buildGridCard(items[i + col]))
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    )
+                  : Column(
+                children: [
+                  for (int i = 0; i < items.length; i += 2)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: SizedBox(height: 230, child: _buildGridCard(items[i])),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: i + 1 < items.length
+                                ? SizedBox(height: 230, child: _buildGridCard(items[i + 1]))
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
-          ),
 
-          if (isBannerLoaded &&
-              bannerService.bannerAd != null &&
-              _searchQuery.trim().isEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
+            if (isBannerLoaded &&
+                bannerService.bannerAd != null &&
+                _searchQuery.trim().isEmpty)
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -399,11 +503,9 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                   ),
                 ),
               ),
-            ),
 
-          if (_searchQuery.trim().isEmpty)
-            SliverToBoxAdapter(
-              child: _isLoadingMore
+            if (_searchQuery.trim().isEmpty)
+              _isLoadingMore
                   ? const Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
                       child: Center(child: CircularProgressIndicator()))
@@ -426,8 +528,8 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                           ),
                         )
                       : const SizedBox(height: 80),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -473,6 +575,23 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                       ? Image.network(
                           material.boardIcon!,
                           fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              color: AppColors.greyS200,
+                              child: Center(
+                                child: SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppColors.tealGreen),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                           errorBuilder: (_, __, ___) =>
                               _buildGradientFallback(material.title),
                         )
@@ -513,7 +632,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                       ],
                     ),
                     child: Text(
-                      material.is_purchased == 1 ? 'Continue' : 'Enroll Now',
+                      material.is_purchased == 1 ? 'Continue' : 'View Course',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 8,
@@ -572,7 +691,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                     ),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      padding: const EdgeInsets.all(1.4),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: material.is_purchased == 1
@@ -580,23 +699,26 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                               : [AppColors.darkNavy, const Color(0xFF0D4B3B)],
                         ),
                         borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.darkNavy.withOpacity(0.25),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                       ),
-                      child: Center(
-                        child: TranslatedText(
-                          material.is_purchased == 1
-                              ? 'Continue'
-                              : 'Enroll Now',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8.6),
+                        ),
+                        child: Center(
+                          child: TranslatedText(
+                            material.is_purchased == 1
+                                ? 'Continue'
+                                : 'View Course',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: material.is_purchased == 1
+                                  ? AppColors.tealGreen
+                                  : AppColors.darkNavy,
+                            ),
                           ),
                         ),
                       ),
@@ -612,16 +734,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
   );
 }
 
-  // ─── GRADIENT FALLBACK ────────────────────────────────────────────
+  // ─── IMAGE FALLBACK ───────────────────────────────────────────────
 
   Widget _buildGradientFallback(String title) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: _getGradientColors(title),
-        ),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0D6E6E),
       ),
       child: Stack(
         children: [
@@ -630,7 +748,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
             child: Container(
               width: 80, height: 80,
               decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withOpacity(0.10),
                   shape: BoxShape.circle),
             ),
           ),
@@ -639,13 +757,24 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
             child: Container(
               width: 50, height: 50,
               decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withOpacity(0.08),
                   shape: BoxShape.circle),
             ),
           ),
           Center(
-            child: Icon(Icons.school_rounded,
-                size: 40, color: Colors.white.withOpacity(0.8)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      shape: BoxShape.circle),
+                  child: const Icon(Icons.menu_book_rounded,
+                      size: 24, color: Colors.white),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -683,24 +812,4 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
     );
   }
 
-  // ─── GRADIENT COLORS ──────────────────────────────────────────────
-
-  List<Color> _getGradientColors(String subject) {
-    final s = subject.toLowerCase();
-    if (s.contains('math')) return [AppColors.darkNavy, AppColors.tealGreen];
-    if (s.contains('science')) return [AppColors.tealGreen, const Color(0xFF0D6B55)];
-    if (s.contains('physics')) return [const Color(0xFF1a237e), AppColors.darkNavy];
-    if (s.contains('chemistry')) return [AppColors.tealGreen, AppColors.darkNavy];
-    if (s.contains('english')) return [AppColors.darkNavy, const Color(0xFF1B5E20)];
-    if (s.contains('bihar') || s.contains('board'))
-      return [const Color(0xFF1a237e), AppColors.darkNavy];
-    if (s.contains('railway') || s.contains('rrb'))
-      return [const Color(0xFF0D47A1), AppColors.darkNavy];
-    if (s.contains('bank') || s.contains('sbi') || s.contains('ibps'))
-      return [const Color(0xFF1565C0), const Color(0xFF0D47A1)];
-    if (s.contains('police')) return [const Color(0xFF4A148C), AppColors.darkNavy];
-    if (s.contains('bpsc') || s.contains('upsc'))
-      return [const Color(0xFF880E4F), AppColors.darkNavy];
-    return [AppColors.darkNavy, AppColors.tealGreen];
-  }
 }

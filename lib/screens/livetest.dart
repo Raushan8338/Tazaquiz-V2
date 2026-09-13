@@ -541,24 +541,9 @@ class _LiveTestScreenState extends State<LiveTestScreen>
                   ],
                 ),
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                    color: AppColors.lightGold,
-                    borderRadius: BorderRadius.circular(12)),
-                child: Row(
-                  children: [
-                    Icon(Icons.emoji_events,
-                        color: AppColors.darkNavy, size: 16),
-                    SizedBox(width: 6),
-                    Text('$_score',
-                        style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.darkNavy,
-                            fontWeight: FontWeight.w900)),
-                  ],
-                ),
-              ),
+              // A live running score badge is a game-show touch — real exams
+              // never show you your score mid-attempt. Removed to keep this
+              // screen feeling like an actual exam rather than a quiz app.
             ],
           ),
           SizedBox(height: 10),
@@ -690,19 +675,10 @@ class _LiveTestScreenState extends State<LiveTestScreen>
                                   ? [AppColors.orange, AppColors.orangeS1]
                                   : [AppColors.tealGreen, AppColors.darkNavy],
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (timerPaused
-                                ? Colors.grey
-                                : _timeLeft <= (_perQuestionTime * 0.3).floor()
-                                    ? AppColors.red
-                                    : AppColors.tealGreen)
-                            .withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
+                    // Flat badge, no glow — the countdown still changes
+                    // colour as time runs low, but without the game-show
+                    // shine of a drop-shadowed pill.
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
@@ -714,17 +690,19 @@ class _LiveTestScreenState extends State<LiveTestScreen>
                       SizedBox(width: 6),
                       Text(
                         timerPaused ? 'Paused' : '$_timeLeft',
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 14,
                             color: AppColors.white,
-                            fontWeight: FontWeight.w900),
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'ReportSerif'),
                       ),
                       if (!timerPaused)
                         Text('s',
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 14,
                                 color: AppColors.white,
-                                fontWeight: FontWeight.w600)),
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'ReportSerif')),
                     ],
                   ),
                 ),
@@ -867,20 +845,12 @@ class _LiveTestScreenState extends State<LiveTestScreen>
           isTranslationAllowed
               ? Text(
                   _currentQuestionData['question'] ?? '',
-                  style: TextStyle(
-                      fontSize: 15,
-                      color: AppColors.darkNavy,
-                      fontWeight: FontWeight.w700,
-                      height: 1.4),
+                  style: _examTextStyle(fontSize: 16, weight: FontWeight.w400),
                 )
               : TranslatedText(
                   _currentQuestionData['question'] ?? '',
                   key: ValueKey('q_${_activeLang}_$_currentQuestion'),
-                  style: TextStyle(
-                      fontSize: 15,
-                      color: AppColors.darkNavy,
-                      fontWeight: FontWeight.w700,
-                      height: 1.4),
+                  style: _examTextStyle(fontSize: 16, weight: FontWeight.w400),
                 ),
           if (_currentQuestionData['questionImage'] != null) ...[
             SizedBox(height: 12),
@@ -897,30 +867,104 @@ class _LiveTestScreenState extends State<LiveTestScreen>
   // Shared network-image renderer for question/option images — shows a
   // loading spinner while fetching and quietly collapses to nothing if the
   // URL fails, instead of leaving a broken-image icon in the layout.
+  // Tappable — opens a pinch-to-zoom full-screen view, since a small inline
+  // diagram/table image is often unreadable at card size.
   Widget _buildNetworkImage(String url,
       {double maxHeight = 140, double borderRadius = 14}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: Container(
-        width: double.infinity,
-        constraints: BoxConstraints(maxHeight: maxHeight),
-        color: AppColors.greyS1,
-        child: Image.network(
-          url,
-          fit: BoxFit.contain,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return SizedBox(
-              height: maxHeight * 0.6,
-              child: Center(
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppColors.tealGreen),
+    return GestureDetector(
+      onTap: () => _showZoomableImage(url),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Container(
+          width: double.infinity,
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          color: AppColors.greyS1,
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return SizedBox(
+                    height: maxHeight * 0.6,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.tealGreen),
+                    ),
+                  );
+                },
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
-            );
-          },
-          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              Padding(
+                padding: const EdgeInsets.all(6),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.45),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.zoom_in_rounded,
+                      color: Colors.white, size: 16),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // Full-screen pinch-zoom viewer for question/option images.
+  void _showZoomableImage(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black,
+      builder: (ctx) => GestureDetector(
+        onTap: () => Navigator.of(ctx).pop(),
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              Center(
+                child: InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 5,
+                  child: Image.network(url, fit: BoxFit.contain),
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Exam-paper look for the actual reading content (question/option text) —
+  // Tinos (Times-style) for Latin script, with Noto Sans Devanagari as a
+  // fallback so Hindi text in the same sentence gets a matching clean,
+  // printed look instead of silently falling back to Roboto.
+  TextStyle _examTextStyle({required double fontSize, required FontWeight weight, Color? color}) {
+    return TextStyle(
+      fontSize: fontSize,
+      color: color ?? AppColors.darkNavy,
+      fontWeight: weight,
+      height: 1.4,
+      fontFamily: 'ReportSerif',
+      fontFamilyFallback: const ['ReportSerifDevanagari'],
     );
   }
 
@@ -1012,18 +1056,12 @@ class _LiveTestScreenState extends State<LiveTestScreen>
                     // Key includes _activeLang — forces rebuild when language changes
                     isTranslationAllowed
                         ? Text(text,
-                            style: TextStyle(
-                                fontSize: 14,
-                                color: textColor,
-                                fontWeight: FontWeight.w600))
+                            style: _examTextStyle(fontSize: 15, weight: FontWeight.w400, color: textColor))
                         : TranslatedText(
                             text,
                             key: ValueKey(
                                 'opt_${_activeLang}_${_currentQuestion}_$index'),
-                            style: TextStyle(
-                                fontSize: 14,
-                                color: textColor,
-                                fontWeight: FontWeight.w600),
+                            style: _examTextStyle(fontSize: 15, weight: FontWeight.w400, color: textColor),
                           ),
                 ],
               ),

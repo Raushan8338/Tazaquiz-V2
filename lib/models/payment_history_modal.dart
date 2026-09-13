@@ -149,6 +149,9 @@ class PaymentItem {
     switch (productType.toUpperCase()) {
       case 'QUIZ':
         return 'Quiz Entry Fee';
+      case 'SUBSCRIPTION':
+        final plan = productDetails?.packageName;
+        return (plan != null && plan.isNotEmpty) ? '$plan Plan' : 'Subscription Plan';
       case 'STUDY':
       case 'COURSE':
       case 'STUDY_MATERIAL':
@@ -177,6 +180,9 @@ class ProductDetails {
   final String? contentType;
   final int? levelId;
 
+  // Subscription specific field
+  final String? packageName;
+
   ProductDetails({
     required this.id,
     required this.name,
@@ -189,6 +195,7 @@ class ProductDetails {
     this.questionCount,
     this.contentType,
     this.levelId,
+    this.packageName,
   });
 
   factory ProductDetails.fromJson(Map<String, dynamic> json) {
@@ -204,6 +211,7 @@ class ProductDetails {
       questionCount: _toInt(json['question_count']),
       contentType: json['content_type']?.toString(),
       levelId: _toInt(json['level_id']),
+      packageName: json['package_name']?.toString(),
     );
   }
 

@@ -35,6 +35,10 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
   bool _hasSearched = false;
   String _lastQuery = '';
 
+  // ── Default (popular) courses shown before a search is typed ────────
+  List<StudyMaterialItem> _popularCourses = [];
+  bool _isLoadingPopular = true;
+
   // ── Debounce ───────────────────────────────────────────────────────
   Timer? _debounce;
 
@@ -52,6 +56,34 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
       _focusNode.requestFocus();
     });
     _focusNode.addListener(() => setState(() {}));
+    _loadPopularCourses();
+  }
+
+  // ── Default listing (shown before user types anything) ──────────────
+  Future<void> _loadPopularCourses() async {
+    try {
+      final Authrepository repo = Authrepository(Api_Client.dio);
+      final Response response = await repo.fetchCourseSearchResults({
+        'category_id': 0,
+        'page': 1,
+        'limit': 30,
+        'search': '',
+      });
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final List raw = response.data['data'] ?? [];
+        setState(() {
+          _popularCourses = raw.map((e) => StudyMaterialItem.fromJson(e)).toList();
+          _isLoadingPopular = false;
+        });
+        _listAnimCtrl.forward();
+      }
+    } catch (e) {
+      debugPrint("Popular courses fetch error: $e");
+      if (mounted) setState(() => _isLoadingPopular = false);
+    }
   }
 
   @override
@@ -256,7 +288,7 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
 
   // ── Body ───────────────────────────────────────────────────────────
   Widget _buildBody() {
-    if (!_hasSearched && !_isLoading) return _buildIdleState();
+    if (!_hasSearched && !_isLoading) return _buildPopularCourses();
     if (_isLoading && _results.isEmpty) return _buildShimmer();
     if (_hasSearched && _results.isEmpty) return _buildEmptyState();
 
@@ -309,31 +341,65 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
     );
   }
 
-  // ── Idle state ─────────────────────────────────────────────────────
-  Widget _buildIdleState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.08), shape: BoxShape.circle),
-            child: Icon(Icons.auto_stories_rounded, size: 34, color: AppColors.tealGreen),
+  // ── Popular courses (default view before a search is typed) ─────────
+  Widget _buildPopularCourses() {
+    if (_isLoadingPopular) return _buildShimmer();
+
+    if (_popularCourses.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.08), shape: BoxShape.circle),
+              child: Icon(Icons.auto_stories_rounded, size: 34, color: AppColors.tealGreen),
+            ),
+            const SizedBox(height: 18),
+            TranslatedText(
+              'Find your course',
+              style: TextStyle(color: AppColors.darkNavy, fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            TranslatedText(
+              'Type above to search from\nour complete course library',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.6),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+          child: Row(
+            children: [
+              Icon(Icons.local_fire_department_rounded, size: 16, color: AppColors.tealGreen),
+              const SizedBox(width: 6),
+              TranslatedText(
+                'Popular Courses',
+                style: TextStyle(color: AppColors.darkNavy, fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+            ],
           ),
-          const SizedBox(height: 18),
-          TranslatedText(
-            'Find your course',
-            style: TextStyle(color: AppColors.darkNavy, fontSize: 17, fontWeight: FontWeight.w700),
+        ),
+        Expanded(
+          child: FadeTransition(
+            opacity: _listFade,
+            child: ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              itemCount: _popularCourses.length,
+              itemBuilder: (context, index) => _buildCard(_popularCourses[index], index),
+            ),
           ),
-          const SizedBox(height: 8),
-          TranslatedText(
-            'Type above to search from\nour complete course library',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.6),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

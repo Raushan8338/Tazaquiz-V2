@@ -30,6 +30,7 @@ import 'package:tazaquiznew/widgets/home_banner.dart';
 import 'package:tazaquiznew/widgets/home_coaching_profile.dart';
 import 'package:tazaquiznew/widgets/home_courses.dart';
 import 'package:tazaquiznew/widgets/home_live_test.dart';
+import 'package:tazaquiznew/widgets/home_featured_live_test.dart';
 import 'package:tazaquiznew/widgets/mock_test.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -372,6 +373,9 @@ if (homePageItemData.isEmpty) {
                             checkattempted: _quizAlreadyDone,
                             onStartQuiz: () {},
                           ),
+                             /// Featured Live Test (admin-flagged spotlight, self-fetching)
+                          const Home_featured_live_test(),
+
                              /// Live Tests
                           if (liveTests.isNotEmpty) Home_live_test(liveTests: liveTests, homeSections: quizSection!),
 

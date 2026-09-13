@@ -11,7 +11,7 @@ class NotificationService {
 
   // Initialize
   static Future<void> initialize() async {
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@drawable/ic_notification_white');
 
     const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -85,7 +85,7 @@ class NotificationService {
       channelDescription: 'Notifications for TazaQuiz',
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification_white',
       color: const Color(0xFF4F46E5),
 
       // ✅ Apply Image Style
@@ -168,7 +168,7 @@ class NotificationService {
         largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       ),
 
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification_white',
       color: const Color(0xFF4F46E5),
     );
 
@@ -219,7 +219,7 @@ class NotificationService {
         const AndroidNotificationAction('dismiss', 'Later', cancelNotification: true),
       ],
 
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification_white',
       largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       color: const Color(0xFF10B981), // Green color for live
       ticker: '🔴 Live Quiz Starting!',

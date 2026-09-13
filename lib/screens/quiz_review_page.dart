@@ -4,6 +4,8 @@ import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/quiz_review_modal.dart';
+import 'package:tazaquiznew/models/quizItem_modal.dart';
+import 'package:tazaquiznew/screens/first_instructionPage.dart';
 
 class QuizReviewPage extends StatefulWidget {
   final int attemptId;
@@ -119,6 +121,57 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
     }
   }
 
+  bool _isReattempting = false;
+
+  Future<void> _handleReattempt() async {
+    final attempt = _data?.attempt;
+    if (attempt == null || _isReattempting) return;
+    setState(() => _isReattempting = true);
+
+    try {
+      final response = await Authrepository(Api_Client.dio).get_quizId_wise_details({
+        'quiz_id': attempt.quizId.toString(),
+        'user_id': widget.userId.toString(),
+        'course_id': (attempt.courseId ?? '').toString(),
+      });
+      final responseData = response.data;
+
+      if (responseData is! Map || responseData['status'] != true || responseData['data'] == null) {
+        throw Exception('Quiz details unavailable');
+      }
+
+      final quiz = QuizItem.fromJson(responseData['data']);
+      if (!mounted) return;
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => QuizInstructionPage(
+            testTitle: quiz.title.toString(),
+            subject: quiz.difficultyLevel.toString(),
+            Quiz_id: attempt.quizId.toString(),
+            timeLimit: int.parse(quiz.timeLimit.toString()),
+            pageType: widget.pageType == 4 ? 'mock_test' : 'live_test',
+            total_questions: quiz.totalQuestions ?? 0,
+            totalMarks: quiz.totalMarks ?? 0,
+            passingMarks: int.parse(quiz.passing_score ?? '0'),
+            instruction: quiz.instruction.toString(),
+            negativeMark: quiz.negative_mark.toString(),
+            courseId: (attempt.courseId ?? '').toString(),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: TranslatedText('Could not start a new attempt. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isReattempting = false);
+    }
+  }
+
   List<QuizReviewQuestion> get _filtered {
     if (_data == null) return [];
     switch (_filter) {
@@ -216,6 +269,40 @@ class _QuizReviewPageState extends State<QuizReviewPage> {
           ),
         ],
       ),
+      actions: [
+        if (_data != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: GestureDetector(
+              onTap: _isReattempting ? null : _handleReattempt,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: _isReattempting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.replay_rounded, size: 15, color: Colors.white),
+                          SizedBox(width: 5),
+                          TranslatedText(
+                            'Reattempt',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+      ],
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

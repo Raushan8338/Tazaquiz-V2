@@ -97,7 +97,7 @@ class _Home_live_testState extends State<Home_live_test>
       children: [
         /// ── Section Header ──
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 18, 4, 10),
+          padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

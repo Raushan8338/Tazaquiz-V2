@@ -11,6 +11,7 @@ import 'package:play_install_referrer/play_install_referrer.dart';
 import 'package:shared_preferences/shared_preferences.dart'; 
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart'; 
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/ads/ad_helper.dart';
 import 'package:tazaquiznew/authentication/notificationHandler.dart';
 import 'package:tazaquiznew/authentication/notification_service.dart';
 import 'package:tazaquiznew/screens/splash.dart';
@@ -48,7 +49,9 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await TranslationService.instance.init();
-  await MobileAds.instance.initialize();
+  if (AdHelper.isSupported) {
+    await MobileAds.instance.initialize();
+  }
   await _saveInstallReferrer();
 
   if (isPushSupported()) {
@@ -89,9 +92,10 @@ class MyApp extends StatelessWidget {
       title: 'TazaQuiz',
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      // ✅ NEW — screen tracking
+      // ✅ NEW — screen tracking (Firebase isn't initialized on platforms
+      // where isPushSupported() is false, e.g. Windows)
       navigatorObservers: [
-        FirebaseAnalyticsObserver(analytics: analytics),
+        if (isPushSupported()) FirebaseAnalyticsObserver(analytics: analytics),
       ],
       home: SplashScreen(),
     );

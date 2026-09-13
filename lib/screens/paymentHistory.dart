@@ -8,6 +8,7 @@ import 'package:tazaquiznew/models/login_response_model.dart';
 import 'package:tazaquiznew/models/payment_history_modal.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentHistoryPage extends StatefulWidget {
   @override
@@ -440,7 +441,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             ),
                             AppRichText.setTextPoppinsStyle(
                               context,
-                              '₹${transaction.amount.toStringAsFixed(0)}',
+                              '₹${transaction.amount.toStringAsFixed(2)}',
                               16,
                               AppColors.darkNavy,
                               FontWeight.w900,
@@ -688,7 +689,38 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                 _buildDetailRow('Date', _formatDate(transaction.purchaseDate)),
                 _buildDetailRow('Time', _formatTime(transaction.purchaseDate)),
                 _buildDetailRow('Payment Method', transaction.paymentMethod ?? 'N/A'),
-                SizedBox(height: 24),
+                if (transaction.displayStatus == 'success') ...[
+                  SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => launchUrl(
+                      Uri.parse('https://tazaquiz.com/student/student-invoice.php?order_id=${transaction.orderId}'),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.tealGreen, width: 1.4),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: EdgeInsets.symmetric(vertical: 13),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.receipt_long_rounded, size: 18, color: AppColors.tealGreen),
+                        SizedBox(width: 8),
+                        AppRichText.setTextPoppinsStyle(
+                          context,
+                          'Download Receipt',
+                          14,
+                          AppColors.tealGreen,
+                          FontWeight.w700,
+                          1,
+                          TextAlign.center,
+                          0.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);

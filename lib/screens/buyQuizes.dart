@@ -15,6 +15,7 @@ import 'package:tazaquiznew/screens/livetest.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
+import 'package:tazaquiznew/widgets/attempt_history_sheet.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -85,6 +86,12 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   bool _isFree = false;
   bool _isLive = false;
   QuizItem? _currentQuiz;
+
+  // ── Regular (any pageType) "Remind Me" — separate admin-facing list,
+  // unrelated to the featured-quiz registration/access flow above.
+  bool _isReminded = false;
+  bool _isProcessingReminder = false;
+
   Timer? _countdownTimer;
   Timer? _pulseTimer;
   int _remainingSeconds = 0;
@@ -229,6 +236,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             _startCountdown();
           }
 
+          if (_currentQuiz!.quizStatus.toLowerCase() == 'upcoming') {
+            unawaited(_checkReminderState(userid));
+          }
+
           setState(() {
             _isLoading = false;
             _hasError = false;
@@ -267,6 +278,51 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
                   : 'unknown';
         });
       }
+    }
+  }
+
+  // ── Regular (any pageType) "Remind Me" — separate admin-facing list ──
+  Future<void> _checkReminderState(String userid) async {
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final response = await authRepository.check_live_test_reminder({
+        'quiz_id': widget.quizId.toString(),
+        'user_id': userid.toString(),
+      });
+      if (mounted && response.statusCode == 200) {
+        setState(() => _isReminded = response.data['reminded'] == true);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _handleSetReminder() async {
+    if (_user == null) return;
+    setState(() => _isProcessingReminder = true);
+    try {
+      Authrepository authRepository = Authrepository(Api_Client.dio);
+      final response = await authRepository.set_live_test_reminder({
+        'quiz_id': widget.quizId.toString(),
+        'user_id': _user!.id.toString(),
+      });
+      if (!mounted) return;
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        setState(() {
+          _isReminded = true;
+          _isProcessingReminder = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const TranslatedText("Reminder set! We'll notify you before the test starts."),
+            backgroundColor: _DS.teal,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      } else {
+        setState(() => _isProcessingReminder = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isProcessingReminder = false);
     }
   }
 
@@ -410,8 +466,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     );
   }
 
-  void _navigateToQuiz() {
-    Navigator.push(
+  void _navigateToQuiz() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder:
@@ -430,6 +486,10 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             ),
       ),
     );
+    // Refresh so a fresh attempt (reattempt/resume) is reflected immediately
+    // instead of showing the stale is_attempted/completedAttemptId fetched
+    // when this page first loaded.
+    if (mounted) _getUserData();
   }
 
   void _showAccessDialog() {
@@ -836,6 +896,33 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.1),
       ),
+      actions: [
+        if (_currentQuiz?.is_attempted == true)
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: _handleStartQuiz,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.replay_rounded, size: 15, color: Colors.white),
+                    SizedBox(width: 5),
+                    TranslatedText(
+                      'Reattempt',
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
       flexibleSpace: FlexibleSpaceBar(background: Container(color: _DS.navy)),
     );
   }
@@ -2274,7 +2361,7 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     final quiz = _currentQuiz;
     if (quiz == null) return const SizedBox.shrink();
 
-    // ✅ 1. Completed attempt — View Result
+    // ✅ 1. Completed attempt — View Result (+ Reattempt)
     if (quiz.is_attempted) {
       return _buildActionBar(
         label: 'View Result',
@@ -2295,6 +2382,15 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             ),
           );
         },
+        onReattempt: _handleStartQuiz,
+        onViewHistory: () => showAttemptHistorySheet(
+          context,
+          quizId: widget.quizId.toString(),
+          userId: _user?.id.toString() ?? '',
+          courseId: widget.courseId.toString(),
+          quizTitle: quiz.title,
+          pageType: 0,
+        ),
       );
     }
 
@@ -2375,6 +2471,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
     required List<Color> colors,
     required Color shadowColor,
     required VoidCallback onTap,
+    VoidCallback? onReattempt,
+    VoidCallback? onViewHistory,
   }) {
    return Container(
   padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -2391,7 +2489,34 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
   ),
   child: SafeArea(
     top: false,
-    child: Row(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (onViewHistory != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: GestureDetector(
+              onTap: onViewHistory,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history_rounded, size: 14, color: _DS.teal),
+                  const SizedBox(width: 5),
+                  TranslatedText(
+                    'View Attempt History',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: _DS.teal,
+                      decoration: TextDecoration.underline,
+                      decorationColor: _DS.teal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        Row(
       children: [
         // Main action button
         Expanded(
@@ -2437,6 +2562,45 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
         ),
 
         const SizedBox(width: 10),
+
+        // Reattempt button
+        if (onReattempt != null)
+          GestureDetector(
+            onTap: onReattempt,
+            child: Container(
+              height: 54,
+              width: 54,
+              decoration: BoxDecoration(
+                color: _DS.navy.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _DS.navy.withOpacity(0.35),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.replay_rounded,
+                    color: _DS.navy,
+                    size: 20,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Retry',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: _DS.navy,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        if (onReattempt != null) const SizedBox(width: 10),
 
         // Leaderboard button
        _currentQuiz!.is_attempted == true ?
@@ -2484,6 +2648,8 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
             ),
           ),
         ):SizedBox()
+      ],
+    ),
       ],
     ),
   ),
@@ -2536,52 +2702,75 @@ class _QuizDetailPageState extends State<QuizDetailPage> with SingleTickerProvid
               ),
             ),
             const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_DS.navy, _DS.teal]),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(color: _DS.teal.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const TranslatedText("Reminder set! We'll notify you before the test starts."),
-                        backgroundColor: _DS.teal,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    );
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 15),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
-                        SizedBox(width: 9),
-                        TranslatedText(
-                          'Remind Me',
-                          style: TextStyle(
-                            fontSize: _DS.fsLg,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            _buildRemindMeActionButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Regular "Remind Me" now persists into live_test_reminders (admin-facing
+  // list — who to notify when this specific test goes live).
+  Widget _buildRemindMeActionButton() {
+    if (_isReminded) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F8F2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _DS.teal.withOpacity(0.4), width: 1.2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.check_circle_rounded, color: _DS.tealDark, size: 20),
+            const SizedBox(width: 9),
+            const TranslatedText(
+              'Reminder Set',
+              style: TextStyle(fontSize: _DS.fsLg, fontWeight: FontWeight.w800, color: _DS.tealDark),
             ),
           ],
+        ),
+      );
+    }
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [_DS.navy, _DS.teal]),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: _DS.teal.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: _isProcessingReminder ? null : _handleSetReminder,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            child: _isProcessingReminder
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                  )
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 9),
+                      TranslatedText(
+                        'Remind Me',
+                        style: TextStyle(
+                          fontSize: _DS.fsLg,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

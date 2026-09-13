@@ -65,17 +65,21 @@ class _StudyMaterialPurchaseHistoryScreenState
       Authrepository authRepository = Authrepository(Api_Client.dio);
       final responseFuture = await authRepository
           .fetchStudyMaterialsDetails({'user_id': user_id.toString()});
+      debugPrint('[PurchaseHistory] user_id=$user_id status=${responseFuture.statusCode} body=${responseFuture.data}');
       if (responseFuture.statusCode == 200) {
         final List list = responseFuture.data['data'] ?? [];
+        debugPrint('[PurchaseHistory] raw list length=${list.length}');
         setState(() {
           _allStudyMaterials =
               list.map((e) => StudyMaterialDetailsItem.fromJson(e)).toList();
           _isLoading = false;
         });
+        debugPrint('[PurchaseHistory] parsed length=${_allStudyMaterials.length}');
       } else {
         setState(() => _isLoading = false);
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[PurchaseHistory] EXCEPTION: $e\n$st');
       setState(() => _isLoading = false);
     }
   }
@@ -99,7 +103,7 @@ class _StudyMaterialPurchaseHistoryScreenState
                   color: AppColors.tealGreen,
                   child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 20),
                     itemCount: _allStudyMaterials.length,
                     itemBuilder: (context, index) =>
                         _buildCard(_allStudyMaterials[index]),
@@ -236,165 +240,257 @@ leading: pageId == '1'
         }
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withOpacity(0.07),
-                blurRadius: 14,
-                offset: const Offset(0, 5))
+                blurRadius: 12,
+                offset: const Offset(0, 4))
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildBanner(material, hasImage, isSubscription, pkgLabel, pkgColor),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TranslatedText(
-                    material.title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.darkNavy,
-                      height: 1.3,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        width: 84,
+                        height: 84,
+                        child: hasImage
+                            ? Image.network(
+                                material.thumbnail,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildThumbFallback(material, isSubscription),
+                              )
+                            : _buildThumbFallback(material, isSubscription),
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  if (material.description.isNotEmpty)
-                    TranslatedText(
-                      material.description,
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.greyS600,
-                          height: 1.4),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    Positioned(
+                      top: -6,
+                      left: -6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: pkgColor,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 4)
+                          ],
+                        ),
+                        child: Text(
+                          pkgLabel,
+                          style: const TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
                     ),
-                  const SizedBox(height: 12),
-                  isSubscription
-                      ? _buildStartNowButton(material, isExpired)
-                      : _buildSingleButton(material),
-                  const SizedBox(height: 10),
-                  TranslatedText(
-                    material.access_valid_until.isNotEmpty
-                        ? 'Valid Until: ${_formatDate(material.access_valid_until)}'
-                        : 'No Expiry',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: AppColors.greyS500,
-                        fontWeight: FontWeight.w500),
+                    if (material.isPurchased)
+                      Positioned(
+                        bottom: -6,
+                        left: -6,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 4)
+                            ],
+                          ),
+                          child: Icon(Icons.check_circle,
+                              size: 14, color: AppColors.tealGreen),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _buildFeaturePills(material.package_features),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+            const SizedBox(height: 12),
+            TranslatedText(
+              material.title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: AppColors.darkNavy,
+                height: 1.25,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 3),
+            if (material.description.isNotEmpty)
+              TranslatedText(
+                material.description,
+                style: TextStyle(
+                    fontSize: 11, color: AppColors.greyS600, height: 1.35),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            const SizedBox(height: 8),
+            TranslatedText(
+              material.access_valid_until.isNotEmpty
+                  ? 'Valid Until: ${_formatDate(material.access_valid_until)}'
+                  : 'No Expiry',
+              style: TextStyle(
+                  fontSize: 10,
+                  color: AppColors.greyS500,
+                  fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            isSubscription
+                ? _buildStartNowButton(material, isExpired)
+                : _buildSingleButton(material),
           ],
         ),
       ),
     );
   }
 
-  // ─── START NOW BUTTON (clean — no pills) ──────────────────────────────────
+  // ─── THUMBNAIL FALLBACK ─────────────────────────────────────────────────
 
-  Widget _buildStartNowButton(StudyMaterialDetailsItem material, bool isExpired) {
-  final Map<String, Map<String, dynamic>> featureMeta = {
-    'chapter test': {'icon': Icons.menu_book_rounded,            'color': AppColors.tealGreen},
-    'subject test': {'icon': Icons.assignment_rounded,           'color': const Color(0xFF3949AB)},
-    'live test':    {'icon': Icons.bolt_rounded,                 'color': const Color(0xFF1565C0)},
-    'full mock':    {'icon': Icons.quiz_rounded,                 'color': const Color(0xFFE65100)},
-    'leaderboard':  {'icon': Icons.leaderboard_rounded,          'color': const Color(0xFF6B4EFF)},
-    'pyqs':         {'icon': Icons.history_edu_rounded,          'color': const Color(0xFF00897B)},
-    'notes':        {'icon': Icons.sticky_note_2_rounded,        'color': AppColors.darkNavy},
-    'daily quiz':   {'icon': Icons.today_rounded,                'color': const Color(0xFF6B4EE6)},
-    'job alerts':   {'icon': Icons.notifications_active_rounded, 'color': const Color(0xFFE65100)},
-  };
-
-  final List<Widget> pills = material.package_features.map((feature) {
-    final String key    = feature.text.toLowerCase().trim();
-    final meta          = featureMeta[key];
-    final Color base    = meta?['color'] ?? AppColors.tealGreen;
-    final Color color   = feature.isIncluded ? base : const Color(0xFF9E9E9E);
-    final IconData icon = meta?['icon'] ?? Icons.check_circle_rounded;
-
-    return Opacity(
-      opacity: feature.isIncluded ? 1.0 : 0.45,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.09),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.25)),
+  Widget _buildThumbFallback(
+      StudyMaterialDetailsItem material, bool isSubscription) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: _getColors(material.title),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 10, color: color),
-            const SizedBox(width: 3),
-            Text(
-              feature.text,
-              style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: color),
-            ),
-            if (!feature.isIncluded) ...[
-              const SizedBox(width: 3),
-              Icon(Icons.lock_rounded, size: 8, color: color),
-            ],
-          ],
+      ),
+      child: Center(
+        child: Icon(
+          isSubscription
+              ? Icons.school_rounded
+              : material.contentType.toUpperCase() == 'PDF'
+                  ? Icons.picture_as_pdf_rounded
+                  : Icons.play_circle_rounded,
+          size: 28,
+          color: Colors.white.withOpacity(0.9),
         ),
       ),
     );
-  }).toList();
+  }
 
-  return Row(
-    crossAxisAlignment: CrossAxisAlignment.end,
-    children: [
-      Expanded(
-        child: Wrap(spacing: 6, runSpacing: 6, children: pills),
-      ),
-      const SizedBox(width: 10),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-         gradient: LinearGradient(
-      colors: isExpired
-          ? [Colors.red.shade700, Colors.red.shade400]
-          : [AppColors.darkNavy, AppColors.tealGreen],
-    ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-        color: (isExpired ? Colors.red : AppColors.tealGreen)
-            .withOpacity(0.3),
-        blurRadius: 8,
-        offset: const Offset(0, 3),
-      ),
-          ],
+  // ─── FEATURE PILLS ──────────────────────────────────────────────────────
+
+  static const Map<String, Map<String, dynamic>> _featureMeta = {
+    'chapter test': {'icon': Icons.menu_book_rounded, 'color': AppColors.tealGreen},
+    'subject test': {'icon': Icons.assignment_rounded, 'color': Color(0xFF3949AB)},
+    'live test': {'icon': Icons.bolt_rounded, 'color': Color(0xFF1565C0)},
+    'full mock': {'icon': Icons.quiz_rounded, 'color': Color(0xFFE65100)},
+    'leaderboard': {'icon': Icons.leaderboard_rounded, 'color': Color(0xFF6B4EFF)},
+    'pyqs': {'icon': Icons.history_edu_rounded, 'color': Color(0xFF00897B)},
+    'notes': {'icon': Icons.sticky_note_2_rounded, 'color': AppColors.darkNavy},
+    'daily quiz': {'icon': Icons.today_rounded, 'color': Color(0xFF6B4EE6)},
+    'job alerts': {'icon': Icons.notifications_active_rounded, 'color': Color(0xFFE65100)},
+  };
+
+  List<Widget> _buildFeaturePills(List<PackageFeatureItem> features) {
+    return features.map((feature) {
+      final String key = feature.text.toLowerCase().trim();
+      final meta = _featureMeta[key];
+      final Color base = meta?['color'] as Color? ?? AppColors.tealGreen;
+      final Color color = feature.isIncluded ? base : const Color(0xFF9E9E9E);
+      final IconData icon =
+          meta?['icon'] as IconData? ?? Icons.check_circle_rounded;
+
+      return Opacity(
+        opacity: feature.isIncluded ? 1.0 : 0.45,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.09),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.25)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 10, color: color),
+              const SizedBox(width: 3),
+              Text(
+                feature.text,
+                style: TextStyle(
+                    fontSize: 9, fontWeight: FontWeight.w600, color: color),
+              ),
+              if (!feature.isIncluded) ...[
+                const SizedBox(width: 3),
+                Icon(Icons.lock_rounded, size: 8, color: color),
+              ],
+            ],
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TranslatedText( isExpired ? 'Expired' : 'Start',
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white)),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
-          ],
+      );
+    }).toList();
+  }
+
+  // ─── START NOW BUTTON (clean — no pills) ──────────────────────────────────
+
+  // Feature-by-feature breakdown lives in the tap-to-open bottom sheet
+  // (_showCourseBottomSheet) — the card itself just needs a clear CTA.
+  Widget _buildStartNowButton(StudyMaterialDetailsItem material, bool isExpired) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isExpired
+              ? [Colors.red.shade700, Colors.red.shade400]
+              : [AppColors.darkNavy, AppColors.tealGreen],
         ),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: (isExpired ? Colors.red : AppColors.tealGreen)
+                .withOpacity(0.3),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-    ],
-  );
-}
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          TranslatedText(isExpired ? 'Expired - Renew Now' : 'Start Learning',
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white)),
+          const SizedBox(width: 5),
+          const Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
+        ],
+      ),
+    );
+  }
 
   // ─── BOTTOM SHEET ─────────────────────────────────────────────────────────
 
@@ -490,135 +586,6 @@ leading: pageId == '1'
           material: material,
           actions: actions,
           formatDate: _formatDate),
-    );
-  }
-
-  // ─── BANNER ───────────────────────────────────────────────────────────────
-
-  Widget _buildBanner(
-    StudyMaterialDetailsItem material,
-    bool hasImage,
-    bool isSubscription,
-    String pkgLabel,
-    Color pkgColor,
-  ) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-      child: Stack(
-        children: [
-          SizedBox(
-            height: 140,
-            width: double.infinity,
-            child: hasImage
-                ? Image.network(
-                    material.thumbnail,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _gradientBg(material.title),
-                  )
-                : _gradientBg(material.title),
-          ),
-          Container(
-            height: 140,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.15),
-                  Colors.black.withOpacity(0.45),
-                ],
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: Colors.white.withOpacity(0.4), width: 1.5),
-                ),
-                child: Icon(
-                  isSubscription
-                      ? Icons.school_rounded
-                      : material.contentType.toUpperCase() == 'PDF'
-                          ? Icons.picture_as_pdf_rounded
-                          : Icons.play_circle_rounded,
-                  size: 36,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 10,
-            left: 10,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                  color: pkgColor, borderRadius: BorderRadius.circular(20)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    pkgLabel == 'PREMIUM'
-                        ? Icons.workspace_premium
-                        : Icons.verified_rounded,
-                    size: 11,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    pkgLabel,
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (material.isPurchased)
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 6)
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle,
-                        size: 11, color: AppColors.tealGreen),
-                    const SizedBox(width: 4),
-                    TranslatedText(
-                      'PURCHASED',
-                      style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.tealGreen),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 
@@ -822,19 +789,6 @@ leading: pageId == '1'
                 fontWeight: FontWeight.w500),
           ),
         ],
-      ),
-    );
-  }
-
-  // ─── GRADIENT BG ──────────────────────────────────────────────────────────
-
-  Widget _gradientBg(String title) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: _getColors(title)),
       ),
     );
   }

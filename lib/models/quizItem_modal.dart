@@ -19,6 +19,7 @@ class QuizItem {
   final int subscription_id;
 
   final double price;
+  final bool isPaid;
   final bool isPurchased;
   final bool isAccessible;
 
@@ -61,6 +62,7 @@ class QuizItem {
     this.is_attempted = false,
     this.subscription_id = 0,
     this.price = 0.0,
+    this.isPaid = false,
     required this.isPurchased,
     required this.isAccessible,
     required this.isLive,
@@ -119,6 +121,7 @@ class QuizItem {
       is_attempted: _toBool(json['is_attempted']),
       subscription_id: _toInt(json['category_id'] ?? json['subscription_id']),
       price: _toDouble(json['price']),
+      isPaid: _toBool(json['isPaid'] ?? json['is_paid']),
       isPurchased: _toBool(json['isPurchased'] ?? json['is_purchased']),
       isAccessible: _toBool(json['isAccessible'] ?? json['is_accessible']),
       isLive: status == 'live' || _toBool(json['isLive']),
@@ -164,6 +167,7 @@ class QuizItem {
       'is_attempted': is_attempted,
       'subscription_id': subscription_id,
       'price': price,
+      'isPaid': isPaid,
       'is_purchased': isPurchased,
       'is_accessible': isAccessible,
       'is_live': isLive,

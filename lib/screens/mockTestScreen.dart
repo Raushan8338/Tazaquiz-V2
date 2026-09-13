@@ -961,12 +961,12 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
           isTranslationAllowed
               ? Text(
                 _currentQuestionData['question'] ?? '',
-                style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700, height: 1.4),
+                style: _examTextStyle(fontSize: 16, weight: FontWeight.w400),
               )
               : TranslatedText(
                 _currentQuestionData['question'] ?? '',
                 key: ValueKey('mock_q_${_effectiveLang}_$_currentQuestion'),
-                style: TextStyle(fontSize: 15, color: AppColors.darkNavy, fontWeight: FontWeight.w700, height: 1.4),
+                style: _examTextStyle(fontSize: 16, weight: FontWeight.w400),
               ),
           if (_currentQuestionData['questionImage'] != null) ...[
             const SizedBox(height: 12),
@@ -980,26 +980,96 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
   // Shared network-image renderer for question/option images — shows a
   // loading spinner while fetching and quietly collapses to nothing if the
   // URL fails, instead of leaving a broken-image icon in the layout.
+  // Tappable — opens a pinch-to-zoom full-screen view, since a small inline
+  // diagram/table image is often unreadable at card size.
   Widget _buildNetworkImage(String url, {double maxHeight = 140, double borderRadius = 14}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: Container(
-        width: double.infinity,
-        constraints: BoxConstraints(maxHeight: maxHeight),
-        color: AppColors.greyS1,
-        child: Image.network(
-          url,
-          fit: BoxFit.contain,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return SizedBox(
-              height: maxHeight * 0.6,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.tealGreen)),
-            );
-          },
-          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+    return GestureDetector(
+      onTap: () => _showZoomableImage(url),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Container(
+          width: double.infinity,
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          color: AppColors.greyS1,
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return SizedBox(
+                    height: maxHeight * 0.6,
+                    child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.tealGreen)),
+                  );
+                },
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(6),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: Colors.black.withOpacity(0.45), shape: BoxShape.circle),
+                  child: const Icon(Icons.zoom_in_rounded, color: Colors.white, size: 16),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // Full-screen pinch-zoom viewer for question/option images.
+  void _showZoomableImage(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black,
+      builder: (ctx) => GestureDetector(
+        onTap: () => Navigator.of(ctx).pop(),
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              Center(
+                child: InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 5,
+                  child: Image.network(url, fit: BoxFit.contain),
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Exam-paper look for the actual reading content (question/option text) —
+  // Tinos (Times-style) for Latin script, with Noto Sans Devanagari as a
+  // fallback so Hindi text in the same sentence gets a matching clean,
+  // printed look instead of silently falling back to Roboto.
+  TextStyle _examTextStyle({required double fontSize, required FontWeight weight, Color? color}) {
+    return TextStyle(
+      fontSize: fontSize,
+      color: color ?? AppColors.darkNavy,
+      fontWeight: weight,
+      height: 1.4,
+      fontFamily: 'ReportSerif',
+      fontFamilyFallback: const ['ReportSerifDevanagari'],
     );
   }
 
@@ -1090,12 +1160,12 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                     isTranslationAllowed
                         ? Text(
                           text,
-                          style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w500),
+                          style: _examTextStyle(fontSize: 15, weight: FontWeight.w400),
                         )
                         : TranslatedText(
                           text,
                           key: ValueKey('mock_opt_${_effectiveLang}_${_currentQuestion}_$index'),
-                          style: TextStyle(fontSize: 13, color: AppColors.darkNavy, fontWeight: FontWeight.w500),
+                          style: _examTextStyle(fontSize: 15, weight: FontWeight.w400),
                         ),
                 ],
               ),

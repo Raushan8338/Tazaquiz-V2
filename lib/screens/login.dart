@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -384,13 +385,18 @@ class _OtpLoginPageState extends State<OtpLoginPage> with TickerProviderStateMix
 
               _buildLoginButton(),
 
-              const SizedBox(height: 24),
+              // Google Sign-In has no working implementation on Windows
+              // (fails with "Google sign-in failed") — hide the option and
+              // its divider there. Android/iOS are unaffected.
+              if (!Platform.isWindows) ...[
+                const SizedBox(height: 24),
 
-              _buildOrDivider(),
+                _buildOrDivider(),
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              _buildSocialButtons(),
+                _buildSocialButtons(),
+              ],
 
               const SizedBox(height: 30), // 🔥 Spacer हटाया
 

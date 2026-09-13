@@ -173,73 +173,71 @@ class _SubjectContentPageState extends State<SubjectContentPage>
     super.dispose();
   }
 
+  // Header (app bar + category tabs + topic/chapter filter) stays fixed —
+  // only the materials list below it scrolls. Previously everything sat in
+  // one CustomScrollView, so the filter row scrolled away with the list.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.greyS1,
-      body: CustomScrollView(
-        slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(child: _buildCategoriesSection()),
+      appBar: _buildTopAppBar(),
+      body: Column(
+        children: [
+          _buildCategoriesSection(),
           // Topics row: sirf tab dikhe jab category select ho aur topics ho
           if (!_isLoading && _selectedCategoryId != 0 && _topics.isNotEmpty)
-            SliverToBoxAdapter(child: _buildTopicSelectorRow()),
-          _buildMaterialsList(),
-          SliverToBoxAdapter(child: SizedBox(height: 20)),
+            _buildTopicSelectorRow(),
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                _buildMaterialsList(),
+                SliverToBoxAdapter(child: SizedBox(height: 20)),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 70,
-      pinned: true,
+  PreferredSizeWidget _buildTopAppBar() {
+    return AppBar(
+      toolbarHeight: 70,
+      elevation: 0,
       backgroundColor: AppColors.darkNavy,
       automaticallyImplyLeading: false,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.darkNavy, AppColors.tealGreen],
-            ),
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.darkNavy, AppColors.tealGreen],
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 14),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.arrow_back,
-                          color: AppColors.white, size: 18),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: TranslatedText(
-                      'Study Materials',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.white,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+        ),
+      ),
+      leadingWidth: 54,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 16),
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppColors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(Icons.arrow_back, color: AppColors.white, size: 18),
           ),
+        ),
+      ),
+      title: TranslatedText(
+        'Study Materials',
+        style: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+          color: AppColors.white,
+          fontFamily: 'Poppins',
         ),
       ),
     );
@@ -640,355 +638,211 @@ class _SubjectContentPageState extends State<SubjectContentPage>
     );
   }
 
+  // No banner section — most materials have no real thumbnail (the old
+  // code even checked the wrong field for it), so every card just showed
+  // the same generic gradient-with-icon placeholder. A thin accent border
+  // plus inline type/premium tags carries the same info far more cleanly,
+  // matching the quiz-list card redesign.
   Widget _buildMaterialCard(StudyMaterialDetailsItem material) {
-    final bool hasImage =
-        material.filePath != null && material.filePath!.isNotEmpty;
+    final Color accent = _getSubjectColor(subjectName);
+    final bool isPdf = material.contentType.toString().toUpperCase() == 'PDF';
 
     return GestureDetector(
       onTap: () {},
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
+          border: Border(left: BorderSide(color: accent, width: 4)),
           boxShadow: [
             BoxShadow(
-                color: AppColors.black.withOpacity(0.08),
-                blurRadius: 20,
-                offset: Offset(0, 6),
-                spreadRadius: 2),
+                color: AppColors.black.withOpacity(0.06),
+                blurRadius: 14,
+                offset: Offset(0, 4)),
           ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 140,
-              decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(20))),
-              child: Stack(
-                children: [
-                  if (hasImage)
-                    ClipRRect(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(20)),
-                      child: Image.network(
-                        material.thumbnail,
-                        width: double.infinity,
-                        height: 140,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildGradientBackground(subjectName),
-                      ),
-                    )
-                  else
-                    _buildGradientBackground(subjectName),
-
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(20)),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.2),
-                          Colors.black.withOpacity(0.4)
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  Positioned(
-                    right: -40,
-                    top: -40,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                          color: AppColors.white.withOpacity(0.15),
-                          shape: BoxShape.circle),
-                    ),
-                  ),
-                  Positioned(
-                    left: -20,
-                    bottom: -20,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                          color: AppColors.white.withOpacity(0.1),
-                          shape: BoxShape.circle),
-                    ),
-                  ),
-
-                  Center(
-                    child: Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withOpacity(0.25),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                              color: AppColors.black.withOpacity(0.2),
-                              blurRadius: 15,
-                              offset: Offset(0, 4)),
-                        ],
-                      ),
-                      child: Icon(
-                        material.contentType.toString().toUpperCase() == 'PDF'
-                            ? Icons.picture_as_pdf_rounded
-                            : Icons.play_circle_fill_rounded,
-                        size: 48,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Row(
-                      children: [
-                        if (material.isPaid)
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                    color: AppColors.black.withOpacity(0.15),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2)),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.workspace_premium_rounded,
-                                    size: 14, color: Colors.amber[700]),
-                                SizedBox(width: 4),
-                                TranslatedText(
-                                  'PREMIUM',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.amber[800],
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  Positioned(
-                    bottom: 12,
-                    left: 12,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                              color: AppColors.black.withOpacity(0.15),
-                              blurRadius: 8,
-                              offset: Offset(0, 2)),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            material.contentType.toString().toUpperCase() ==
-                                    'PDF'
-                                ? Icons.description_rounded
-                                : Icons.videocam_rounded,
-                            size: 14,
-                            color: _getSubjectColor(subjectName),
-                          ),
-                          SizedBox(width: 4),
-                          TranslatedText(
-                            material.contentType.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: _getSubjectColor(subjectName),
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TranslatedText(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TranslatedText(
                     material.title,
                     style: TextStyle(
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppColors.darkNavy,
                         height: 1.3),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 10),
-
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor:
-                            _getSubjectColor(subjectName).withOpacity(0.1),
-                        backgroundImage: material.profile_icon.isNotEmpty
-                            ? NetworkImage(material.profile_icon)
-                            : null,
-                        child: material.profile_icon.isEmpty
-                            ? Icon(Icons.account_circle,
-                                size: 18,
-                                color: _getSubjectColor(subjectName))
-                            : null,
-                        onBackgroundImageError:
-                            material.profile_icon.isNotEmpty
-                                ? (exception, stackTrace) {}
-                                : null,
-                      ),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: TranslatedText(
-                          material.coaching_name,
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.greyS600,
-                              fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12),
-
-                  AppRichText.setTextPoppinsStyle(
-                    context,
-                    material.description ?? '',
-                    13,
-                    AppColors.darkNavy,
-                    FontWeight.normal,
-                    3,
-                    TextAlign.left,
-                    0.0,
-                  ),
-
-                  SizedBox(height: 14),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: Container(
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.darkNavy, AppColors.tealGreen],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                              color: AppColors.darkNavy.withOpacity(0.4),
-                              blurRadius: 12,
-                              offset: Offset(0, 4)),
+                        color: accent.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isPdf
+                                ? Icons.description_rounded
+                                : Icons.videocam_rounded,
+                            size: 12,
+                            color: accent,
+                          ),
+                          SizedBox(width: 4),
+                          TranslatedText(
+                            material.contentType.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: accent,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
                         ],
                       ),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (material.is_premium == 0 &&
-                              material.isAccessible == false) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BuyCoursePage(
-                                  contentId: material.materialId.toString(),
-                                  page_API_call: 'STUDY',
-                                ),
-                              ),
-                            );
-                          } else {
-                            if (material.contentType != 'Video') {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PDFViewerPage(
-                                      pdfUrl: material.filePath,
-                                      title: material.title),
-                                ),
-                              );
-                            } else {
-                              launchUrl(Uri.parse(material.filePath));
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.play_circle_rounded,
-                                size: 20, color: AppColors.white),
-                            SizedBox(width: 8),
-                            TranslatedText(
-                              (material.isAccessible == true)
-                                  ? 'Start Learning'
-                                  : (material.is_premium == 0)
-                                      ? 'SUBSCRIBE NOW'
-                                      : 'Start Learning',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
-                  ),
-                  SizedBox(height: 10),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: 10),
 
-                  Row(
+            AppRichText.setTextPoppinsStyle(
+              context,
+              material.description ?? '',
+              13,
+              AppColors.darkNavy,
+              FontWeight.normal,
+              2,
+              TextAlign.left,
+              0.0,
+            ),
+
+            SizedBox(height: 14),
+
+            SizedBox(
+              width: double.infinity,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.darkNavy, AppColors.tealGreen],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                        color: AppColors.darkNavy.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: Offset(0, 3)),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (material.is_premium == 0 &&
+                        material.isAccessible == false) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BuyCoursePage(
+                            contentId: material.materialId.toString(),
+                            page_API_call: 'STUDY',
+                          ),
+                        ),
+                      );
+                    } else {
+                      if (material.contentType != 'Video') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PDFViewerPage(
+                                pdfUrl: material.filePath,
+                                title: material.title),
+                          ),
+                        );
+                      } else {
+                        launchUrl(Uri.parse(material.filePath));
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.access_time_rounded,
-                          size: 12, color: AppColors.greyS500),
-                      SizedBox(width: 4),
+                      Icon(Icons.play_circle_rounded,
+                          size: 18, color: AppColors.white),
+                      SizedBox(width: 8),
                       TranslatedText(
-                        'Updated ${material.createdAt}',
+                        (material.isAccessible == true)
+                            ? 'Start Learning'
+                            : (material.is_premium == 0)
+                                ? 'SUBSCRIBE NOW'
+                                : 'Start Learning',
                         style: TextStyle(
-                            fontSize: 10,
-                            color: AppColors.greyS500,
-                            fontWeight: FontWeight.w500),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.white,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
+            ),
+            SizedBox(height: 8),
+
+            Row(
+              children: [
+                Icon(Icons.access_time_rounded,
+                    size: 12, color: AppColors.greyS500),
+                SizedBox(width: 4),
+                TranslatedText(
+                  'Updated ${_formatDate(material.createdAt)}',
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.greyS500,
+                      fontWeight: FontWeight.w500),
+                ),
+                // Coaching/source name — kept, just no longer a prominent
+                // avatar row up top; a small caption here is enough.
+                if (material.coaching_name.isNotEmpty &&
+                    material.coaching_name != 'UNKNOWN') ...[
+                  Text(' · ',
+                      style: TextStyle(fontSize: 10, color: AppColors.greyS500)),
+                  Expanded(
+                    child: TranslatedText(
+                      material.coaching_name,
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: AppColors.greyS500,
+                          fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -996,34 +850,12 @@ class _SubjectContentPageState extends State<SubjectContentPage>
     );
   }
 
-  Widget _buildGradientBackground(String subject) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: _getGradientColors(subject),
-        ),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-    );
-  }
-
-  List<Color> _getGradientColors(String subject) {
-    switch (subject) {
-      case 'Mathematics':
-        return [AppColors.darkNavy, AppColors.tealGreen];
-      case 'Science':
-        return [AppColors.tealGreen, AppColors.greenS2];
-      case 'Physics':
-        return [AppColors.oxfordBlue, AppColors.darkNavy];
-      case 'Chemistry':
-        return [AppColors.tealGreen, AppColors.darkNavy];
-      case 'English':
-        return [AppColors.darkNavy, AppColors.oxfordBlue];
-      default:
-        return [AppColors.tealGreen, AppColors.darkNavy];
-    }
+  String _formatDate(DateTime dt) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
 
   Color _getSubjectColor(String subject) {

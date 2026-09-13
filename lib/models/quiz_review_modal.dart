@@ -101,6 +101,7 @@ class QuizReviewSummary {
 class QuizReviewAttempt {
   final int attemptId;
   final int quizId;
+  final int? courseId;
   final String quizTitle;
   final String categoryName;
 
@@ -131,6 +132,7 @@ class QuizReviewAttempt {
   QuizReviewAttempt({
     required this.attemptId,
     required this.quizId,
+    this.courseId,
     required this.quizTitle,
     required this.categoryName,
     required this.score,
@@ -150,6 +152,7 @@ class QuizReviewAttempt {
     return QuizReviewAttempt(
       attemptId: (j['attempt_id'] ?? 0).toInt(),
       quizId: (j['quiz_id'] ?? 0).toInt(),
+      courseId: j['course_id'] != null ? (j['course_id'] as num).toInt() : null,
       quizTitle: j['quiz_title'] ?? '',
       categoryName: j['category_name'] ?? '',
       score: (j['score'] ?? 0).toDouble(),

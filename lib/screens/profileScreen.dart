@@ -14,6 +14,7 @@ import 'package:tazaquiznew/screens/help&SupportPage.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/paymentHistory.dart';
 import 'package:tazaquiznew/screens/refer_earn_page.dart';
+import 'package:tazaquiznew/screens/sectional_performance_page.dart';
 import 'package:tazaquiznew/screens/splash.dart';
 import 'package:tazaquiznew/screens/studyMaterialPurchaseHistory.dart';
 import 'package:tazaquiznew/testpage.dart' hide ContactUsPage;
@@ -236,9 +237,12 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
 
   // ─── Logout ──────────────────────────────────────────────────
   Future<void> handleLogout(BuildContext context) async {
-    final googleSignIn = GoogleSignIn();
     await SessionManager.logout();
-    await googleSignIn.signOut();
+    // google_sign_in has no Windows implementation — calling it there
+    // throws MissingPluginException and would break logout entirely.
+    if (!Platform.isWindows) {
+      await GoogleSignIn().signOut();
+    }
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => SplashScreen()), (route) => false);
   }
@@ -640,16 +644,28 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           ),
 
           _buildActionListItem(
+            icon: Icons.donut_large_rounded,
+            title: 'Sectional Performance',
+            subtitle: 'Subject-wise score breakdown',
+            color: const Color(0xFFE65100),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SectionalPerformancePage()),
+                ),
+            isFirst: true,
+          ),
+
+          _buildActionListItem(
             icon: Icons.history_rounded,
-            title: 'Test Performance',
+            title: 'Topic wise Performance',
             subtitle: 'Attempts & leaderboard',
             color: const Color(0xFF00695C),
             onTap:
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 0, Pagetitle: 'Test Performance')),
+                  MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 0, Pagetitle: 'Topic wise Performance')),
                 ),
-            isFirst: true,
           ),
 
           _buildActionListItem(
@@ -687,6 +703,17 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
                 () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 6, Pagetitle: 'PYPs Performance')),
+                ),
+          ),
+          _buildActionListItem(
+            icon: Icons.live_tv_rounded,
+            title: 'Live Test Performance',
+            subtitle: 'Live test results & leaderboard',
+            color: const Color(0xFFC62828),
+            onTap:
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => QuizHistoryPage(pageType: 7, Pagetitle: 'Live Test Performance')),
                 ),
             isLast: true,
           ),

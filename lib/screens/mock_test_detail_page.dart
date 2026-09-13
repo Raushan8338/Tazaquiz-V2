@@ -16,6 +16,7 @@ import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quiz_review_page.dart';
 import 'package:tazaquiznew/utils/richText.dart';
 import 'package:tazaquiznew/utils/session_manager.dart';
+import 'package:tazaquiznew/widgets/attempt_history_sheet.dart';
 
 class _DS {
   static const double r8 = 8;
@@ -184,8 +185,8 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
     }
   }
 
-  void _navigateToMockTest() {
-    Navigator.push(
+  void _navigateToMockTest() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder:
@@ -204,6 +205,10 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
             ),
       ),
     );
+    // Refresh so a fresh attempt (reattempt/resume) is reflected immediately
+    // instead of showing the stale is_attempted/completedAttemptId fetched
+    // when this page first loaded.
+    if (mounted) _getUserData();
   }
 
   // ✅ NEW — Daily limit modal
@@ -636,6 +641,33 @@ class _MockTestDetailPageState extends State<MockTestDetailPage> with SingleTick
         TextAlign.left,
         1.2,
       ),
+      actions: [
+        if (_attempted)
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: _handleStartMockTest,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.replay_rounded, size: 15, color: Colors.white),
+                    SizedBox(width: 5),
+                    TranslatedText(
+                      'Reattempt',
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [_primary, _secondary]))),
       ),
@@ -1669,13 +1701,44 @@ Widget _buildBottomBar() {
               ),
             ),
 
-          // ── When attempted: View Result (80%) + Rank (20%) ──────────
+          // ── When attempted: View Result + Reattempt + Rank ──────────
+          if (_attempted)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: GestureDetector(
+                onTap: () => showAttemptHistorySheet(
+                  context,
+                  quizId: widget.quizId.toString(),
+                  userId: _user?.id.toString() ?? '',
+                  courseId: widget.courseId.toString(),
+                  quizTitle: quiz.title,
+                  pageType: 4,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.history_rounded, size: 14, color: _DS.teal),
+                    const SizedBox(width: 5),
+                    TranslatedText(
+                      'View Attempt History',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: _DS.teal,
+                        decoration: TextDecoration.underline,
+                        decorationColor: _DS.teal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (_attempted)
             Row(
               children: [
-                // View Result — 80%
+                // View Result
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: _buildGradientButton(
                     label: label,
                     icon: icon,
@@ -1685,7 +1748,44 @@ Widget _buildBottomBar() {
                 ),
                 const SizedBox(width: 10),
 
-                // Rank button — 20%
+                // Reattempt button
+                GestureDetector(
+                  onTap: _handleStartMockTest,
+                  child: Container(
+                    height: 54,
+                    width: 54,
+                    decoration: BoxDecoration(
+                      color: _primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: _primary.withOpacity(0.35),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.replay_rounded,
+                          color: _primary,
+                          size: 20,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Retry',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Rank button
                 Expanded(
                   flex: 1,
                   child: GestureDetector(

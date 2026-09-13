@@ -7,6 +7,8 @@ class RewardedAdService {
   RewardedAd? _rewardedAd;
 
   void loadAd() {
+    if (!AdHelper.isSupported) return;
+
     RewardedAd.load(
       adUnitId: AdHelper.rewardedAdUnitId,
       request: const AdRequest(),
@@ -20,6 +22,13 @@ class RewardedAdService {
   }
 
   void showAd(VoidCallback onReward) {
+    if (!AdHelper.isSupported) {
+      // No ads on this platform — don't block access behind an ad that
+      // can never load.
+      onReward();
+      return;
+    }
+
     if (_rewardedAd == null) {
       return;
     }

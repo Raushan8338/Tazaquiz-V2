@@ -45,10 +45,27 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
     try {
       final url = widget.pdfUrl;
       final filename = url.substring(url.lastIndexOf("/") + 1);
-      final response = await http.get(Uri.parse(url));
-
       final dir = await getApplicationDocumentsDirectory();
       final file = File("${dir.path}/$filename");
+
+      // Already downloaded (e.g. opened before) — skip the network round
+      // trip entirely instead of re-fetching the same PDF every time.
+      if (await file.exists() && await file.length() > 0) {
+        setState(() {
+          localPdfPath = file.path;
+        });
+        _animationController.forward();
+        return;
+      }
+
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+        setState(() {
+          errorMessage = "Failed to load PDF (server returned ${response.statusCode}).";
+        });
+        return;
+      }
+
       await file.writeAsBytes(response.bodyBytes, flush: true);
 
       setState(() {
@@ -155,6 +172,14 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
                               });
                             },
                             onError: (error) {
+                              // Delete the local file — it may be a stale
+                              // corrupted download from before the fetch
+                              // validation above existed. Without this,
+                              // "Try Again" would just keep reloading the
+                              // same bad cached file forever.
+                              if (localPdfPath != null) {
+                                File(localPdfPath!).delete().catchError((_) => File(''));
+                              }
                               setState(() {
                                 errorMessage = error.toString();
                               });
@@ -272,7 +297,9 @@ class _PDFViewerPageState extends State<PDFViewerPage> with SingleTickerProvider
               icon: const Icon(Icons.refresh_rounded),
               label: const TranslatedText('Try Again'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.white,
+                // Was white-on-white (invisible) — solid navy with white
+                // text/icon so the button is actually visible and usable.
+                backgroundColor: AppColors.darkNavy,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

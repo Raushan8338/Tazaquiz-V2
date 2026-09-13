@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
@@ -674,7 +676,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (hasThumb && !_bannerImageFailed)
+        // This thumbnail is sized/cropped for mobile and looks stretched
+        // and blurry on a wide Windows window — hide it there entirely.
+        // Android/iOS are unaffected.
+        if (hasThumb && !_bannerImageFailed && !Platform.isWindows)
           Stack(
             children: [
               SizedBox(

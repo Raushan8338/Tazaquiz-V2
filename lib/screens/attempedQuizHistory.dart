@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart'; // ← ADD THIS
 import 'package:tazaquiznew/API/api_client.dart';
@@ -21,9 +20,12 @@ class QuizHistoryPage extends StatefulWidget {
 
 class _QuizHistoryPageState extends State<QuizHistoryPage> {
   String _selectedFilter = 'all';
+  // 'all' or a specific categoryName — categoryName is really the course
+  // title (backend joins qa.course_id -> StudyMCategory.title), so this
+  // lets a user with multiple purchased courses isolate one course's stats.
+  String _selectedCourse = 'all';
   bool _isLoading = true;
   List<QuizAttemptItem> _allQuizzes = [];
-  QuizHistoryStats? _stats;
   UserModel? _user;
 
   @override
@@ -46,32 +48,97 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
         'user_id': _user!.id.toString(),
         'pageType': widget.pageType.toString(),
       });
+
+      List<QuizAttemptItem> combined = [];
       if (response.statusCode == 200) {
-        final parsed = QuizHistoryResponse.fromJson(response.data);
-        setState(() {
-          _allQuizzes = parsed.data;
-          _stats = parsed.stats;
-          _isLoading = false;
-        });
-      } else {
-        setState(() => _isLoading = false);
+        combined = QuizHistoryResponse.fromJson(response.data).data;
       }
+
+      // "Live Test Performance" (pageType 7) also folds in results from
+      // the featured/special live test type (pageType 10) — same backend
+      // endpoint, called a second time with a different pageType and
+      // merged here client-side, so performanceApi_v2.php itself never
+      // needs to change.
+      if (widget.pageType == 7) {
+        try {
+          final featuredResponse = await auth.fetch_Quiz_performanceApi({
+            'user_id': _user!.id.toString(),
+            'pageType': '10',
+          });
+          if (featuredResponse.statusCode == 200) {
+            combined = [...combined, ...QuizHistoryResponse.fromJson(featuredResponse.data).data];
+          }
+        } catch (_) {
+          // Featured-test results are a bonus addition here — if this
+          // second call fails, still show the regular live test results.
+        }
+      }
+
+      combined.sort((a, b) {
+        final da = DateTime.tryParse(a.date);
+        final db = DateTime.tryParse(b.date);
+        if (da == null || db == null) return 0;
+        return db.compareTo(da);
+      });
+
+      setState(() {
+        _allQuizzes = combined;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() => _isLoading = false);
     }
   }
 
+  // Quizzes for the selected course only (or everything, when 'all').
+  List<QuizAttemptItem> get _courseFiltered {
+    if (_selectedCourse == 'all') return _allQuizzes;
+    return _allQuizzes.where((q) => q.categoryName == _selectedCourse).toList();
+  }
+
+  // Backend (performanceApi_v2.php) only ever sends status as 'won',
+  // 'lost' or 'in_progress' — never the literal string 'completed'.
   List<QuizAttemptItem> get _filtered {
+    final base = _courseFiltered;
     switch (_selectedFilter) {
       case 'passed':
-        return _allQuizzes.where((q) => q.passed).toList();
+        return base.where((q) => q.passed).toList();
       case 'failed':
-        return _allQuizzes.where((q) => !q.passed && q.status == 'completed').toList();
+        return base.where((q) => q.status == 'lost').toList();
       case 'ongoing':
-        return _allQuizzes.where((q) => q.status == 'in_progress').toList();
+        return base.where((q) => q.status == 'in_progress').toList();
       default:
-        return _allQuizzes;
+        return base;
     }
+  }
+
+  // Header summary numbers follow the course filter (not the pass/fail
+  // filter below it) so picking a course updates "Overall Score" etc.,
+  // while All/Passed/Failed/Ongoing chips only affect the list underneath.
+  int get _hdrTotal => _courseFiltered.where((q) => q.status != 'in_progress').length;
+  int get _hdrWins => _courseFiltered.where((q) => q.passed).length;
+  double get _hdrAvg {
+    final completed = _courseFiltered.where((q) => q.status != 'in_progress').toList();
+    if (completed.isEmpty) return 0.0;
+    final sum = completed.fold<double>(0.0, (s, q) => s + q.score);
+    return sum / completed.length;
+  }
+
+  // Reattempts mean the same quiz can appear multiple times in the flat
+  // history — group by quiz so it shows as one card (latest attempt) with
+  // an "N attempts" badge, and a tap reveals the full attempt-by-attempt
+  // comparison instead of several near-identical cards back to back.
+  List<List<QuizAttemptItem>> get _groupedFiltered {
+    final Map<String, List<QuizAttemptItem>> byQuiz = {};
+    final List<String> order = [];
+    for (final q in _filtered) {
+      if (!byQuiz.containsKey(q.quizId)) {
+        byQuiz[q.quizId] = [];
+        order.add(q.quizId);
+      }
+      byQuiz[q.quizId]!.add(q);
+    }
+    return order.map((id) => byQuiz[id]!).toList();
   }
 
   @override
@@ -97,8 +164,8 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
-                              (ctx, i) => _buildCard(_filtered[i]),
-                              childCount: _filtered.length,
+                              (ctx, i) => _buildCard(_groupedFiltered[i]),
+                              childCount: _groupedFiltered.length,
                             ),
                           ),
                         ),
@@ -124,7 +191,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
       ),
       title: Text(
         pagetitle,
-        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Poppins'),
+        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'ReportSerif'),
       ),
       flexibleSpace: Container(
         decoration: const BoxDecoration(
@@ -141,124 +208,201 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
   // ─── SUMMARY CARDS ───────────────────────────────────────────────────────
 
   Widget _buildSummaryCards() {
-    final total = _stats?.totalQuizzes ?? 0;
-    final wins = _stats?.totalWins ?? 0;
-    final avg = _stats?.averageScore ?? 0.0;
+    final total = _hdrTotal;
+    final wins = _hdrWins;
+    final avg = _hdrAvg;
     final failed = total - wins;
-    final winRate = total > 0 ? ((wins / total) * 100).toStringAsFixed(0) : '0';
+
+    final double winRateValue = total > 0 ? (wins / total) : 0.0;
+    final String winRate = (winRateValue * 100).toStringAsFixed(0);
 
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.darkNavy, Color(0xFF0D4B3B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [BoxShadow(color: AppColors.darkNavy.withOpacity(0.3), blurRadius: 18, offset: const Offset(0, 8))],
       ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Overall Score',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.white.withOpacity(0.7),
-                        fontWeight: FontWeight.w500,
-                        fontFamily: 'Poppins',
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          children: [
+            // ── Decorative background circles ──────────────
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+              ),
+            ),
+            Positioned(
+              left: -20,
+              bottom: -40,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(color: AppColors.tealGreen.withOpacity(0.15), shape: BoxShape.circle),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.bar_chart_rounded, size: 13, color: Colors.white.withOpacity(0.75)),
+                                const SizedBox(width: 5),
+                                Text(
+                                  'Overall Score',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: Colors.white.withOpacity(0.75),
+                                    fontWeight: FontWeight.w600,
+                                    fontFamily: 'ReportSerif',
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // ⚠️ Numbers — plain Text, translate mat karo
+                                Text(
+                                  avg.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'ReportSerif',
+                                    height: 1,
+                                  ),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 3),
+                                  child: Text(
+                                    '%',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontFamily: 'ReportSerif',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            _performanceLabel(avg),
+                          ],
+                        ),
                       ),
+
+                      // Win rate ring — kept small/secondary next to the main score.
+                      SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: CircularProgressIndicator(
+                                value: winRateValue,
+                                strokeWidth: 5,
+                                strokeCap: StrokeCap.round,
+                                backgroundColor: Colors.white.withOpacity(0.12),
+                                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.lightGoldS2),
+                              ),
+                            ),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // ⚠️ Number — plain Text
+                                Text(
+                                  '$winRate%',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'ReportSerif',
+                                  ),
+                                ),
+                                Text(
+                                  'Pass',
+                                  style: TextStyle(
+                                    fontSize: 7,
+                                    color: Colors.white.withOpacity(0.75),
+                                    fontWeight: FontWeight.w600,
+                                    fontFamily: 'ReportSerif',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Slim single-bar layout instead of three boxed cards —
+                  // reads like a report line rather than a dashboard widget.
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    child: Row(
                       children: [
-                        // ⚠️ Numbers — plain Text, translate mat karo
-                        Text(
-                          avg.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 36,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontFamily: 'Poppins',
-                            height: 1,
-                          ),
-                        ),
-                        const Text(
-                          '%',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
+                        Expanded(child: _statSegment('$total', 'Attempted', AppColors.lightGoldS2)),
+                        _statDivider(),
+                        Expanded(child: _statSegment('$wins', 'Passed', Colors.white)),
+                        _statDivider(),
+                        Expanded(child: _statSegment('$failed', 'Failed', const Color(0xFFFF6E6E))),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    _performanceLabel(avg),
-                  ],
-                ),
-              ),
+                  ),
 
-              // Win rate circle
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.tealGreen.withOpacity(0.5), width: 2),
-                  color: Colors.white.withOpacity(0.05),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // ⚠️ Number — plain Text
-                    Text(
-                      '$winRate%',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontFamily: 'Poppins',
-                      ),
+                  // Score % and Pass Rate are different things — average
+                  // marks vs. how many tests cleared the passing cutoff —
+                  // so a low average with a high pass rate is expected, not
+                  // a bug (each quiz's passing marks can be much lower than
+                  // a "good" score).
+                  const SizedBox(height: 10),
+                  Text(
+                    'Score % = your average marks · Pass Rate = tests that cleared the passing cutoff',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.white.withOpacity(0.55),
+                      fontFamily: 'ReportSerif',
                     ),
-                    Text(
-                      'Pass Rate',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: Colors.white.withOpacity(0.7),
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins',
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-          Divider(color: Colors.white.withOpacity(0.12), height: 1),
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(child: _topStat('$total', 'Attempted', Icons.quiz_outlined, Colors.white)),
-              _vDivider(),
-              Expanded(child: _topStat('$wins', 'Passed', Icons.check_circle_outline, AppColors.tealGreen)),
-              _vDivider(),
-              Expanded(child: _topStat('$failed', 'Failed', Icons.cancel_outlined, Colors.redAccent)),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -285,52 +429,56 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
       decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
       child: TranslatedText(
         label,
-        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
+        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700, fontFamily: 'ReportSerif'),
       ),
     );
   }
 
-  Widget _topStat(String value, String label, IconData icon, Color color) {
+  Widget _statSegment(String value, String label, Color color) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(height: 5),
         // ⚠️ Number — plain Text
         Text(
           value,
-          style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w900, fontFamily: 'Poppins'),
+          style: TextStyle(fontSize: 16, color: color, fontWeight: FontWeight.w700, fontFamily: 'ReportSerif'),
         ),
         const SizedBox(height: 2),
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
-            color: Colors.white.withOpacity(0.65),
-            fontWeight: FontWeight.w500,
-            fontFamily: 'Poppins',
+            fontSize: 9.5,
+            color: color,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'ReportSerif',
           ),
         ),
       ],
     );
   }
 
-  Widget _vDivider() => Container(width: 1, height: 40, color: Colors.white.withOpacity(0.15));
+  Widget _statDivider() {
+    return Container(width: 1, height: 26, color: Colors.white.withOpacity(0.12));
+  }
 
   // ─── PROGRESS SECTION ────────────────────────────────────────────────────
 
   Widget _buildProgressSection() {
     if (_allQuizzes.isEmpty) return const SizedBox.shrink();
 
-    final total = _stats?.totalQuizzes ?? 0;
-    final wins = _stats?.totalWins ?? 0;
+    final total = _hdrTotal;
+    final wins = _hdrWins;
     final failed = total - wins;
-    final avg = _stats?.averageScore ?? 0.0;
+    final avg = _hdrAvg;
 
+    // Course list is always built from the FULL history (not the current
+    // course filter) so every course stays selectable/switchable here.
     final Map<String, int> catMap = {};
     for (final q in _allQuizzes) {
       catMap[q.categoryName] = (catMap[q.categoryName] ?? 0) + 1;
     }
     final topCats = catMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final bool multipleCourses = topCats.length > 1;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -347,9 +495,9 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
             'Score Distribution',
             style: const TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: AppColors.darkNavy,
-              fontFamily: 'Poppins',
+              fontFamily: 'ReportSerif',
             ),
           ),
           const SizedBox(height: 14),
@@ -364,66 +512,88 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 12),
-            Text(
-              'Top Categories',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: AppColors.darkNavy,
-                fontFamily: 'Poppins',
-              ),
+            Row(
+              children: [
+                Text(
+                  multipleCourses ? 'Courses' : 'Course',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkNavy,
+                    fontFamily: 'ReportSerif',
+                  ),
+                ),
+                if (multipleCourses) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '(tap to filter)',
+                    style: TextStyle(fontSize: 9.5, color: AppColors.greyS500, fontFamily: 'ReportSerif'),
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 6,
-              children:
-                  topCats.take(5).map((e) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.tealGreen.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.tealGreen.withOpacity(0.2)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Category name — user data, translate karo
-                          Text(
-                            e.key,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.darkNavy,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.tealGreen,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            // ⚠️ Number — plain Text
-                            child: Text(
-                              '${e.value}',
-                              style: const TextStyle(
-                                fontSize: 9,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+              children: [
+                if (multipleCourses) _courseChip('all', 'All', _allQuizzes.length),
+                ...topCats.take(10).map((e) => _courseChip(e.key, e.key, e.value)),
+              ],
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  // A course chip toggles the course filter: tap the selected one (or "All")
+  // again to clear it. `key` is 'all' or the exact categoryName to match.
+  Widget _courseChip(String key, String label, int count) {
+    final bool sel = _selectedCourse == key;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedCourse = sel ? 'all' : key),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: sel ? AppColors.tealGreen : AppColors.tealGreen.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: sel ? AppColors.tealGreen : AppColors.tealGreen.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Course name — user data, translate mat karo
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: sel ? Colors.white : AppColors.darkNavy,
+                fontFamily: 'ReportSerif',
+              ),
+            ),
+            const SizedBox(width: 5),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: sel ? Colors.white.withOpacity(0.25) : AppColors.tealGreen,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              // ⚠️ Number — plain Text
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'ReportSerif',
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -441,13 +611,13 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                 fontSize: 11,
                 color: AppColors.greyS600,
                 fontWeight: FontWeight.w600,
-                fontFamily: 'Poppins',
+                fontFamily: 'ReportSerif',
               ),
             ),
             // ⚠️ Number — plain Text
             Text(
               '$value$suffix',
-              style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
+              style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w700, fontFamily: 'ReportSerif'),
             ),
           ],
         ),
@@ -507,7 +677,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                   count = _allQuizzes.where((q) => q.passed).length;
                   break;
                 case 'failed':
-                  count = _allQuizzes.where((q) => !q.passed && q.status == 'completed').length;
+                  count = _allQuizzes.where((q) => q.status == 'lost').length;
                   break;
                 case 'ongoing':
                   count = _allQuizzes.where((q) => q.status == 'in_progress').length;
@@ -536,7 +706,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                           fontSize: 11,
                           fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
                           color: sel ? Colors.white : AppColors.greyS700,
-                          fontFamily: 'Poppins',
+                          fontFamily: 'ReportSerif',
                         ),
                       ),
                       if (count > 0) ...[
@@ -554,7 +724,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
                               color: sel ? Colors.white : c,
-                              fontFamily: 'Poppins',
+                              fontFamily: 'ReportSerif',
                             ),
                           ),
                         ),
@@ -570,7 +740,9 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
 
   // ─── CARD ────────────────────────────────────────────────────────────────
 
-  Widget _buildCard(QuizAttemptItem quiz) {
+  Widget _buildCard(List<QuizAttemptItem> group) {
+    final quiz = group.first; // latest attempt represents the card
+    final bool hasMultipleAttempts = group.length > 1;
     final bool passed = quiz.passed;
     final bool ongoing = quiz.status == 'in_progress';
 
@@ -593,20 +765,29 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
             ? Icons.check_circle
             : Icons.cancel;
 
-    return GestureDetector(
-      onTap:
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (_) => QuizReviewPage(
-                    attemptId: int.tryParse(quiz.id.toString()) ?? 0,
-                    userId: int.tryParse(_user!.id.toString()) ?? 0,
-                    quizTitle: quiz.quizTitle,
-                    pageType: widget.pageType,
-                  ),
-            ),
+    void openReview(QuizAttemptItem attempt) => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (_) => QuizReviewPage(
+                  attemptId: int.tryParse(attempt.id.toString()) ?? 0,
+                  userId: int.tryParse(_user!.id.toString()) ?? 0,
+                  quizTitle: attempt.quizTitle,
+                  pageType: widget.pageType,
+                ),
           ),
+        );
+
+    void openCard() {
+      if (hasMultipleAttempts) {
+        _showAttemptGroupSheet(group);
+      } else {
+        openReview(quiz);
+      }
+    }
+
+    return GestureDetector(
+      onTap: openCard,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -643,10 +824,10 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                           quiz.quizTitle,
                           style: const TextStyle(
                             fontSize: 13,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.darkNavy,
                             height: 1.3,
-                            fontFamily: 'Poppins',
+                            fontFamily: 'ReportSerif',
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -662,6 +843,12 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                               _diffColor(quiz.difficultyLevel).withOpacity(0.1),
                               _diffColor(quiz.difficultyLevel),
                             ),
+                            if (hasMultipleAttempts)
+                              _chip(
+                                '${group.length} Attempts',
+                                const Color(0xFF6B4EFF).withOpacity(0.1),
+                                const Color(0xFF6B4EFF),
+                              ),
                           ],
                         ),
                       ],
@@ -687,7 +874,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             color: statusColor,
-                            fontFamily: 'Poppins',
+                            fontFamily: 'ReportSerif',
                           ),
                         ),
                       ],
@@ -735,7 +922,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                               fontSize: 10,
                               color: AppColors.greyS600,
                               fontWeight: FontWeight.w500,
-                              fontFamily: 'Poppins',
+                              fontFamily: 'ReportSerif',
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -751,7 +938,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                               fontSize: 10,
                               color: AppColors.greyS600,
                               fontWeight: FontWeight.w500,
-                              fontFamily: 'Poppins',
+                              fontFamily: 'ReportSerif',
                             ),
                           ),
                         ],
@@ -792,7 +979,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                                   fontSize: 10,
                                   color: Color(0xFF6B4EFF),
                                   fontWeight: FontWeight.w700,
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'ReportSerif',
                                 ),
                               ),
                             ],
@@ -803,19 +990,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                       const SizedBox(width: 10),
 
                       GestureDetector(
-                        onTap:
-                            () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (_) => QuizReviewPage(
-                                      attemptId: int.tryParse(quiz.id.toString()) ?? 0,
-                                      userId: int.tryParse(_user!.id.toString()) ?? 0,
-                                      quizTitle: quiz.quizTitle,
-                                      pageType: widget.pageType,
-                                    ),
-                              ),
-                            ),
+                        onTap: openCard,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -825,7 +1000,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                                 fontSize: 10,
                                 color: AppColors.tealGreen,
                                 fontWeight: FontWeight.w700,
-                                fontFamily: 'Poppins',
+                                fontFamily: 'ReportSerif',
                               ),
                             ),
                             const SizedBox(width: 2),
@@ -838,6 +1013,196 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── ATTEMPT GROUP SHEET (reattempt comparison) ────────────────────────────
+
+  void _showAttemptGroupSheet(List<QuizAttemptItem> group) {
+    // group is newest-first (API order); reverse to compute chronological
+    // deltas, then re-reverse for display so the newest attempt stays on top.
+    final chronological = group.reversed.toList();
+    final deltas = <double?>[null];
+    for (int i = 1; i < chronological.length; i++) {
+      deltas.add(chronological[i].score - chronological[i - 1].score);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.35,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(color: AppColors.greyS300, borderRadius: BorderRadius.circular(4)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.history_rounded, color: AppColors.tealGreen, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TranslatedText(
+                          group.first.quizTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.darkNavy, fontFamily: 'ReportSerif'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
+                    itemCount: group.length,
+                    itemBuilder: (context, index) {
+                      final attempt = group[index];
+                      final attemptNumber = group.length - index;
+                      // group[index] corresponds to chronological[attemptNumber-1]
+                      final delta = deltas[attemptNumber - 1];
+                      return _buildGroupAttemptTile(attempt, attemptNumber, delta);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildGroupAttemptTile(QuizAttemptItem attempt, int attemptNumber, double? delta) {
+    final bool passed = attempt.passed;
+
+    Widget? deltaChip;
+    if (delta != null && delta != 0) {
+      final bool improved = delta > 0;
+      deltaChip = Container(
+        margin: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: (improved ? AppColors.tealGreen : Colors.red).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              improved ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+              size: 11,
+              color: improved ? AppColors.tealGreen : Colors.red,
+            ),
+            const SizedBox(width: 2),
+            Text(
+              '${delta.abs().toStringAsFixed(1)}%',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: improved ? AppColors.tealGreen : Colors.red,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => QuizReviewPage(
+            attemptId: int.tryParse(attempt.id.toString()) ?? 0,
+            userId: int.tryParse(_user!.id.toString()) ?? 0,
+            quizTitle: attempt.quizTitle,
+            pageType: widget.pageType,
+          ),
+        ),
+      ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F9FB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.greyS200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: (passed ? AppColors.tealGreen : Colors.red).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '#$attemptNumber',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: passed ? AppColors.tealGreen : Colors.red,
+                  fontFamily: 'ReportSerif',
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TranslatedText(
+                    'Attempt $attemptNumber',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.darkNavy, fontFamily: 'ReportSerif'),
+                  ),
+                  if (attempt.date.isNotEmpty)
+                    Text(
+                      '${attempt.date}  ${attempt.time}',
+                      style: TextStyle(fontSize: 11, color: AppColors.greyS500, fontFamily: 'ReportSerif'),
+                    ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${attempt.score.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: passed ? AppColors.tealGreen : Colors.red,
+                    fontFamily: 'ReportSerif',
+                  ),
+                ),
+                if (deltaChip != null) deltaChip,
+              ],
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right_rounded, color: AppColors.greyS400),
           ],
         ),
       ),
@@ -864,7 +1229,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
       // User data — translate karo
       child: TranslatedText(
         label,
-        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: text, fontFamily: 'Poppins'),
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: text, fontFamily: 'ReportSerif'),
       ),
     );
   }
@@ -873,11 +1238,11 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     return Column(
       children: [
         // ⚠️ Number/score — plain Text
-        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: color, fontFamily: 'Poppins')),
+        Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: color, fontFamily: 'ReportSerif')),
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(fontSize: 9, color: AppColors.greyS600, fontWeight: FontWeight.w500, fontFamily: 'Poppins'),
+          style: TextStyle(fontSize: 9, color: AppColors.greyS600, fontWeight: FontWeight.w500, fontFamily: 'ReportSerif'),
         ),
       ],
     );
@@ -902,15 +1267,15 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
             'No tests found',
             style: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: AppColors.darkNavy,
-              fontFamily: 'Poppins',
+              fontFamily: 'ReportSerif',
             ),
           ),
           const SizedBox(height: 6),
           TranslatedText(
             'Start giving tests to see your history here',
-            style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontFamily: 'Poppins'),
+            style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontFamily: 'ReportSerif'),
             textAlign: TextAlign.center,
           ),
         ],
@@ -982,9 +1347,9 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                               headline,
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w700,
                                 color: sc,
-                                fontFamily: 'Poppins',
+                                fontFamily: 'ReportSerif',
                               ),
                             ),
                             const SizedBox(height: 3),
@@ -994,7 +1359,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                                 fontSize: 12,
                                 color: AppColors.greyS600,
                                 fontWeight: FontWeight.w500,
-                                fontFamily: 'Poppins',
+                                fontFamily: 'ReportSerif',
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -1032,9 +1397,9 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                     'Answer Breakdown',
                     style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.darkNavy,
-                      fontFamily: 'Poppins',
+                      fontFamily: 'ReportSerif',
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1064,9 +1429,9 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                     'Details',
                     style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.darkNavy,
-                      fontFamily: 'Poppins',
+                      fontFamily: 'ReportSerif',
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -1105,7 +1470,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
-                            fontFamily: 'Poppins',
+                            fontFamily: 'ReportSerif',
                           ),
                         ),
                       ),
@@ -1126,8 +1491,8 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
     return Column(
       children: [
         // ⚠️ Number — plain Text
-        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color, fontFamily: 'Poppins')),
-        Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontFamily: 'Poppins')),
+        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: color, fontFamily: 'ReportSerif')),
+        Text(label, style: TextStyle(fontSize: 11, color: AppColors.greyS600, fontFamily: 'ReportSerif')),
       ],
     );
   }
@@ -1148,14 +1513,14 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
           Text(
             value,
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
               color: AppColors.darkNavy,
-              fontFamily: 'Poppins',
+              fontFamily: 'ReportSerif',
             ),
           ),
           const SizedBox(height: 2),
-          TranslatedText(label, style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontFamily: 'Poppins')),
+          TranslatedText(label, style: TextStyle(fontSize: 10, color: AppColors.greyS600, fontFamily: 'ReportSerif')),
         ],
       ),
     );
@@ -1169,7 +1534,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
           Icon(icon, size: 14, color: AppColors.greyS600),
           const SizedBox(width: 8),
           // Label — translate karo
-          TranslatedText(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontFamily: 'Poppins')),
+          TranslatedText(label, style: TextStyle(fontSize: 12, color: AppColors.greyS600, fontFamily: 'ReportSerif')),
           const Spacer(),
           // Value — plain Text (date/numbers/user data)
           Text(
@@ -1178,7 +1543,7 @@ class _QuizHistoryPageState extends State<QuizHistoryPage> {
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.darkNavy,
-              fontFamily: 'Poppins',
+              fontFamily: 'ReportSerif',
             ),
           ),
         ],

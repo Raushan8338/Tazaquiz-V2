@@ -202,6 +202,16 @@ class Authrepository {
     return await _dio.post(BaseUrl.fetch_get_quiz_review, data: formData);
   }
 
+  Future<Response> fetchQuizAttemptHistory(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_quiz_attempt_history, data: formData);
+  }
+
+  Future<Response> fetchSubjectWisePerformance(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.fetch_subject_wise_performance, data: formData);
+  }
+
   Future<Response> fetchLeaderboard(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.fetch_get_leaderboard, data: formData);
@@ -235,5 +245,34 @@ class Authrepository {
   Future<Response> checkSession(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.check_session, data: formData);
+  }
+
+  Future<Response> get_featured_live_test() async {
+    return await _dio.post(BaseUrl.get_featured_live_test);
+  }
+
+  Future<Response> check_featured_quiz_access(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.check_featured_quiz_access, data: formData);
+  }
+
+  Future<Response> notify_live_test(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.notify_live_test, data: formData);
+  }
+
+  Future<Response> check_live_test_registered(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.check_live_test_registered, data: formData);
+  }
+
+  Future<Response> set_live_test_reminder(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.set_live_test_reminder, data: formData);
+  }
+
+  Future<Response> check_live_test_reminder(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.check_live_test_reminder, data: formData);
   }
 }

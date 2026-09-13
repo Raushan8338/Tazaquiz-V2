@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/screens/buyQuizes.dart';
 import 'package:tazaquiznew/screens/buyStudyM.dart';
 import 'package:tazaquiznew/screens/course_search_page.dart';
+import 'package:tazaquiznew/screens/featured_live_test_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomeBanner extends StatefulWidget {
@@ -21,11 +24,33 @@ class _HomeBannerState extends State<HomeBanner> {
   int _currentBannerIndex = 0;
   int _selectedNavIndex = 0;
   Timer? _bannerTimer;
-  final PageController _bannerController = PageController();
+  // Windows shows 3 banners at once in the slider (viewportFraction 1/3);
+  // Android/iOS get the default 1.0, i.e. unchanged single-banner paging.
+  final PageController _bannerController = PageController(viewportFraction: Platform.isWindows ? 1 / 3 : 1);
+
+  // Quiz id of the currently spotlighted "featured live test" (pageType 10),
+  // if any — so a 'quiz' banner pointing at that same quiz opens the
+  // dedicated FeaturedLiveTestPage (with its own access/payment logic)
+  // instead of the generic QuizDetailPage. There's only ever one active
+  // featured quiz at a time, so a simple id match is enough — no per-tap
+  // network call needed.
+  String? _featuredQuizId;
+
   @override
   void initState() {
     super.initState();
     _startBannerAutoPlay();
+    _loadFeaturedQuizId();
+  }
+
+  Future<void> _loadFeaturedQuizId() async {
+    try {
+      final authRepository = Authrepository(Api_Client.dio);
+      final response = await authRepository.get_featured_live_test();
+      if (response.statusCode == 200 && response.data['data'] != null && mounted) {
+        setState(() => _featuredQuizId = response.data['data']['quiz_id']?.toString());
+      }
+    } catch (_) {}
   }
 
   void _startBannerAutoPlay() {
@@ -63,13 +88,24 @@ class _HomeBannerState extends State<HomeBanner> {
         child: const Center(child: CircularProgressIndicator(color: Color(0xFF00BFB3))),
       );
     }
+    // Windows runs in a wide desktop window: use the full width and show
+    // 3 banners at a time (see _bannerController's viewportFraction)
+    // instead of one mobile-sized banner. Android/iOS keep the original
+    // fixed 150 height.
+    final double bannerHeight = Platform.isWindows ? (screenWidth / 3) / 2.2 : 150;
+
     return Container(
-      height: 150,
+      height: bannerHeight,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: Stack(
         children: [
           PageView.builder(
             controller: _bannerController,
+            // With viewportFraction < 1 (Windows), PageView reserves
+            // leading/trailing blank space by default so the first page
+            // can be centered — padEnds:false removes that so banner 0
+            // starts flush at the left edge instead of showing blank.
+            padEnds: !Platform.isWindows,
             itemCount: widget.imgLists.length,
             onPageChanged: (index) {
               setState(() {
@@ -81,15 +117,23 @@ class _HomeBannerState extends State<HomeBanner> {
               return GestureDetector(
                 onTap: () {
                   if (widget.imgLists[index]['banner_type'] == 'quiz') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => QuizDetailPage(
-                              pageType_data: '7',
-                              quizId: widget.imgLists[index]['url'], is_subscribed: false, courseId: widget.imgLists[index]['course_id'].toString(),
-                      ),
-                    ),);
+                    final String quizId = widget.imgLists[index]['url'].toString();
+                    if (_featuredQuizId != null && quizId == _featuredQuizId) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => FeaturedLiveTestPage(quizId: quizId)),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => QuizDetailPage(
+                                pageType_data: '7',
+                                quizId: widget.imgLists[index]['url'], is_subscribed: false, courseId: widget.imgLists[index]['course_id'].toString(),
+                        ),
+                      ),);
+                    }
                     // Handle URL tap, e.g., open in browser
                   } else if (widget.imgLists[index]['banner_type'] == 'course') {
                     Navigator.push(

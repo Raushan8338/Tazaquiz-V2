@@ -1,6 +1,15 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+
 class AdHelper {
   // ================= SWITCH =================
   static bool isTest = false;
+
+  // ================= PLATFORM =================
+  /// Ads (AdMob) are only supported on Android in this app; every other
+  /// platform (Windows, iOS, web, ...) hides/skips ads entirely.
+  static bool get isSupported => !kIsWeb && Platform.isAndroid;
 
   // ================= APP ID =================
   static const String androidTestAppId = 'ca-app-pub-3940256099942544~3347511713';
