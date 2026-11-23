@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/course_banner.dart';
 import 'package:flutter/services.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
@@ -33,6 +34,7 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
   List<StudyMaterialItem> _results = [];
   bool _isLoading = false;
   bool _hasSearched = false;
+  bool _noExactMatch = false; // backend sent popular courses because nothing matched
   String _lastQuery = '';
 
   // ── Default (popular) courses shown before a search is typed ────────
@@ -138,15 +140,12 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
       if (response.statusCode == 200) {
         final List raw = response.data['data'] ?? [];
 
-        // Client-side fallback filter (agar backend search na kare)
-        final q = query.toLowerCase();
-        final items =
-            raw
-                .map((e) => StudyMaterialItem.fromJson(e))
-                .where((e) => e.title.toLowerCase().contains(q) || e.description.toLowerCase().contains(q))
-                .toList();
+        // Backend already searches (title / tag / keywords, "headmaster" = "head master", typos) and ranks
+        // best match first — show its list as it is. Filtering again here dropped those results.
+        final items = raw.map((e) => StudyMaterialItem.fromJson(e)).toList();
 
         setState(() {
+          _noExactMatch = response.data['no_exact_match'] == true;
           _results = items;
           _hasSearched = true;
           _isLoading = false;
@@ -308,14 +307,16 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
                   border: Border.all(color: AppColors.tealGreen.withOpacity(0.25)),
                 ),
                 child: TranslatedText(
-                  '${_results.length} result${_results.length == 1 ? '' : 's'}',
+                  _noExactMatch ? 'Suggested' : '${_results.length} result${_results.length == 1 ? '' : 's'}',
                   style: TextStyle(color: AppColors.tealGreen, fontSize: 11, fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 8),
               Flexible(
                 child: TranslatedText(
-                  'for "${_searchController.text}"',
+                  _noExactMatch
+                      ? 'No exact match for "${_searchController.text}" — popular courses'
+                      : 'for "${_searchController.text}"',
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -501,12 +502,14 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
           ),
           child: Row(
             children: [
-              // Thumbnail
-              ClipRRect(
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+              // Thumbnail — banner ratio (1024x575), so the whole banner shows
+              Padding(
+                padding: const EdgeInsets.only(left: 10, top: 10, bottom: 10),
+                child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
                 child: SizedBox(
-                  width: 86,
-                  height: 86,
+                  width: 112,
+                  height: 112 / kCourseBannerAspect,
                   child:
                       hasIcon
                           ? Image.network(
@@ -516,6 +519,7 @@ class _StudyMaterialSearchScreenState extends State<StudyMaterialSearchScreen> w
                           )
                           : _gradientThumb(accent),
                 ),
+              ),
               ),
 
               // Text

@@ -1730,7 +1730,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Timer chalta rahega. Aapka progress save nahi hoga.',
+                    'The timer will keep running. Your progress will not be saved.',
                     style: TextStyle(fontSize: 11, color: AppColors.greyS600),
                     textAlign: TextAlign.center,
                   ),
@@ -1746,7 +1746,7 @@ class _MockTestScreenState extends State<MockTestScreen> with SingleTickerProvid
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: Text(
-                            'Wapas Jao',
+                            'Go Back',
                             style: TextStyle(fontSize: 13, color: AppColors.greyS700, fontWeight: FontWeight.w600),
                           ),
                         ),

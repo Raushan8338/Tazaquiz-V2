@@ -103,7 +103,7 @@ class _HomeMockTestState extends State<HomeMockTest> with SingleTickerProviderSt
                         ),
                       ),
                       TranslatedText(
-                        '🎯 Practice karo, exam crack karo!',
+                        '🎯 Practice daily, crack your exam!',
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: const Color(0xFF1a237e)),
                       ),
                     ],

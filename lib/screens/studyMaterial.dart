@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/course_banner.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
@@ -78,19 +79,25 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
             item.description.toLowerCase().contains(query);
       }).toList();
     }
-    // Courses with a thumbnail look better and load in first; the rest follow.
-    final withImage =
-        list.where((e) => e.boardIcon != null && e.boardIcon!.isNotEmpty).toList();
-    final withoutImage =
-        list.where((e) => e.boardIcon == null || e.boardIcon!.isEmpty).toList();
-    return [...withImage, ...withoutImage];
+    // Keep the server order (A to Z in "All"). Moving courses with a banner to the top
+    // broke the alphabetical order.
+    return list;
   }
 
-  Future<void> _getdata() async {
-        _user = await SessionManager.getUser();
+  // Set when the first page could not be loaded (network). Shows "Try again" instead of a
+  // spinner that never stops — before, an error here left the screen loading forever.
+  bool _loadFailed = false;
 
-    await fetchStudyLevels();
-    await fetchStudyCategory(0, page: 1);
+  Future<void> _getdata() async {
+    _user = await SessionManager.getUser();
+    if (mounted) setState(() { _isLoading = true; _loadFailed = false; });
+
+    try {
+      await fetchStudyLevels();
+    } catch (_) {
+      // categories are optional — the "All" list below still loads
+    }
+    await fetchStudyCategory(_selectedCategoryId, page: 1);
   }
 
   Future<void> _loadMore() async {
@@ -103,7 +110,8 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
 
   Future<void> fetchStudyLevels() async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    Response response = await authRepository.fetchStudyLevels();
+    Response response = await Api_Client.withRetry(() => authRepository.fetchStudyLevels());
+    if (!mounted) return;
     if (response.statusCode == 200) {
       final List list = response.data['data'] ?? [];
       setState(() {
@@ -122,8 +130,29 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
 
   Future<void> fetchStudyCategory(int categoryId, {int page = 1}) async {
     Authrepository authRepository = Authrepository(Api_Client.dio);
-    Response response = await authRepository.fetchStudyCategory(
-        {'category_id': categoryId, 'page': page, 'limit': _pageLimit, 'user_id': _user?.id});
+    Response response;
+    try {
+      // One silent retry on a network blip before showing an error
+      response = await Api_Client.withRetry(() => authRepository.fetchStudyCategory(
+          {'category_id': categoryId, 'page': page, 'limit': _pageLimit, 'user_id': _user?.id}));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        // first page failed -> "Try again" screen; a later page just stops loading more
+        if (page == 1) _loadFailed = true;
+      });
+      return;
+    }
+    if (!mounted) return;
+    if (response.statusCode != 200) {
+      setState(() {
+        _isLoading = false;
+        if (page == 1) _loadFailed = true;
+      });
+      return;
+    }
+    _loadFailed = false;
     if (response.statusCode == 200) {
       final List list = response.data['data'] ?? [];
       final bool hasMore = response.data['hasMore'] ?? false;
@@ -187,7 +216,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                 child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealGreen)))
             : _studyMaterials.isEmpty
-                ? _buildEmptyState()
+                ? (_loadFailed ? _buildLoadFailed() : _buildEmptyState())
                 : _buildBody(),
       ),
     );
@@ -573,9 +602,12 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                 const BorderRadius.vertical(top: Radius.circular(16)),
             child: Stack(
               children: [
-                SizedBox(
-                  height: 110,
-                  width: double.infinity,
+                // Banner ratio (1024x575). Capped so a wide card cannot push the text out of
+                // its fixed 230 height.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 130),
+                  child: AspectRatio(
+                  aspectRatio: kCourseBannerAspect,
                   child: hasIcon
                       ? Image.network(
                           material.boardIcon!,
@@ -601,6 +633,7 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
                               _buildGradientFallback(material.title),
                         )
                       : _buildGradientFallback(material.title),
+                ),
                 ),
                 // Bottom fade
                 Positioned(
@@ -782,6 +815,52 @@ class _StudyMaterialScreenState extends State<StudyMaterialScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ─── LOAD FAILED ──────────────────────────────────────────────────
+
+  Widget _buildLoadFailed() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                  color: AppColors.tealGreen.withOpacity(0.08),
+                  shape: BoxShape.circle),
+              child: Icon(Icons.wifi_off_rounded,
+                  size: 56, color: AppColors.greyS600.withOpacity(0.5)),
+            ),
+            const SizedBox(height: 16),
+            TranslatedText('Could not load courses',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.greyS600)),
+            const SizedBox(height: 6),
+            TranslatedText('Please check your internet connection and try again.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.greyS600.withOpacity(0.7))),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              onPressed: _getdata,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const TranslatedText('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.tealGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

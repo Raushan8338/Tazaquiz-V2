@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tazaquiznew/API/api_client.dart';
+import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/utils/richText.dart';
@@ -73,6 +75,44 @@ class PaymentStatusScreen extends StatefulWidget {
 }
 
 class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerProviderStateMixin {
+  bool _checking = false;
+
+  // "Check Status" used to only rebuild the screen. It now asks the server (save_payment_status.php
+  // verifies with Cashfree and activates the course) and moves to Success / Failed when it is final.
+  Future<void> _checkStatus() async {
+    final String orderId = widget.orderId.trim();
+    if (_checking || orderId.isEmpty) return;
+    setState(() => _checking = true);
+    String msg = 'Payment is still being processed. Please check again in a minute.';
+    try {
+      final res = await Authrepository(Api_Client.dio).savePaymentStatus({'order_id': orderId});
+      final Map<String, dynamic> resp = Map<String, dynamic>.from(res.data);
+      final String st = (resp['order_status'] ?? '').toString().toUpperCase();
+      if (!mounted) return;
+      if (resp['success'] == true && (st == 'PAID' || st == 'FAILED')) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentStatusScreen(
+              status: st == 'PAID' ? PaymentStatus.success : PaymentStatus.failed,
+              orderId: orderId,
+              amount: (resp['amount']?.toString().isNotEmpty ?? false) ? resp['amount'].toString() : widget.amount,
+              paymentMethod: (resp['payment_method']?.toString().isNotEmpty ?? false)
+                  ? resp['payment_method'].toString()
+                  : widget.paymentMethod,
+            ),
+          ),
+        );
+        return;
+      }
+    } catch (_) {
+      msg = 'Could not reach the server. Please check your internet and try again.';
+    }
+    if (!mounted) return;
+    setState(() => _checking = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   late AnimationController _iconController;
   late AnimationController _fadeController;
   late Animation<double> _scaleAnimation;
@@ -417,7 +457,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: config.primaryButtonAction,
+            onPressed: _checking ? null : config.primaryButtonAction,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.transparent,
               shadowColor: AppColors.transparent,
@@ -433,7 +473,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
                 alignment: Alignment.center,
                 child: AppRichText.setTextPoppinsStyle(
                   context,
-                  config.primaryButtonText,
+                  _checking ? 'Checking...' : config.primaryButtonText,
                   15,
                   AppColors.white,
                   FontWeight.w700,
@@ -518,10 +558,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> with TickerPr
           infoIconColor: Colors.orange.shade700,
           primaryButtonText: 'Check Status',
           secondaryButtonText: 'Go to Home',
-          primaryButtonAction: () {
-            // Check payment status - refresh or API call
-            setState(() {});
-          },
+          primaryButtonAction: _checkStatus,
           secondaryButtonAction: () {
             Navigator.popUntil(context, (route) => route.isFirst);
           },

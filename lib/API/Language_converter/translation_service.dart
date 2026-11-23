@@ -108,6 +108,64 @@ class TranslationService {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  //  Notes translation — translate into a language the user picks on the notes
+  //  screen, WITHOUT changing the app language (setLanguage is not called).
+  // ─────────────────────────────────────────────────────────────
+
+  /// true if the on-device translator supports this language code.
+  bool canTranslateTo(String code) => _mlKitLang(code) != null;
+
+  /// Language of [text] as a code ('en', 'hi', ...). Unknown → 'en'.
+  Future<String> detectLanguage(String text) async {
+    if (!_initialized) await init();
+    try {
+      final code = await _langIdentifier!.identifyLanguage(text);
+      return (code == 'und' || _mlKitLang(code) == null) ? 'en' : code;
+    } catch (_) {
+      return 'en';
+    }
+  }
+
+  /// Downloads the on-device model for [code] if it is not on the phone yet
+  /// (first time ~30 MB). Notes cannot show anything before the model exists,
+  /// so this waits longer than the 30 s used for UI labels.
+  Future<void> prepareLanguage(String code) async {
+    final lang = _mlKitLang(code);
+    if (lang == null) throw UnsupportedError('Language not supported: $code');
+    final isDownloaded = await _modelManager.isModelDownloaded(lang.bcpCode);
+    if (!isDownloaded) {
+      await _modelManager
+          .downloadModel(lang.bcpCode, isWifiRequired: false)
+          .timeout(const Duration(minutes: 3));
+    }
+  }
+
+  /// Translates [text] from [sourceCode] into [targetCode]. Models must be ready
+  /// (prepareLanguage). Returns the original text if translation fails.
+  Future<String> translateTo(String text, String sourceCode, String targetCode) async {
+    if (text.trim().isEmpty || sourceCode == targetCode) return text;
+    final source = _mlKitLang(sourceCode);
+    final target = _mlKitLang(targetCode);
+    if (source == null || target == null) return text;
+
+    final cacheKey = 'notes_${sourceCode}_${targetCode}_$text';
+    if (_cache.containsKey(cacheKey)) return _cache[cacheKey]!;
+
+    final translator = _translators.putIfAbsent(
+      '${sourceCode}_$targetCode',
+      () => OnDeviceTranslator(sourceLanguage: source, targetLanguage: target),
+    );
+    try {
+      final out = await translator.translateText(text);
+      if (out.trim().isEmpty) return text;
+      _cache[cacheKey] = out;
+      return out;
+    } catch (_) {
+      return text;
+    }
+  }
+
   Future<List<String>> translateBatch(List<String> texts) async {
     return Future.wait(texts.map((t) => translate(t)));
   }

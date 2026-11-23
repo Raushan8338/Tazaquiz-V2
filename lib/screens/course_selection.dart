@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/course_banner.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/API/api_endpoint.dart';
@@ -236,7 +237,8 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                               padding: const EdgeInsets.all(12),
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                childAspectRatio: 0.85,
+                                // banner on top at 1024x575 + name row below
+                                childAspectRatio: 1.0,
                                 crossAxisSpacing: 10,
                                 mainAxisSpacing: 10,
                               ),
@@ -272,8 +274,8 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
                                       crossAxisAlignment: CrossAxisAlignment.stretch,
                                       children: [
                                         // ── TOP: Banner image ──────────
-                                        Expanded(
-                                          flex: 5,
+                                        AspectRatio(
+                                          aspectRatio: kCourseBannerAspect,
                                           child: ClipRRect(
                                             borderRadius: const BorderRadius.only(
                                               topLeft: Radius.circular(13),
@@ -302,7 +304,6 @@ class _MyCoursesSelectionState extends State<MyCoursesSelection> {
 
                                         // ── BOTTOM: Name + Checkbox ────
                                         Expanded(
-                                          flex: 3,
                                           child: Padding(
                                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                             child: Row(

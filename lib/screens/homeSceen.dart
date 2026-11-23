@@ -53,12 +53,33 @@ void _onNavItemTapped(int index) {
     // });
   }
 
-  advancedStatusCheck(NewVersionPlus newVersion) async {
-    final status = await newVersion.getVersionStatus();
+  // true only when the Play Store version is strictly NEWER than this install.
+  // Missing parts count as 0 ("1.4" == "1.4.0"); anything that is not a plain number → false (no popup).
+  static bool _isStoreNewer(String local, String store) {
+    final l = local.trim().split('.');
+    final s = store.trim().split('.');
+    final n = l.length > s.length ? l.length : s.length;
+    for (var i = 0; i < n; i++) {
+      final lv = i < l.length ? int.tryParse(l[i]) : 0;
+      final sv = i < s.length ? int.tryParse(s[i]) : 0;
+      if (lv == null || sv == null) return false;
+      if (sv > lv) return true;
+      if (sv < lv) return false;
+    }
+    return false;
+  }
 
-    if (status != null) {
-      if (status.storeVersion == status.localVersion) {
-        SizedBox();
+  advancedStatusCheck(NewVersionPlus newVersion) async {
+    // The popup cannot be skipped (Skip closes the app), so a wrong popup locks users out.
+    // Show it ONLY when we are sure the Store has a newer version; any error = no popup.
+    final status = await newVersion.getVersionStatus().catchError((_) => null);
+    if (status == null || !mounted) return;
+
+    {
+      // Before: "!= local" fired even when this phone had a NEWER build than the Store
+      // (1.4.2 installed, Store still 1.4.1) and asked to "update" backwards.
+      if (!_isStoreNewer(status.localVersion, status.storeVersion)) {
+        return;
       } else {
         newVersion.showUpdateDialog(
           context: context,

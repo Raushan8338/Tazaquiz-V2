@@ -5,6 +5,7 @@ import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
 import 'package:tazaquiznew/authentication/AuthRepository.dart';
 import 'dart:async';
+import 'package:tazaquiznew/constants/course_banner.dart';
 
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/PackageFeatureItem.dart';
@@ -14,6 +15,7 @@ import 'package:tazaquiznew/models/study_material_details_item.dart'
 import 'package:tazaquiznew/screens/PDFViewerPage.dart';
 import 'package:tazaquiznew/screens/Paid_quzes_list.dart';
 import 'package:tazaquiznew/screens/buyStudyM.dart';
+import 'package:tazaquiznew/screens/checkout.dart';
 import 'package:tazaquiznew/screens/leaderboard_page.dart';
 import 'package:tazaquiznew/screens/package_page.dart';
 import 'package:tazaquiznew/screens/quizListDetailsPage.dart';
@@ -256,7 +258,8 @@ leading: pageId == '1'
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              // pills are sized to fit in the banner's height; centred against it
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Stack(
                   clipBehavior: Clip.none,
@@ -264,15 +267,10 @@ leading: pageId == '1'
                     ClipRRect(
                       borderRadius: BorderRadius.circular(14),
                       child: SizedBox(
-                        width: 84,
-                        height: 84,
+                        width: 120,
+                        height: 120 / kCourseBannerAspect,
                         child: hasImage
-                            ? Image.network(
-                                material.thumbnail,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    _buildThumbFallback(material, isSubscription),
-                              )
+                            ? _buildThumbImage(material, isSubscription)
                             : _buildThumbFallback(material, isSubscription),
                       ),
                     ),
@@ -323,11 +321,11 @@ leading: pageId == '1'
                       ),
                   ],
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
+                    spacing: 4,
+                    runSpacing: 4,
                     children: _buildFeaturePills(material.package_features),
                   ),
                 ),
@@ -364,6 +362,10 @@ leading: pageId == '1'
                   color: AppColors.greyS500,
                   fontWeight: FontWeight.w500),
             ),
+            if (_canConvert(material)) ...[
+              const SizedBox(height: 8),
+              _buildConvertButton(material),
+            ],
             const SizedBox(height: 8),
             isSubscription
                 ? _buildStartNowButton(material, isExpired)
@@ -371,6 +373,17 @@ leading: pageId == '1'
           ],
         ),
       ),
+    );
+  }
+
+  // ─── THUMBNAIL ──────────────────────────────────────────────────────────
+
+  // The box is already the banner's own ratio (kCourseBannerAspect), so cover shows the whole banner.
+  Widget _buildThumbImage(StudyMaterialDetailsItem material, bool isSubscription) {
+    return Image.network(
+      material.thumbnail,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => _buildThumbFallback(material, isSubscription),
     );
   }
 
@@ -423,34 +436,180 @@ leading: pageId == '1'
       final IconData icon =
           meta?['icon'] as IconData? ?? Icons.check_circle_rounded;
 
+      // Compact pills: 7 features fit in ~3 rows = the banner's height (no blank under the image)
       return Opacity(
         opacity: feature.isIncluded ? 1.0 : 0.45,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2.5),
           decoration: BoxDecoration(
             color: color.withOpacity(0.09),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.25)),
+            border: Border.all(color: color.withOpacity(0.25), width: 0.8),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 10, color: color),
-              const SizedBox(width: 3),
+              Icon(icon, size: 9, color: color),
+              const SizedBox(width: 2),
               Text(
                 feature.text,
                 style: TextStyle(
-                    fontSize: 9, fontWeight: FontWeight.w600, color: color),
+                    fontSize: 8, fontWeight: FontWeight.w600, color: color, height: 1.2),
               ),
               if (!feature.isIncluded) ...[
-                const SizedBox(width: 3),
-                Icon(Icons.lock_rounded, size: 8, color: color),
+                const SizedBox(width: 2),
+                Icon(Icons.lock_rounded, size: 7, color: color),
               ],
             ],
           ),
         ),
       );
     }).toList();
+  }
+
+  // Active Basic subscription that can be converted to Premium (same check for the card strip
+  // and for taps on locked features).
+  bool _canConvert(StudyMaterialDetailsItem material) {
+    if (material.contentType != 'SUBSCRIPTION' || material.purchaseId <= 0) return false;
+    final DateTime? expiry = material.access_valid_until.isNotEmpty
+        ? DateTime.tryParse(material.access_valid_until)
+        : null;
+    if (expiry != null && DateTime.now().isAfter(expiry)) return false;
+    return _isBasicPlan(material);
+  }
+
+  bool _isBasicPlan(StudyMaterialDetailsItem material) {
+    final String slug = material.packageSlug.toLowerCase().trim();
+    final String name = material.package_name.toLowerCase().trim();
+    if (slug.contains('premium') || name.contains('premium')) return false;
+    return slug.contains('basic') || name.contains('basic');
+  }
+
+  // Upgrade strip: a compact gold banner under the course info. "Start Learning" stays the main
+  // button; this reads as an offer (what you get + one clear action), not as a second big button.
+  Widget _buildConvertButton(StudyMaterialDetailsItem material) {
+    const Color goldDark = Color(0xFF8A5A00);
+    const Color gold = Color(0xFFE6A817);
+    final int lockedCount =
+        material.package_features.where((f) => !f.isIncluded).length;
+    final String subtitle = lockedCount > 0
+        ? 'Unlock $lockedCount more feature${lockedCount == 1 ? '' : 's'}'
+        : 'Pay only the difference';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showUpgradeSheet(material),
+        borderRadius: BorderRadius.circular(12),
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Color(0xFFFFF8E6), Color(0xFFFFEFC7)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: gold.withOpacity(0.45)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFFFC94A), Color(0xFFE09B00)],
+                  ),
+                ),
+                child: const Icon(Icons.workspace_premium_rounded,
+                    size: 17, color: Colors.white),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const TranslatedText(
+                      'Upgrade to Premium',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: goldDark),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 1),
+                    TranslatedText(
+                      subtitle,
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: goldDark.withOpacity(0.75)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF2B01E), Color(0xFFD48A00)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: gold.withOpacity(0.35),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TranslatedText(
+                      'Convert',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white),
+                    ),
+                    SizedBox(width: 2),
+                    Icon(Icons.chevron_right_rounded,
+                        size: 16, color: Colors.white),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showUpgradeSheet(StudyMaterialDetailsItem material) async {
+    if (material.purchaseId <= 0 || _user == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _UpgradePlanSheet(
+        userId: _user!.id.toString(),
+        material: material,
+        formatDate: _formatDate,
+        onFinished: () {
+          if (mounted) fetchStudyMaterials(_user!.id.toString());
+        },
+      ),
+    );
   }
 
   // ─── START NOW BUTTON (clean — no pills) ──────────────────────────────────
@@ -520,10 +679,15 @@ leading: pageId == '1'
       VoidCallback onTap;
 
       if (!feature.isIncluded) {
-        // Locked → premium popup
+        // Locked → the same "Convert to Premium" sheet as the card strip (pay only the difference).
+        // Old popup only where convert is not possible (expired / not a Basic plan).
         onTap = () {
           Navigator.pop(context);
-          _showPremiumPopup(context, material.subscription_id.toString());
+          if (_canConvert(material)) {
+            _showUpgradeSheet(material);
+          } else {
+            _showPremiumPopup(context, material.subscription_id.toString());
+          }
         };
       } else if (key == 'leaderboard') {
         onTap = () {
@@ -1260,6 +1424,239 @@ class _CourseBottomSheet extends StatelessWidget {
             SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _UpgradePlanSheet extends StatefulWidget {
+  final String userId;
+  final StudyMaterialDetailsItem material;
+  final String Function(String) formatDate;
+  final VoidCallback onFinished;
+
+  const _UpgradePlanSheet({
+    required this.userId,
+    required this.material,
+    required this.formatDate,
+    required this.onFinished,
+  });
+
+  @override
+  State<_UpgradePlanSheet> createState() => _UpgradePlanSheetState();
+}
+
+class _UpgradePlanSheetState extends State<_UpgradePlanSheet> {
+  bool _loading = true;
+  bool _paying = false;
+  String? _error;
+  Map<String, dynamic>? _quote;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final auth = Authrepository(Api_Client.dio);
+      final response = await auth.fetchUpgradePlanQuote({
+        'user_id': widget.userId,
+        'purchase_id': widget.material.purchaseId.toString(),
+        'action': 'quote',
+      });
+      final data = response.data is Map ? Map<String, dynamic>.from(response.data) : <String, dynamic>{};
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        if (data['success'] == true) {
+          _quote = data;
+        } else {
+          _error = data['message']?.toString() ?? 'Could not load Premium price';
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Could not load Premium price';
+      });
+    }
+  }
+
+  Future<void> _pay() async {
+    final quote = _quote;
+    if (quote == null || _paying) return;
+    final double payable = double.tryParse(quote['payable'].toString()) ?? 0;
+    setState(() => _paying = true);
+
+    if (payable <= 0) {
+      try {
+        final auth = Authrepository(Api_Client.dio);
+        await auth.fetchUpgradePlanQuote({
+          'user_id': widget.userId,
+          'purchase_id': widget.material.purchaseId.toString(),
+          'action': 'apply',
+        });
+      } catch (_) {}
+      if (!mounted) return;
+      Navigator.pop(context);
+      widget.onFinished();
+      return;
+    }
+
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    await navigator.push(
+      MaterialPageRoute(
+        builder: (_) => CheckoutPage(
+          contentType: 'PLAN_UPGRADE',
+          contentId: quote['course_id'].toString(),
+          package_id: quote['premium_package_id'].toString(),
+          packageName: widget.material.title,
+          packageDetails: 'Premium upgrade',
+          upgradePurchaseId: widget.material.purchaseId,
+          upgradePayable: payable,
+        ),
+      ),
+    );
+    widget.onFinished();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final quote = _quote;
+    final List benefits = quote == null ? [] : (quote['benefits'] as List? ?? []);
+    final String validUntil = widget.material.access_valid_until;
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.86),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: _loading
+          ? const Padding(
+              padding: EdgeInsets.all(40),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : _error != null
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(_error!, style: const TextStyle(fontSize: 14)),
+                )
+              : ListView(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 16),
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(4)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text('Convert to Premium', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0A1628))),
+                    const SizedBox(height: 4),
+                    Text(widget.material.title, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                    const SizedBox(height: 14),
+                    const Text('What you unlock', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    if (benefits.isEmpty)
+                      const Text('All Premium features of this course.', style: TextStyle(fontSize: 13))
+                    else
+                      ...benefits.map((item) {
+                        final map = Map<String, dynamic>.from(item as Map);
+                        final String text = map['text']?.toString() ?? '';
+                        final String label = map['label']?.toString() ?? '';
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF016A67)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  label.isEmpty ? text : '$text — $label',
+                                  style: const TextStyle(fontSize: 13, height: 1.3),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDFA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        validUntil.isEmpty
+                            ? 'Your validity date stays the same.'
+                            : 'Your course stays valid until ${widget.formatDate(validUntil)}. Only the plan changes.',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF016A67)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // All three WITHOUT GST (server amounts include 18% GST, so / 1.18).
+                    // The checkout then shows this "Pay now" + 18% GST = the total charged.
+                    _priceRow('Premium price', '₹${_exGst(quote!['premium_price'])}'),
+                    _priceRow('Already paid', '₹${_exGst(quote['already_paid'])}'),
+                    _priceRow('Pay now', '₹${_exGst(quote['payable'])}', strong: true),
+                    const SizedBox(height: 4),
+                    Text(
+                      (double.tryParse(quote['payable'].toString()) ?? 0) > 0
+                          ? 'Prices without GST. 18% GST is added at checkout (total ₹${(double.tryParse(quote['payable'].toString()) ?? 0).toStringAsFixed(2)}).'
+                          : 'Prices without GST.',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _paying ? null : _pay,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0A1628),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          _paying
+                              ? 'Please wait...'
+                              : ((double.tryParse(quote['payable'].toString()) ?? 0) <= 0
+                                  ? 'Convert now'
+                                  : 'Continue to checkout'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+    );
+  }
+
+  // Server amounts include 18% GST → amount without GST, 2 decimals
+  String _exGst(dynamic withGst) {
+    final v = double.tryParse(withGst?.toString() ?? '') ?? 0;
+    return (v / 1.18).toStringAsFixed(2);
+  }
+
+  Widget _priceRow(String label, String value, {bool strong = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, fontWeight: strong ? FontWeight.w800 : FontWeight.w500)),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: strong ? FontWeight.w800 : FontWeight.w600, color: const Color(0xFF0A1628))),
+        ],
       ),
     );
   }

@@ -50,6 +50,8 @@ class StudyMaterialDetailsItem {
 
   // 🔥 NEW: Package info from API
   final String package_name;
+  final String packageSlug;
+  final int purchaseId;
   final List<PackageFeatureItem> package_features;
 
   StudyMaterialDetailsItem({
@@ -82,6 +84,8 @@ class StudyMaterialDetailsItem {
     this.access_valid_until = '',
     // 🔥 NEW
     this.package_name = '',
+    this.packageSlug = '',
+    this.purchaseId = 0,
     this.package_features = const [],
   });
 
@@ -123,6 +127,8 @@ class StudyMaterialDetailsItem {
       access_valid_until: json['access_valid_until']?.toString() ?? '',
       // 🔥 NEW
       package_name: json['package_name']?.toString() ?? '',
+      packageSlug: json['package_slug']?.toString() ?? '',
+      purchaseId: _toInt(json['purchase_id']),
       package_features: parsedFeatures,
     );
   }

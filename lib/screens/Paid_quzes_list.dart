@@ -172,8 +172,11 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
     });
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
-      final response =
-          await auth.fetchTopics({'subject_id': subjectId.toString()});
+      final int? courseId = int.tryParse(widget.pageId);
+      final response = await auth.fetchTopics({
+        'subject_id': subjectId.toString(),
+        if (courseId != null && courseId > 0) 'course_id': courseId.toString(),
+      });
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
         final topics = list
@@ -1288,8 +1291,8 @@ class _Paid_QuizListScreenState extends State<Paid_QuizListScreen>
                   child: TranslatedText(
                     quiz.title,
                     style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.darkNavy,
                       height: 1.3,
                       fontFamily: 'Poppins',

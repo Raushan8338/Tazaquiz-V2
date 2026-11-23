@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/course_banner.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/course_item_modal.dart';
@@ -191,8 +192,8 @@ class Home_courses extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               /// ── Image / Gradient ──
-              SizedBox(
-                height: 100,
+              AspectRatio(
+                aspectRatio: kCourseBannerAspect, // banner 1024x575, shown whole
                 child: Stack(
                   children: [
                     Positioned.fill(

@@ -552,7 +552,7 @@ class NewsDetailPage extends StatelessWidget {
     try {
       await launchUrl(Uri.parse(post.url), mode: LaunchMode.externalApplication);
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Browser open nahi ho saka')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open the browser')));
     }
   }
 
@@ -705,7 +705,7 @@ class NewsDetailPage extends StatelessWidget {
                           Icon(Icons.open_in_browser_rounded, size: 18),
                           SizedBox(width: 8),
                           TranslatedText(
-                            'Website pe Poora Article Padho',
+                            'Read the Full Article on Website',
                             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.3),
                           ),
                         ],
@@ -808,7 +808,7 @@ class _ErrorView extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded, size: 18),
-            label:  TranslatedText('Dobara Try Karo', style: TextStyle(fontWeight: FontWeight.w700)),
+            label:  TranslatedText('Try Again', style: TextStyle(fontWeight: FontWeight.w700)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0D1B2A),
               foregroundColor: Colors.white,

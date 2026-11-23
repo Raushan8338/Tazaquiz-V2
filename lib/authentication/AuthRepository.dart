@@ -87,6 +87,11 @@ class Authrepository {
     return await _dio.post(BaseUrl.fetch_referral_list, data: formData);
   }
 
+  Future<Response> fetchUpgradePlanQuote(Map<String, dynamic> data) async {
+    FormData formData = FormData.fromMap(data);
+    return await _dio.post(BaseUrl.upgrade_plan_quote, data: formData);
+  }
+
   Future<Response> createPaymentOrder(Map<String, dynamic> data) async {
     FormData formData = FormData.fromMap(data);
     return await _dio.post(BaseUrl.create_payment_order, data: formData);

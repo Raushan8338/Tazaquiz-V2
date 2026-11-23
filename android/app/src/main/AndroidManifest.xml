@@ -4,6 +4,12 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Play Console: "Required hardware feature declarations are restricting your app's availability".
+         ACCESS_WIFI_STATE implies android.hardware.wifi, and Cashfree's portrait-locked payment screens imply
+         android.hardware.screen.portrait. Neither is needed to run the app, so mark both optional. -->
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
+
     <!-- 🔥 REQUIRED for UPI intent detection -->
   <queries>
     <!-- ✅ ADD THESE — required for url_launcher to open https/http links -->
@@ -37,7 +43,7 @@
         android:icon="@mipmap/ic_launcher">
             <meta-data
                 android:name="com.google.android.gms.ads.APPLICATION_ID"
-                android:value="ca-app-pub-3940256099942544~3347511713"/>
+                android:value="ca-app-pub-2864505635048283~9032729860"/>
 
         <activity
             android:name=".MainActivity"

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/course_banner.dart';
 import 'package:http/http.dart' as http;
 import 'package:tazaquiznew/constants/app_colors.dart';
 import 'package:tazaquiznew/models/home_page_modal.dart';
@@ -142,7 +143,103 @@ class _HomeStudyMaterialsState extends State<HomeStudyMaterials> {
     return icons[index % icons.length];
   }
 
+  // Card with a real banner: the full 1024x575 banner on top (nothing cut, no dark overlay
+  // over the banner's own text), and the title + View in a strip under it.
+  Widget _buildBannerCard(material) {
+    void open() =>
+        Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage(material.id)));
+    return GestureDetector(
+      onTap: open,
+      child: Container(
+        width: 280,
+        margin: const EdgeInsets.only(left: 6, right: 6, top: 16, bottom: 16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Column(
+            children: [
+              AspectRatio(
+                aspectRatio: kCourseBannerAspect,
+                child: Image.network(
+                  material.boardIcon!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: _getCardColors(int.parse(material.id)),
+                      ),
+                    ),
+                    child: Icon(_getIconForIndex(int.parse(material.id)),
+                        size: 36, color: Colors.white),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: AppRichText.setTextPoppinsStyle(
+                          context,
+                          material.title,
+                          12,
+                          AppColors.darkNavy,
+                          FontWeight.w800,
+                          1,
+                          TextAlign.left,
+                          1.2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGold,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppRichText.setTextPoppinsStyle(
+                              context,
+                              'View',
+                              11,
+                              AppColors.darkNavy,
+                              FontWeight.w800,
+                              1,
+                              TextAlign.center,
+                              0.0,
+                            ),
+                            Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.darkNavy),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMaterialCard(material) {
+    if (material.boardIcon != null && material.boardIcon!.isNotEmpty) {
+      return _buildBannerCard(material);
+    }
     return InkWell(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) => SubjectContentPage(material.id)));

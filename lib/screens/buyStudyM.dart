@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/course_banner.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:tazaquiznew/API/Language_converter/translation_service.dart';
 import 'package:tazaquiznew/API/api_client.dart';
@@ -211,9 +212,10 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         'user_id': userid.toString(),
         'page_API_call': widget.page_API_call,
       };
-      final responseFuture = await authRepository
+      // One silent retry on a network blip before the error screen is shown
+      final responseFuture = await Api_Client.withRetry(() => authRepository
           .get_study_wise_details(data)
-          .timeout(const Duration(seconds: 15), onTimeout: () => throw TimeoutException('Request timed out'));
+          .timeout(const Duration(seconds: 25), onTimeout: () => throw TimeoutException('Request timed out')));
 
       if (responseFuture.statusCode == 200) {
         final List list = responseFuture.data['data'] ?? [];
@@ -264,13 +266,13 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         });
       return [];
     } catch (e) {
-      final msg = e.toString().toLowerCase();
       if (mounted)
         setState(() {
           _isLoading = false;
           _hasError = true;
-          _errorType =
-              (msg.contains('socket') || msg.contains('network') || msg.contains('connection'))
+          _errorType = Api_Client.isTimeout(e)
+              ? 'timeout'
+              : Api_Client.isNetworkError(e)
                   ? 'no_internet'
                   : 'unknown';
         });
@@ -682,20 +684,19 @@ class _BuyCoursePageState extends State<BuyCoursePage> with SingleTickerProvider
         if (hasThumb && !_bannerImageFailed && !Platform.isWindows)
           Stack(
             children: [
-              SizedBox(
-                width: double.infinity,
-                height: 190,
+              AspectRatio(
+                aspectRatio: kCourseBannerAspect,
                 child: ClipRRect(
                   borderRadius: BorderRadius.zero,
                   child: Image.network(
                     thumbUrl!,
+                    width: double.infinity,
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(
                         width: double.infinity,
-                        height: 190,
                         color: _navy,
                         child: const Center(child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2.2)),
                       );

@@ -112,8 +112,11 @@ class _SubjectContentPageState extends State<SubjectContentPage>
     }
     try {
       Authrepository auth = Authrepository(Api_Client.dio);
-      final response =
-          await auth.fetchTopics({'subject_id': subjectId.toString()});
+      final int? courseId = int.tryParse(widget.id);
+      final response = await auth.fetchTopics({
+        'subject_id': subjectId.toString(),
+        if (courseId != null && courseId > 0) 'course_id': courseId.toString(),
+      });
       if (response.statusCode == 200) {
         final List list = response.data['data'] ?? [];
         final topics = list
@@ -673,7 +676,7 @@ class _SubjectContentPageState extends State<SubjectContentPage>
                   child: TranslatedText(
                     material.title,
                     style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColors.darkNavy,
                         height: 1.3),
@@ -771,7 +774,8 @@ class _SubjectContentPageState extends State<SubjectContentPage>
                           MaterialPageRoute(
                             builder: (context) => PDFViewerPage(
                                 pdfUrl: material.filePath,
-                                title: material.title),
+                                title: material.title,
+                                allowTranslate: material.isTranslationAllowed),
                           ),
                         );
                       } else {

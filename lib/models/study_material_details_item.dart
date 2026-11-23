@@ -30,6 +30,9 @@ class StudyMaterialDetailsItem {
   final bool isPurchased;
   final bool isAccessible;
   final String access_valid_until; // 🔥 Optional: Access expiry date (if applicable)
+  // study_materials.is_translation_allowed — same idea as questions.is_translation_allowed.
+  // Not sent = true (translate); only 0 from the server hides the Translate button.
+  final bool isTranslationAllowed;
 
   StudyMaterialDetailsItem({
     required this.materialId,
@@ -63,6 +66,7 @@ class StudyMaterialDetailsItem {
     this.isPurchased = false,
     this.isAccessible = false,
     this.access_valid_until = '',
+    this.isTranslationAllowed = false,
   });
 
   factory StudyMaterialDetailsItem.fromJson(Map<String, dynamic> json) {
@@ -102,6 +106,10 @@ class StudyMaterialDetailsItem {
       isPurchased: _toBool(json['is_purchased']),
       isAccessible: _toBool(json['is_accessible']),
       access_valid_until: json['access_valid_until']?.toString() ?? '',
+      // Not sent (column not on the server yet) = allowed. Only an explicit 0 turns it off.
+      isTranslationAllowed: json['is_translation_allowed'] == null
+          ? true
+          : _toBool(json['is_translation_allowed']),
     );
   }
 
@@ -138,6 +146,7 @@ class StudyMaterialDetailsItem {
       'is_purchased': isPurchased,
       'is_accessible': isAccessible,
       'access_valid_until': access_valid_until,
+      'is_translation_allowed': isTranslationAllowed ? 1 : 0,
     };
   }
 }

@@ -299,9 +299,9 @@ class _QuizListScreenState extends State<QuizListScreen>
     String tempFilter = _selectedFilter;
     final filters = [
       {'key': 'all', 'title': 'All Tests', 'subtitle': 'Live, upcoming aur assessment sab', 'icon': Icons.view_list_rounded, 'color': const Color(0xFF0D4B3B)},
-      {'key': 'live', 'title': 'Live Now', 'subtitle': 'Abhi live chal rahe tests', 'icon': Icons.radio_button_checked_rounded, 'color': Colors.red},
+      {'key': 'live', 'title': 'Live Now', 'subtitle': 'Tests running live right now', 'icon': Icons.radio_button_checked_rounded, 'color': Colors.red},
       {'key': 'upcoming', 'title': 'Upcoming', 'subtitle': 'Aane wale scheduled tests', 'icon': Icons.schedule_rounded, 'color': const Color(0xFFF59E0B)},
-      {'key': 'missed', 'title': 'Assessment', 'subtitle': 'Miss ho gaye — ab bhi attempt karo', 'icon': Icons.assignment_late_outlined, 'color': const Color(0xFF6366F1)},
+      {'key': 'missed', 'title': 'Assessment', 'subtitle': 'Missed tests — you can still attempt them', 'icon': Icons.assignment_late_outlined, 'color': const Color(0xFF6366F1)},
     ];
     return StatefulBuilder(builder: (context, setModalState) {
       return Container(
@@ -944,7 +944,7 @@ class _QuizListScreenState extends State<QuizListScreen>
                   color: AppColors.darkNavy,
                   fontFamily: 'Poppins')),
           const SizedBox(height: 6),
-          Text('Is waqt koi live ya upcoming test nahi hai.',
+          Text('There are no live or upcoming tests right now.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 13, color: AppColors.greyS600, height: 1.5)),

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:tazaquiznew/constants/course_banner.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart';
@@ -41,6 +42,8 @@ class CheckoutPage extends StatefulWidget {
   final List<PlanFeatureDisplay>? packageFeatures;
   final double? packageOldPrice;
   final String? courseImage;
+  final int? upgradePurchaseId;
+  final double? upgradePayable;
 
   const CheckoutPage({
     Key? key,
@@ -52,6 +55,8 @@ class CheckoutPage extends StatefulWidget {
     this.packageFeatures,
     this.packageOldPrice,
     this.courseImage,
+    this.upgradePurchaseId,
+    this.upgradePayable,
   }) : super(key: key);
 
   @override
@@ -95,7 +100,32 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
     _user = await SessionManager.getUser();
   }
 
+  bool get _isPlanUpgrade => widget.upgradePurchaseId != null && widget.upgradePurchaseId! > 0;
+
   Future<void> fetchCheckoutDetails() async {
+    if (_isPlanUpgrade) {
+      // The server's payable already includes 18% GST. Show it split, like any other
+      // checkout: amount without GST + GST (18%) = total (exactly what the server charges).
+      final double payable = widget.upgradePayable ?? 0;
+      final double base = double.parse((payable / 1.18).toStringAsFixed(2));
+      final model = CheckoutModel(
+        contentType: 'PLAN_UPGRADE',
+        id: int.tryParse(widget.contentId) ?? 0,
+        title: widget.packageName ?? 'Premium',
+        description: 'Pay only the difference. Your validity date stays the same.',
+        basePrice: base,
+        gstRate: 18,
+        gstAmount: payable - base,
+        finalPrice: payable,
+      );
+      if (!mounted) return;
+      setState(() {
+        checkoutData = model;
+        originalCheckoutData = model;
+        _isLoadingCheckout = false;
+      });
+      return;
+    }
     try {
       setState(() => _isLoadingCheckout = true);
       Authrepository authRepository = Authrepository(Api_Client.dio);
@@ -242,19 +272,30 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
     final data = {
       'user_id': _user?.id,
       'product_id': widget.contentId,
-      'product_type': widget.contentType,
+      'product_type': _isPlanUpgrade ? 'PLAN_UPGRADE' : widget.contentType,
       'package_id': widget.package_id,
+      'purchase_id': _isPlanUpgrade ? widget.upgradePurchaseId.toString() : '',
       'amount': _getFinalPrice().toStringAsFixed(2),
       'name': _user?.username,
       'email': _user?.email,
       'phone': _user?.phone,
-      'coupon_code': appliedCouponCode ?? '',
-      'coupon_discount': couponDiscount?.toString() ?? '',
+      'coupon_code': _isPlanUpgrade ? 'UPG:${widget.upgradePurchaseId}' : (appliedCouponCode ?? ''),
+      'coupon_discount': _isPlanUpgrade ? '0' : (couponDiscount?.toString() ?? ''),
     };
 
-    final responseCreate = await authRepository.createPaymentOrder(data);
+    // Before: a network error or a non-200 reply left the button stuck on "Processing..."
+    // for good. Every failure now resets it and tells the user. (Not retried on purpose —
+    // a second call would create a second payment order.)
+    try {
+      final responseCreate = await authRepository.createPaymentOrder(data);
+      if (!mounted) return;
 
-    if (responseCreate.statusCode == 200) {
+      if (responseCreate.statusCode != 200) {
+        setState(() => _isProcessing = false);
+        _showErrorSnackbar('Could not start the payment. Please try again.');
+        return;
+      }
+
       final jsonResponse = responseCreate.data is String ? jsonDecode(responseCreate.data) : responseCreate.data;
 
       if (jsonResponse['success'] == true) {
@@ -273,8 +314,16 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
         }
       } else {
         setState(() => _isProcessing = false);
-        _showErrorSnackbar('Failed to create payment order');
+        // e.g. "Nothing to pay. Refresh My Courses." for a plan upgrade that is already covered
+        final serverMsg = jsonResponse['error']?.toString() ?? '';
+        _showErrorSnackbar(serverMsg.isNotEmpty && !serverMsg.contains('Cashfree')
+            ? serverMsg
+            : 'Could not start the payment. Please try again.');
       }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isProcessing = false);
+      _showErrorSnackbar('Could not start the payment. Please check your internet and try again.');
     }
   }
 
@@ -302,6 +351,8 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
       var session = createSession(orderId, cfToken);
 
       if (session == null) {
+        if (mounted) setState(() => _isProcessing = false);
+        _showErrorSnackbar('Payment failed to start');
         return;
       }
 
@@ -315,6 +366,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
         service.doPayment(cfWebCheckout);
       }
     } catch (e) {
+      if (mounted) setState(() => _isProcessing = false);
       _showErrorSnackbar('Payment failed to start');
     }
   }
@@ -356,9 +408,9 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
           context,
           MaterialPageRoute(
             builder: (_) => PaymentStatusScreen(
-              amount: resp['cf_response']?['order_amount']?.toString() ?? '',
+              amount: resp['amount']?.toString() ?? _getFinalPrice().toStringAsFixed(2),
               status: PaymentStatus.success,
-              orderId: resp['payment_id']?.toString() ?? '',
+              orderId: orderId,
               paymentMethod: resp['payment_method']?.toString() ?? '',
             ),
           ),
@@ -370,9 +422,9 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
           context,
           MaterialPageRoute(
             builder: (_) => PaymentStatusScreen(
-              amount: resp['cf_response']?['order_amount']?.toString() ?? '',
+              amount: resp['amount']?.toString() ?? _getFinalPrice().toStringAsFixed(2),
               status: PaymentStatus.failed,
-              orderId: resp['payment_id']?.toString() ?? '',
+              orderId: orderId,
               paymentMethod: resp['payment_method']?.toString() ?? '',
             ),
           ),
@@ -384,9 +436,9 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
           context,
           MaterialPageRoute(
             builder: (_) => PaymentStatusScreen(
-              amount: resp['cf_response']?['order_amount']?.toString() ?? '',
+              amount: resp['amount']?.toString() ?? _getFinalPrice().toStringAsFixed(2),
               status: PaymentStatus.pending,
-              orderId: resp['payment_id']?.toString() ?? '',
+              orderId: orderId,
               paymentMethod: resp['payment_method']?.toString() ?? '',
             ),
           ),
@@ -401,7 +453,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
           MaterialPageRoute(
             builder: (_) => PaymentStatusScreen(
               orderId: orderId,
-              amount: '',
+              amount: _getFinalPrice().toStringAsFixed(2),
               paymentMethod: '',
               status: PaymentStatus.pending,
             ),
@@ -419,6 +471,9 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
 
   double _getGstAmount() {
     if (originalCheckoutData == null) return 0;
+    // Plan upgrade: GST = server total - amount without GST, so the total shown is exactly
+    // what the server charges (18% of the rounded base could be off by a paisa).
+    if (_isPlanUpgrade) return (widget.upgradePayable ?? 0) - originalCheckoutData!.basePrice;
     final priceAfterDiscount = _getPriceAfterDiscount();
     return (priceAfterDiscount * originalCheckoutData!.gstRate) / 100;
   }
@@ -532,7 +587,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                     const SizedBox(height: 16),
                     _buildOrderSummary(),
                     const SizedBox(height: 16),
-                    _buildCouponSection(),
+                    if (!_isPlanUpgrade) _buildCouponSection(),
                     if (_displayFeatures.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       _buildPlanDetailsSection(),
@@ -623,28 +678,31 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
 
   Widget _buildCourseLogo() {
     final String? imageUrl = widget.courseImage?.trim();
-    final bool hasImage = imageUrl != null && imageUrl.isNotEmpty && !_courseImageFailed;
+    final bool hasImage = imageUrl != null && _hasCourseBanner;
 
+    // Banner is 1024x575 → box at the same ratio so the whole banner shows
+    const double bannerW = 96;
+    const double bannerH = bannerW / kCourseBannerAspect;
     return Container(
-      width: 58,
-      height: 58,
+      width: bannerW,
+      height: bannerH,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFF0A1628), Color(0xFF0D4B3B)],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: hasImage
           ? ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               child: Image.network(
                 imageUrl,
-                width: 58,
-                height: 58,
+                width: bannerW,
+                height: bannerH,
                 fit: BoxFit.cover,
-                alignment: Alignment.centerLeft,
+                alignment: Alignment.center,
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
                   return const Center(
@@ -662,11 +720,37 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                       setState(() => _courseImageFailed = true);
                     }
                   });
-                  return const Icon(Icons.school_rounded, color: Colors.white, size: 27);
+                  return const SizedBox.shrink();
                 },
               ),
             )
-          : const Icon(Icons.school_rounded, color: Colors.white, size: 27),
+          : const SizedBox.shrink(),
+    );
+  }
+
+  bool get _hasCourseBanner {
+    final String url = widget.courseImage?.trim() ?? '';
+    return url.isNotEmpty && url.toLowerCase() != 'null' && !_courseImageFailed;
+  }
+
+  Widget _buildUpgradeBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(colors: [Color(0xFFF5B83D), Color(0xFFE09A1A)]),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 12),
+        SizedBox(width: 4),
+        Text('UPGRADE · Basic → Premium',
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 0.3,
+                fontFamily: 'Poppins')),
+      ]),
     );
   }
 
@@ -727,7 +811,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                           color: Colors.white,
                           fontFamily: 'Poppins')),
                   const SizedBox(height: 2),
-                  Text('Clean, secure, and ready to checkout',
+                  Text(_isPlanUpgrade ? 'Upgrading your plan to Premium' : 'Clean, secure, and ready to checkout',
                       style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -773,10 +857,17 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                 border: Border.all(color: const Color(0xFF0D4B3B).withOpacity(0.13), width: 1),
               ),
               child: Row(children: [
-                _buildCourseLogo(),
-                const SizedBox(width: 14),
+                // No banner (blank or failed to load) → no image box and no gap
+                if (_hasCourseBanner) ...[
+                  _buildCourseLogo(),
+                  const SizedBox(width: 14),
+                ],
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    if (_isPlanUpgrade) ...[
+                      _buildUpgradeBadge(),
+                      const SizedBox(height: 6),
+                    ],
                     Text(displayCourseName,
                         style: const TextStyle(
                             fontSize: 14,
@@ -831,7 +922,7 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                   const SizedBox(height: 10),
                 ],
                 _buildPriceRow(
-                  'Current Price',
+                  _isPlanUpgrade ? 'Upgrade Price' : 'Current Price',
                   '₹${originalCheckoutData!.basePrice.toStringAsFixed(2)}',
                   false,
                   icon: Icons.sell_outlined,
@@ -1445,11 +1536,11 @@ class _CheckoutPageState extends State<CheckoutPage> with WidgetsBindingObserver
                                 color: Colors.white,
                                 fontFamily: 'Poppins')),
                       ])
-                    : const Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.lock_rounded, color: Colors.white, size: 18),
-                        SizedBox(width: 10),
-                        Text('Proceed to Pay',
-                            style: TextStyle(
+                    : Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.lock_rounded, color: Colors.white, size: 18),
+                        const SizedBox(width: 10),
+                        Text(_isPlanUpgrade ? 'Pay & Upgrade' : 'Proceed to Pay',
+                            style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white,

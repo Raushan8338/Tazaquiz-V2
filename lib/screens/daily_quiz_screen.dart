@@ -180,7 +180,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
             ? jsonDecode(responseFuture.data)
             : Map<String, dynamic>.from(responseFuture.data);
     if (apiResponse['success'] != true) {
-      _showSnackbar(apiResponse['message'] ?? 'Quiz load nahi hua');
+      _showSnackbar(apiResponse['message'] ?? 'Could not load the quiz');
       return;
     }
 
@@ -388,7 +388,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
                   children: [
                     AppRichText.setTextPoppinsStyle(
                       context,
-                      'Aaj Ka Daily Quiz',
+                      "Today's Daily Quiz",
                       13,
                       AppColors.white,
                       FontWeight.w700,
@@ -903,7 +903,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
                 const SizedBox(width: 12),
                 AppRichText.setTextPoppinsStyle(
                   context,
-                  'Aaj Ka Daily Quiz',
+                  "Today's Daily Quiz",
                   13,
                   AppColors.white,
                   FontWeight.w700,
@@ -932,7 +932,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
                   const SizedBox(height: 20),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Aaj ka Quiz De Diya! 🎉',
+                    "You've completed today's quiz! 🎉",
                     22,
                     AppColors.darkNavy,
                     FontWeight.w900,
@@ -943,7 +943,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
                   const SizedBox(height: 6),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Kal phir aana naya quiz leke!',
+                    'Come back tomorrow for a new quiz!',
                     13,
                     AppColors.greyS600,
                     FontWeight.normal,
@@ -1147,7 +1147,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
                             children: [
                               AppRichText.setTextPoppinsStyle(
                                 context,
-                                '$totalParticipants students ne aaj diya',
+                                '$totalParticipants students took it today',
                                 12,
                                 AppColors.darkNavy,
                                 FontWeight.w700,
@@ -1297,7 +1297,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> with SingleTickerProv
                   const SizedBox(height: 12),
                   AppRichText.setTextPoppinsStyle(
                     context,
-                    'Agar ab chode toh aaj ka quiz miss ho jayega!',
+                    "If you leave now, you will miss today's quiz!",
                     11,
                     AppColors.greyS600,
                     FontWeight.normal,

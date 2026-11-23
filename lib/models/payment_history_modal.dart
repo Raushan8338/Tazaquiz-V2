@@ -142,7 +142,12 @@ class PaymentItem {
   }
 
   String get productDisplayName {
-    return productDetails?.name ?? 'Product #$productId';
+    final String name = productDetails?.name ?? '';
+    // Old server reply for upgrades was "Plan_upgrade #<course id>"
+    if (name.isEmpty || name.toLowerCase().startsWith('plan_upgrade')) {
+      return productType.toUpperCase() == 'PLAN_UPGRADE' ? 'Premium Upgrade' : 'Product #$productId';
+    }
+    return name;
   }
 
   String get productTypeDisplay {
@@ -152,14 +157,24 @@ class PaymentItem {
       case 'SUBSCRIPTION':
         final plan = productDetails?.packageName;
         return (plan != null && plan.isNotEmpty) ? '$plan Plan' : 'Subscription Plan';
+      case 'PLAN_UPGRADE':
+        final plan = productDetails?.packageName;
+        return 'Upgrade to ${(plan != null && plan.isNotEmpty) ? plan : 'Premium'}';
       case 'STUDY':
       case 'COURSE':
       case 'STUDY_MATERIAL':
         return 'Course Purchase';
       default:
-        return productType;
+        return _pretty(productType);
     }
   }
+
+  // "PLAN_UPGRADE" / "SOME_TYPE" -> "Plan Upgrade" / "Some Type" (never show raw DB codes to students)
+  static String _pretty(String code) => code
+      .split(RegExp(r'[_\s]+'))
+      .where((w) => w.isNotEmpty)
+      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
 }
 
 // Product Details Model
